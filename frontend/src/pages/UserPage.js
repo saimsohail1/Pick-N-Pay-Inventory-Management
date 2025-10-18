@@ -46,13 +46,18 @@ const UserPage = () => {
   const fetchRoles = async () => {
     try {
       const response = await usersAPI.getRoles();
-      setAvailableRoles(response.data);
+      // Backend returns array of strings like ['ADMIN', 'USER']
+      // Convert to objects with name and displayName
+      const roleObjects = response.data.map(role => ({
+        name: role,
+        displayName: role === 'ADMIN' ? 'Admin' : 'User'
+      }));
+      setAvailableRoles(roleObjects);
     } catch (err) {
       console.error('Failed to fetch roles:', err);
       // Fallback to hardcoded roles
       setAvailableRoles([
         { name: 'ADMIN', displayName: 'Admin' },
-        { name: 'MANAGER', displayName: 'Manager' },
         { name: 'USER', displayName: 'User' }
       ]);
     }
@@ -174,7 +179,6 @@ const UserPage = () => {
   const getRoleBadgeVariant = (role) => {
     switch (role) {
       case 'ADMIN': return 'danger';
-      case 'MANAGER': return 'warning';
       case 'USER': return 'primary';
       default: return 'secondary';
     }

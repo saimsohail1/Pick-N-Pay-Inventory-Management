@@ -37,9 +37,7 @@ function App() {
           } />
           <Route path="/sales" element={
             <ProtectedRoute>
-              <Layout>
-                <SalesPage />
-              </Layout>
+              <SalesPage />
             </ProtectedRoute>
           } />
           <Route path="/inventory" element={

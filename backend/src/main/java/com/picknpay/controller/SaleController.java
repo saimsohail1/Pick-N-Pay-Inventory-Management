@@ -75,6 +75,14 @@ public class SaleController {
         return ResponseEntity.ok(report);
     }
     
+    @GetMapping("/daily-report/user")
+    public ResponseEntity<DailyReportDTO> getDailyReportByUser(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam Long userId) {
+        DailyReportDTO report = saleService.getDailyReportByUser(date, userId);
+        return ResponseEntity.ok(report);
+    }
+    
     @GetMapping("/total")
     public ResponseEntity<Double> getTotalSalesByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,

@@ -74,29 +74,35 @@ const Layout = ({ children }) => {
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
       }}>
         <Container fluid>
-          <Navbar.Brand href="#" className="fw-bold text-white" style={{ 
-            fontSize: '1.5rem',
-            textShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            letterSpacing: '0.025em'
-          }}>
+          <Navbar.Brand 
+            onClick={() => navigate('/')} 
+            className="fw-bold text-white" 
+            style={{ 
+              fontSize: '1.5rem',
+              textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              letterSpacing: '0.025em',
+              cursor: 'pointer'
+            }}
+            title="Go to Dashboard"
+          >
             <i className="bi bi-shop me-3" style={{ fontSize: '1.75rem' }}></i>
-            <span className="gradient-text">{companyName}</span>
+            <span className="text-white">{companyName}</span>
             <span className="text-white ms-2">Inventory Management</span>
-          </Navbar.Brand>
+              </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
-          <Navbar.Collapse id="basic-navbar-nav">
-            <Nav className="ms-auto">
-              {navigationItems.map((item) => (
-                <Nav.Link
-                  key={item.path}
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate(item.path);
-                  }}
+              <Navbar.Collapse id="basic-navbar-nav">
+                <Nav className="ms-auto">
+                  {navigationItems.map((item) => (
+                    <Nav.Link
+                      key={item.path}
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate(item.path);
+                      }}
                   className={`d-flex align-items-center hover-lift ${
-                    location.pathname === item.path ? 'active' : ''
-                  }`}
+                        location.pathname === item.path ? 'active' : ''
+                      }`}
                   style={{
                     borderRadius: 'var(--radius-lg)',
                     padding: '0.75rem 1.25rem',
@@ -109,9 +115,9 @@ const Layout = ({ children }) => {
                   }}
                 >
                   <i className={`${item.icon} me-2`} style={{ fontSize: '1.1rem' }}></i>
-                  {item.label}
-                </Nav.Link>
-              ))}
+                      {item.label}
+                    </Nav.Link>
+                  ))}
               
               {/* User Dropdown */}
               {isAuthenticated() && (
@@ -151,8 +157,8 @@ const Layout = ({ children }) => {
                   </Dropdown.Menu>
                 </Dropdown>
               )}
-            </Nav>
-          </Navbar.Collapse>
+                </Nav>
+              </Navbar.Collapse>
         </Container>
       </Navbar>
       

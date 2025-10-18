@@ -30,11 +30,14 @@ export const salesAPI = {
   getById: (id) => api.get(`/sales/${id}`),
   getByDateRange: (startDate, endDate) => 
     api.get(`/sales/date-range?startDate=${startDate}&endDate=${endDate}`),
+  getSalesByDateRange: (startDate, endDate) => 
+    api.get(`/sales/date-range?startDate=${startDate}&endDate=${endDate}`),
   create: (sale) => api.post('/sales', sale),
   delete: (id) => api.delete(`/sales/${id}`),
   getTotalByDateRange: (startDate, endDate) => 
     api.get(`/sales/total?startDate=${startDate}&endDate=${endDate}`),
   getDailyReport: (date) => api.get(`/sales/daily-report?date=${date}`),
+  getDailyReportByUser: (date, userId) => api.get(`/sales/daily-report/user?date=${date}&userId=${userId}`),
   
   // New role-based endpoints
   getTodaySales: (userId, isAdmin) => 
@@ -61,6 +64,10 @@ export const categoriesAPI = {
   getById: (id) => api.get(`/categories/${id}`),
   getCategoryItems: (id) => api.get(`/categories/${id}/items`),
   getItemByBarcode: (barcode) => api.get(`/categories/items/barcode/${barcode}`),
+  create: (data) => api.post('/categories', data),
+  update: (id, data) => api.put(`/categories/${id}`, data),
+  delete: (id) => api.delete(`/categories/${id}`),
+  initialize: () => api.post('/categories/initialize'),
 };
 
 // Authentication API - Removed for custom implementation

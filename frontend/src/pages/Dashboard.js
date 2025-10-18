@@ -1,22 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Spinner, Alert } from 'react-bootstrap';
+import { Row, Col, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { itemsAPI, salesAPI, companySettingsAPI } from '../services/api';
+import { companySettingsAPI } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    totalItems: 0,
-    totalSales: 0,
-    lowStockItems: 0,
-    todaySales: 0
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [companyName, setCompanyName] = useState('PickNPay');
 
   useEffect(() => {
-    fetchDashboardData();
     fetchCompanyName();
   }, []);
 
@@ -40,87 +31,8 @@ const Dashboard = () => {
     }
   };
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const [itemsResponse, salesResponse, lowStockResponse] = await Promise.all([
-        itemsAPI.getAll(),
-        salesAPI.getAll(),
-        itemsAPI.getLowStock(10)
-      ]);
 
-      // Calculate today's sales
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-      
-      const todaySalesResponse = await salesAPI.getTotalByDateRange(
-        startOfDay.toISOString(),
-        endOfDay.toISOString()
-      );
 
-      setStats({
-        totalItems: itemsResponse.data.length,
-        totalSales: salesResponse.data.length,
-        lowStockItems: lowStockResponse.data.length,
-        todaySales: todaySalesResponse.data || 0
-      });
-    } catch (err) {
-      setError('Failed to load dashboard data');
-      console.error('Dashboard error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
-      </div>
-    );
-  }
-
-  if (error) {
-    return <Alert variant="danger">{error}</Alert>;
-  }
-
-  const statCards = [
-    {
-      title: 'Total Items',
-      value: stats.totalItems,
-      icon: 'bi-box-seam',
-      color: 'grey',
-      bgColor: 'bg-secondary',
-      textColor: 'text-white'
-    },
-    {
-      title: 'Total Sales',
-      value: stats.totalSales,
-      icon: 'bi-cart-check',
-      color: 'yellow',
-      bgColor: 'bg-warning',
-      textColor: 'text-dark'
-    },
-    {
-      title: 'Low Stock Items',
-      value: stats.lowStockItems,
-      icon: 'bi-exclamation-triangle',
-      color: 'grey',
-      bgColor: 'bg-secondary',
-      textColor: 'text-white'
-    },
-    {
-      title: "Today's Sales",
-      value: `€${stats.todaySales.toFixed(2)}`,
-      icon: 'bi-graph-up',
-      color: 'yellow',
-      bgColor: 'bg-warning',
-      textColor: 'text-dark'
-    }
-  ];
 
   const navigationCards = [
     {
@@ -223,33 +135,6 @@ const Dashboard = () => {
           ))}
         </Row>
 
-        {/* Statistics Section */}
-        <Card className="animate-fade-in-up">
-          <Card.Header className="bg-gradient-primary text-white">
-            <h5 className="mb-0">
-              <i className="bi bi-graph-up me-2"></i>
-              System Overview
-            </h5>
-          </Card.Header>
-          <Card.Body className="p-4">
-            <Row className="g-4">
-              {statCards.map((card, index) => (
-                <Col xs={12} sm={6} md={3} key={index}>
-                  <div className="stats-card text-center p-4">
-                    <div className="icon-lg mx-auto mb-3" style={{ 
-                      background: `linear-gradient(135deg, var(--primary-100) 0%, var(--primary-200) 100%)`,
-                      color: 'var(--primary-600)'
-                    }}>
-                      <i className={`${card.icon}`}></i>
-                    </div>
-                    <h3 className="stats-number text-primary mb-1">{card.value}</h3>
-                    <p className="stats-label text-muted mb-0">{card.title}</p>
-                  </div>
-                </Col>
-              ))}
-            </Row>
-          </Card.Body>
-        </Card>
       </div>
     </div>
   );

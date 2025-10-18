@@ -31,8 +31,9 @@ public class Sale {
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<SaleItem> saleItems;
     
-    @Column(name = "user_id")
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = true)
+    private User user;
     
     // Constructors
     public Sale() {
@@ -87,11 +88,11 @@ public class Sale {
         this.paymentMethod = paymentMethod;
     }
     
-    public Long getUserId() {
-        return userId;
+    public User getUser() {
+        return user;
     }
     
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setUser(User user) {
+        this.user = user;
     }
 }

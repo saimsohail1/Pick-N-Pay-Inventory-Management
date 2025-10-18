@@ -31,4 +31,27 @@ public class CategoryController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PostMapping
+    public ResponseEntity<CategoryDTO> createCategory(@RequestBody CategoryDTO categoryDTO) {
+        try {
+            CategoryDTO createdCategory = categoryService.createCategory(categoryDTO);
+            return ResponseEntity.ok(createdCategory);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long id, @RequestBody CategoryDTO categoryDTO) {
+        Optional<CategoryDTO> updatedCategory = categoryService.updateCategory(id, categoryDTO);
+        return updatedCategory.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        boolean deleted = categoryService.deleteCategory(id);
+        return deleted ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    }
+
 }

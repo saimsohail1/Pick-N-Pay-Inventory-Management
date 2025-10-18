@@ -29,6 +29,41 @@ public class CategoryService {
                 .map(this::convertToDTO);
     }
 
+    public CategoryDTO createCategory(CategoryDTO categoryDTO) {
+        Category category = convertToEntity(categoryDTO);
+        category.setIsActive(true);
+        Category savedCategory = categoryRepository.save(category);
+        return convertToDTO(savedCategory);
+    }
+
+    public Optional<CategoryDTO> updateCategory(Long id, CategoryDTO categoryDTO) {
+        return categoryRepository.findById(id)
+                .map(existingCategory -> {
+                    existingCategory.setName(categoryDTO.getName());
+                    existingCategory.setDescription(categoryDTO.getDescription());
+                    existingCategory.setIsActive(categoryDTO.getIsActive());
+                    existingCategory.setDisplayOnPos(categoryDTO.getDisplayOnPos());
+                    Category updatedCategory = categoryRepository.save(existingCategory);
+                    return convertToDTO(updatedCategory);
+                });
+    }
+
+    public boolean deleteCategory(Long id) {
+        if (categoryRepository.existsById(id)) {
+            categoryRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+
+    private Category convertToEntity(CategoryDTO dto) {
+        Category category = new Category();
+        category.setName(dto.getName());
+        category.setDescription(dto.getDescription());
+        category.setIsActive(dto.getIsActive());
+        category.setDisplayOnPos(dto.getDisplayOnPos());
+        return category;
+    }
 
     private CategoryDTO convertToDTO(Category category) {
         CategoryDTO dto = new CategoryDTO();

@@ -91,19 +91,6 @@ public class ItemService {
         return false;
     }
     
-    public List<ItemDTO> getExpiringItems(int daysAhead) {
-        LocalDate expiryThreshold = LocalDate.now().plusDays(daysAhead);
-        return itemRepository.findByExpiryDateLessThanEqualAndExpiryDateIsNotNull(expiryThreshold).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-    
-    public List<ItemDTO> getExpiredItems() {
-        LocalDate today = LocalDate.now();
-        return itemRepository.findByExpiryDateLessThanAndExpiryDateIsNotNull(today).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
     
     public boolean updateStock(Long itemId, Integer quantityChange) {
         Optional<Item> itemOpt = itemRepository.findById(itemId);

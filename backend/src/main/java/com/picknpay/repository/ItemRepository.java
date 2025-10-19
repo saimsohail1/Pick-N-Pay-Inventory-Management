@@ -24,8 +24,4 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     
     @Query("SELECT i FROM Item i WHERE i.stockQuantity <= :threshold")
     List<Item> findLowStockItems(@Param("threshold") Integer threshold);
-    
-    List<Item> findByExpiryDateLessThanEqualAndExpiryDateIsNotNull(LocalDate expiryDate);
-    
-    List<Item> findByExpiryDateLessThanAndExpiryDateIsNotNull(LocalDate expiryDate);
 }

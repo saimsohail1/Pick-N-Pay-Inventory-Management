@@ -148,7 +148,7 @@ const Layout = ({ children }) => {
                 }}
                 title="Close Application"
               >
-                <i className="bi bi-x-circle me-2" style={{ fontSize: '1.25rem' }}></i>
+                <i className="bi bi-power me-2" style={{ fontSize: '1.25rem' }}></i>
                 <span className="d-none d-md-inline">Close</span>
               </button>
 

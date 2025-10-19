@@ -989,7 +989,7 @@ const SalesPage = () => {
                       }
                     }}
                   >
-                      <i className="bi bi-x-circle me-2"></i>
+                      <i className="bi bi-power me-2"></i>
                       Exit
                     </Button>
                   </div>

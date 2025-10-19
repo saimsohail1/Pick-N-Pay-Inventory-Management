@@ -1,8 +1,9 @@
 {
-  "name": "picknpay-frontend",
+  "name": "InventoryManagementSystem-frontend",
   "version": "1.0.0",
   "description": "PickNPay Inventory Management System Frontend",
-  "main": "public/electron.js",
+  "author": "Saim <saimmsohail@gmail.com>",
+  "main": "main.js",
   "homepage": "./",
   "scripts": {
     "start": "react-scripts start",
@@ -11,8 +12,8 @@
     "eject": "react-scripts eject",
     "electron": "electron .",
     "electron-dev": "ELECTRON_IS_DEV=true electron .",
-    "electron-pack": "electron-builder",
-    "preelectron-pack": "npm run build"
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win"
   },
   "dependencies": {
     "@emotion/react": "^11.10.5",
@@ -23,7 +24,6 @@
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
     "date-fns": "^2.29.3",
-    "electron": "^22.0.0",
     "electron-is-dev": "^2.0.0",
     "quagga": "^0.12.1",
     "react": "^18.2.0",
@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "concurrently": "^7.6.0",
+    "electron": "^22.0.0",
     "electron-builder": "^23.6.0",
     "wait-on": "^7.0.1"
   },
@@ -50,26 +51,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "build": {
-    "appId": "com.picknpay.inventory",
-    "productName": "PickNPay Inventory Management",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "build/**/*",
-      "public/electron.js",
-      "node_modules/**/*"
-    ],
-    "mac": {
-      "category": "public.app-category.business"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "linux": {
-      "target": "AppImage"
-    }
   }
 }

@@ -18,6 +18,12 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+  };
+
   useEffect(() => {
     // Check if user is logged in on app start
     const token = localStorage.getItem('token');
@@ -58,7 +64,7 @@ export const AuthProvider = ({ children }) => {
         console.error('Error setting up IPC listener:', error);
       }
     }
-  }, []);
+  }, [logout]);
 
   const login = async (username, password) => {
     try {
@@ -86,12 +92,6 @@ export const AuthProvider = ({ children }) => {
         message: error.response?.data?.message || 'Invalid username or password' 
       };
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
   };
 
   const isAuthenticated = () => {

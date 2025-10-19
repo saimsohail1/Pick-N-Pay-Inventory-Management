@@ -47,7 +47,8 @@ function createWindow() {
       enableRemoteModule: true
     },
     icon: path.join(__dirname, 'icon.png'),
-    show: false
+    show: false,
+    titleBarStyle: 'hidden' // ✅ Hide title bar completely
   });
 
   const startUrl = isDev
@@ -60,14 +61,16 @@ function createWindow() {
     mainWindow.show();
     mainWindow.setFullScreen(true); // ✅ Ensure fullscreen on show
     mainWindow.setMenuBarVisibility(false); // ✅ Hide menu bar in fullscreen
+    mainWindow.maximize(); // ✅ Maximize window for better fullscreen experience
   });
 
   // ✅ ESC key to exit fullscreen
   mainWindow.webContents.on('before-input-event', (event, input) => {
-    if (input.key === 'Escape') {
+    if (input.key === 'Escape' && input.type === 'keyDown') {
       if (mainWindow.isFullScreen()) {
         mainWindow.setFullScreen(false);
         mainWindow.setMenuBarVisibility(true); // ✅ Show menu bar when exiting fullscreen
+        mainWindow.setFrame(true); // ✅ Show frame when exiting fullscreen
         // Show a brief notification
         mainWindow.webContents.send('fullscreen-exited');
       }
@@ -81,8 +84,10 @@ function createWindow() {
       mainWindow.setFullScreen(!isFullScreen);
       if (!isFullScreen) {
         mainWindow.setMenuBarVisibility(false); // ✅ Hide menu bar when entering fullscreen
+        mainWindow.setFrame(false); // ✅ Hide frame when entering fullscreen
       } else {
         mainWindow.setMenuBarVisibility(true); // ✅ Show menu bar when exiting fullscreen
+        mainWindow.setFrame(true); // ✅ Show frame when exiting fullscreen
       }
     }
   });
@@ -94,10 +99,16 @@ function createWindow() {
       mainWindow.webContents.send('app-closing');
       // Give a small delay for the logout to complete
       setTimeout(() => {
+        if (backendProcess) {
+          backendProcess.kill();
+        }
         mainWindow = null;
-      }, 100);
+      }, 200);
     } catch (error) {
       console.error('Error sending app-closing message:', error);
+      if (backendProcess) {
+        backendProcess.kill();
+      }
       mainWindow = null;
     }
   });
@@ -114,7 +125,10 @@ function createWindow() {
 // ✅ Handle app-closing message from renderer process
 ipcMain.on('app-closing', (event) => {
   console.log('Received app-closing message from renderer');
-  // Close the app
+  // Close the app gracefully
+  if (backendProcess) {
+    backendProcess.kill();
+  }
   app.quit();
 });
 

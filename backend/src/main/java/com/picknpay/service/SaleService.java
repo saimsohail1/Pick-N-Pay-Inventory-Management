@@ -120,6 +120,16 @@ public class SaleService {
                     saleItem.setItemBarcode(item.getBarcode());
                     saleItem.setBatchId(saleItemDTO.getBatchId()); // Set batch ID from DTO
                     
+                    // Calculate VAT
+                    BigDecimal vatRate = item.getVatRate() != null ? item.getVatRate() : new BigDecimal("23.00");
+                    BigDecimal totalPriceIncludingVat = saleItemDTO.getTotalPrice();
+                    BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, BigDecimal.ROUND_HALF_UP);
+                    BigDecimal totalVatAmount = totalPriceIncludingVat.subtract(totalPriceExcludingVat);
+                    
+                    saleItem.setVatRate(vatRate);
+                    saleItem.setVatAmount(totalVatAmount);
+                    saleItem.setPriceExcludingVat(totalPriceExcludingVat);
+                    
                     // Update stock
                     item.setStockQuantity(item.getStockQuantity() - saleItemDTO.getQuantity());
                     itemRepository.save(item);
@@ -132,6 +142,16 @@ public class SaleService {
                 saleItem.setItemName(saleItemDTO.getItemName() != null ? saleItemDTO.getItemName() : "Quick Sale");
                 saleItem.setItemBarcode(saleItemDTO.getItemBarcode() != null ? saleItemDTO.getItemBarcode() : "N/A");
                 saleItem.setBatchId(null); // Quick sales don't have batch IDs
+                
+                // For quick sales, assume standard VAT rate
+                BigDecimal vatRate = new BigDecimal("23.00");
+                BigDecimal totalPriceIncludingVat = saleItemDTO.getTotalPrice();
+                BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, BigDecimal.ROUND_HALF_UP);
+                BigDecimal totalVatAmount = totalPriceIncludingVat.subtract(totalPriceExcludingVat);
+                
+                saleItem.setVatRate(vatRate);
+                saleItem.setVatAmount(totalVatAmount);
+                saleItem.setPriceExcludingVat(totalPriceExcludingVat);
             }
             
             sale.getSaleItems().add(saleItem);
@@ -171,6 +191,11 @@ public class SaleService {
         dto.setUnitPrice(saleItem.getUnitPrice());
         dto.setTotalPrice(saleItem.getTotalPrice());
         dto.setBatchId(saleItem.getBatchId());
+        
+        // Set VAT fields
+        dto.setVatRate(saleItem.getVatRate());
+        dto.setVatAmount(saleItem.getVatAmount());
+        dto.setPriceExcludingVat(saleItem.getPriceExcludingVat());
         
         // Handle null items (quick sales)
         if (saleItem.getItem() != null) {
@@ -226,7 +251,28 @@ public class SaleService {
         Double cardAmountDouble = saleRepository.getTotalSalesByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CARD);
         BigDecimal cardAmount = cardAmountDouble != null ? BigDecimal.valueOf(cardAmountDouble) : BigDecimal.ZERO;
 
-        return new DailyReportDTO(date, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
+        // Calculate VAT totals
+        BigDecimal totalVatAmount = BigDecimal.ZERO;
+        BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
+        
+        // Get all sales for the day to calculate VAT
+        List<Sale> allSales = saleRepository.findSalesByDateRange(startOfDay, endOfDay);
+        for (Sale sale : allSales) {
+            for (SaleItem item : sale.getSaleItems()) {
+                if (item.getVatAmount() != null) {
+                    totalVatAmount = totalVatAmount.add(item.getVatAmount());
+                }
+                if (item.getPriceExcludingVat() != null) {
+                    totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
+                }
+            }
+        }
+        
+        DailyReportDTO report = new DailyReportDTO(date, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
+        report.setTotalVatAmount(totalVatAmount);
+        report.setTotalAmountExcludingVat(totalAmountExcludingVat);
+        
+        return report;
     }
     
     public DailyReportDTO getDailyReportByUser(LocalDate date, Long userId) {
@@ -260,7 +306,26 @@ public class SaleService {
                 .map(Sale::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new DailyReportDTO(date, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
+        // Calculate VAT totals for user sales
+        BigDecimal totalVatAmount = BigDecimal.ZERO;
+        BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
+        
+        for (Sale sale : userSales) {
+            for (SaleItem item : sale.getSaleItems()) {
+                if (item.getVatAmount() != null) {
+                    totalVatAmount = totalVatAmount.add(item.getVatAmount());
+                }
+                if (item.getPriceExcludingVat() != null) {
+                    totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
+                }
+            }
+        }
+        
+        DailyReportDTO report = new DailyReportDTO(date, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
+        report.setTotalVatAmount(totalVatAmount);
+        report.setTotalAmountExcludingVat(totalAmountExcludingVat);
+        
+        return report;
     }
     
     public SaleDTO updateSale(Long id, SaleDTO saleDTO) {

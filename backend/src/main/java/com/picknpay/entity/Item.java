@@ -35,6 +35,9 @@ public class Item {
     @Column(unique = true)
     private String barcode;
     
+    @Column(name = "vat_rate", precision = 5, scale = 2, nullable = false)
+    private BigDecimal vatRate = new BigDecimal("23.00"); // Default 23% VAT
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
@@ -131,6 +134,14 @@ public class Item {
     
     public void setCategory(Category category) {
         this.category = category;
+    }
+    
+    public BigDecimal getVatRate() {
+        return vatRate;
+    }
+    
+    public void setVatRate(BigDecimal vatRate) {
+        this.vatRate = vatRate;
     }
     
     @PreUpdate

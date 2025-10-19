@@ -11,6 +11,8 @@ public class DailyReportDTO {
     private BigDecimal cashAmount;
     private Long cardSales;
     private BigDecimal cardAmount;
+    private BigDecimal totalVatAmount;
+    private BigDecimal totalAmountExcludingVat;
 
     // Constructors
     public DailyReportDTO() {}
@@ -81,5 +83,21 @@ public class DailyReportDTO {
 
     public void setCardAmount(BigDecimal cardAmount) {
         this.cardAmount = cardAmount;
+    }
+    
+    public BigDecimal getTotalVatAmount() {
+        return totalVatAmount;
+    }
+    
+    public void setTotalVatAmount(BigDecimal totalVatAmount) {
+        this.totalVatAmount = totalVatAmount;
+    }
+    
+    public BigDecimal getTotalAmountExcludingVat() {
+        return totalAmountExcludingVat;
+    }
+    
+    public void setTotalAmountExcludingVat(BigDecimal totalAmountExcludingVat) {
+        this.totalAmountExcludingVat = totalAmountExcludingVat;
     }
 }

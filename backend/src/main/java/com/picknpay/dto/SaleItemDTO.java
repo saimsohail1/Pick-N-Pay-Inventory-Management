@@ -30,6 +30,11 @@ public class SaleItemDTO {
     private String itemBarcode;
     private String batchId;
     
+    // VAT fields
+    private BigDecimal vatRate;
+    private BigDecimal vatAmount;
+    private BigDecimal priceExcludingVat;
+    
     // Constructors
     public SaleItemDTO() {}
     
@@ -109,5 +114,29 @@ public class SaleItemDTO {
     
     public void setBatchId(String batchId) {
         this.batchId = batchId;
+    }
+    
+    public BigDecimal getVatRate() {
+        return vatRate;
+    }
+    
+    public void setVatRate(BigDecimal vatRate) {
+        this.vatRate = vatRate;
+    }
+    
+    public BigDecimal getVatAmount() {
+        return vatAmount;
+    }
+    
+    public void setVatAmount(BigDecimal vatAmount) {
+        this.vatAmount = vatAmount;
+    }
+    
+    public BigDecimal getPriceExcludingVat() {
+        return priceExcludingVat;
+    }
+    
+    public void setPriceExcludingVat(BigDecimal priceExcludingVat) {
+        this.priceExcludingVat = priceExcludingVat;
     }
 }

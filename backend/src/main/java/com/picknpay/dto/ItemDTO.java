@@ -28,6 +28,10 @@ public class ItemDTO {
     private Long categoryId;
     private String categoryName;
     
+    @NotNull(message = "VAT rate is required")
+    @DecimalMin(value = "0.0", inclusive = true, message = "VAT rate must be 0 or greater")
+    private BigDecimal vatRate = new BigDecimal("23.00"); // Default 23% VAT
+    
     // Constructors
     public ItemDTO() {}
     
@@ -102,5 +106,13 @@ public class ItemDTO {
     
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+    }
+    
+    public BigDecimal getVatRate() {
+        return vatRate;
+    }
+    
+    public void setVatRate(BigDecimal vatRate) {
+        this.vatRate = vatRate;
     }
 }

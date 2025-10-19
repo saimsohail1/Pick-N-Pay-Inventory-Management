@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -118,6 +119,7 @@ public class ItemService {
             dto.setCategoryId(item.getCategory().getId());
             dto.setCategoryName(item.getCategory().getName());
         }
+        dto.setVatRate(item.getVatRate());
         return dto;
     }
     
@@ -132,6 +134,7 @@ public class ItemService {
             Category category = categoryRepository.findById(dto.getCategoryId()).orElse(null);
             item.setCategory(category);
         }
+        item.setVatRate(dto.getVatRate() != null ? dto.getVatRate() : new BigDecimal("23.00"));
         return item;
     }
 }

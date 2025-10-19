@@ -48,6 +48,15 @@ public class SaleItem {
     @Column(name = "batch_id")
     private String batchId;
     
+    @Column(name = "vat_rate", precision = 5, scale = 2)
+    private BigDecimal vatRate;
+    
+    @Column(name = "vat_amount", precision = 10, scale = 2)
+    private BigDecimal vatAmount;
+    
+    @Column(name = "price_excluding_vat", precision = 10, scale = 2)
+    private BigDecimal priceExcludingVat;
+    
     // Constructors
     public SaleItem() {}
     
@@ -136,5 +145,29 @@ public class SaleItem {
     
     public void setBatchId(String batchId) {
         this.batchId = batchId;
+    }
+    
+    public BigDecimal getVatRate() {
+        return vatRate;
+    }
+    
+    public void setVatRate(BigDecimal vatRate) {
+        this.vatRate = vatRate;
+    }
+    
+    public BigDecimal getVatAmount() {
+        return vatAmount;
+    }
+    
+    public void setVatAmount(BigDecimal vatAmount) {
+        this.vatAmount = vatAmount;
+    }
+    
+    public BigDecimal getPriceExcludingVat() {
+        return priceExcludingVat;
+    }
+    
+    public void setPriceExcludingVat(BigDecimal priceExcludingVat) {
+        this.priceExcludingVat = priceExcludingVat;
     }
 }

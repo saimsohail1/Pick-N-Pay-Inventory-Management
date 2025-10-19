@@ -974,15 +974,19 @@ const SalesPage = () => {
                     className="fw-bold" 
                     style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }}
                     onClick={() => {
+                      console.log('Exit button clicked');
                       // Check if running in Electron
                       if (window && window.require) {
+                        console.log('Running in Electron, sending app-closing message');
                         try {
                           const { ipcRenderer } = window.require('electron');
                           ipcRenderer.send('app-closing');
+                          console.log('app-closing message sent successfully');
                         } catch (error) {
                           console.error('Error closing app:', error);
                         }
                       } else {
+                        console.log('Not in Electron, logging out and navigating to login');
                         // If not in Electron, just logout
                         logout();
                         navigate('/login');

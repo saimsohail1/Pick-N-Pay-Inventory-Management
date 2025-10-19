@@ -3,6 +3,7 @@ import { Navbar, Nav, Container, Dropdown } from 'react-bootstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { companySettingsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import FullscreenIndicator from './FullscreenIndicator';
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
@@ -165,6 +166,9 @@ const Layout = ({ children }) => {
       <Container className="py-4">
         {children}
       </Container>
+      
+      {/* Fullscreen indicator */}
+      <FullscreenIndicator />
     </div>
   );
 };

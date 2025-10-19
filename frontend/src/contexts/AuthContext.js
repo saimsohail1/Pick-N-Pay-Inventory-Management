@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
+// Check if we're running in Electron
+const isElectron = window && window.require;
+
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -30,6 +33,23 @@ export const AuthProvider = ({ children }) => {
       }
     }
     setLoading(false);
+
+    // ✅ Listen for app closing event in Electron
+    if (isElectron) {
+      const { ipcRenderer } = window.require('electron');
+      
+      const handleAppClosing = () => {
+        console.log('App is closing, logging out user...');
+        logout();
+      };
+      
+      ipcRenderer.on('app-closing', handleAppClosing);
+      
+      // Cleanup listener on unmount
+      return () => {
+        ipcRenderer.removeListener('app-closing', handleAppClosing);
+      };
+    }
   }, []);
 
   const login = async (username, password) => {

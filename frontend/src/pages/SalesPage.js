@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { itemsAPI, salesAPI, categoriesAPI, companySettingsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import BarcodeScanner from '../components/BarcodeScanner';
+import FullscreenIndicator from '../components/FullscreenIndicator';
 import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
 
 const SalesPage = () => {
@@ -1621,6 +1622,9 @@ const SalesPage = () => {
           </div>
         </Modal.Body>
       </Modal>
+      
+      {/* Fullscreen indicator */}
+      <FullscreenIndicator />
     </div>
   );
 };

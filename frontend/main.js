@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, globalShortcut } = require('electron');
 const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
 const path = require('path');
@@ -37,6 +37,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    fullscreen: true, // ✅ Start in fullscreen mode
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
@@ -53,6 +54,32 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    mainWindow.setFullScreen(true); // ✅ Ensure fullscreen on show
+  });
+
+  // ✅ ESC key to exit fullscreen
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'Escape') {
+      if (mainWindow.isFullScreen()) {
+        mainWindow.setFullScreen(false);
+        // Show a brief notification
+        mainWindow.webContents.send('fullscreen-exited');
+      }
+    }
+  });
+
+  // ✅ F11 key to toggle fullscreen
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F11' && input.type === 'keyDown') {
+      mainWindow.setFullScreen(!mainWindow.isFullScreen());
+    }
+  });
+
+  // ✅ Logout user when window is closed
+  mainWindow.on('closed', () => {
+    // Send logout message to renderer process
+    mainWindow.webContents.send('app-closing');
+    mainWindow = null;
   });
 
   if (isDev) {

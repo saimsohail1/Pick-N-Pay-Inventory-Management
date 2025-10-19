@@ -386,30 +386,40 @@ const SalesPage = () => {
     setCheckoutDialogOpen(false);
 
     try {
+      console.log('Processing cash payment...');
+      console.log('User object:', user);
+      console.log('Cart:', cart);
+      
       const saleItems = cart.map((item) => ({
         itemId: item.itemId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice
       }));
 
       const saleData = {
         totalAmount: calculateTotal(),
         paymentMethod: 'CASH',
         saleItems: saleItems,
-        userId: user?.id,
+        userId: user?.id || null,
         cashAmount: parseFloat(cashAmount || 0),
         changeDue: parseFloat(cashAmount || 0) > 0 ? calculateChange() : 0
       };
 
-      await salesAPI.create(saleData);
+      console.log('Sale data being sent:', saleData);
+      const response = await salesAPI.create(saleData);
+      console.log('Sale created successfully:', response.data);
+      
       setCart([]);
       setCashAmount('');
       setSelectedNotes({});
       setSuccess('Cash payment completed successfully!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError('Failed to complete sale. Please try again.');
-      setTimeout(() => setError(null), 3000);
+      console.error('Error creating sale:', err);
+      console.error('Error response:', err.response?.data);
+      setError(`Failed to complete sale: ${err.response?.data || err.message}`);
+      setTimeout(() => setError(null), 5000);
     } finally {
       setLoading(false);
     }
@@ -422,26 +432,36 @@ const SalesPage = () => {
     setCheckoutDialogOpen(false);
 
     try {
+      console.log('Processing card payment...');
+      console.log('User object:', user);
+      console.log('Cart:', cart);
+      
       const saleItems = cart.map((item) => ({
         itemId: item.itemId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice
       }));
 
       const saleData = {
         totalAmount: calculateTotal(),
         paymentMethod: 'CARD',
         saleItems: saleItems,
-        userId: user?.id,
+        userId: user?.id || null,
       };
 
-      await salesAPI.create(saleData);
+      console.log('Sale data being sent:', saleData);
+      const response = await salesAPI.create(saleData);
+      console.log('Sale created successfully:', response.data);
+      
       setCart([]);
       setSuccess('Card payment completed successfully!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError('Failed to complete sale. Please try again.');
-      setTimeout(() => setError(null), 3000);
+      console.error('Error creating sale:', err);
+      console.error('Error response:', err.response?.data);
+      setError(`Failed to complete sale: ${err.response?.data || err.message}`);
+      setTimeout(() => setError(null), 5000);
     } finally {
       setLoading(false);
     }

@@ -743,7 +743,30 @@ const SalesPage = () => {
               <i className="bi bi-tablet fs-5 text-white hover-lift" style={{ cursor: 'pointer' }} title="Tablet Mode"></i>
               <i className="bi bi-gear fs-5 text-white hover-lift" style={{ cursor: 'pointer' }} onClick={() => navigate('/company')} title="Settings"></i>
               <i className="bi bi-box-arrow-right fs-5 text-white hover-lift" style={{ cursor: 'pointer' }} onClick={() => { localStorage.removeItem('token'); navigate('/login'); }} title="Logout"></i>
-              <i className="bi bi-power fs-5 text-white hover-lift" style={{ cursor: 'pointer' }} title="Power"></i>
+              <i 
+                className="bi bi-power fs-5 text-white hover-lift" 
+                style={{ cursor: 'pointer' }} 
+                title="Close Application"
+                onClick={() => {
+                  console.log('Power button clicked');
+                  // Check if running in Electron
+                  if (window && window.require) {
+                    console.log('Running in Electron, sending app-closing message');
+                    try {
+                      const { ipcRenderer } = window.require('electron');
+                      ipcRenderer.send('app-closing');
+                      console.log('app-closing message sent successfully');
+                    } catch (error) {
+                      console.error('Error closing app:', error);
+                    }
+                  } else {
+                    console.log('Not in Electron, logging out and navigating to login');
+                    // If not in Electron, just logout
+                    logout();
+                    navigate('/login');
+                  }
+                }}
+              ></i>
             </div>
           </div>
         </div>

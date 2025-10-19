@@ -29,7 +29,8 @@ const InventoryPage = () => {
     price: '',
     stockQuantity: '',
     barcode: '',
-    categoryId: ''
+    categoryId: '',
+    expiryDate: ''
   });
 
   useEffect(() => {
@@ -109,7 +110,9 @@ const InventoryPage = () => {
       description: item.description || '',
       price: item.price.toString(),
       stockQuantity: item.stockQuantity.toString(),
-      barcode: item.barcode || ''
+      barcode: item.barcode || '',
+      categoryId: item.categoryId || '',
+      expiryDate: item.expiryDate || ''
     });
     setShowEditModal(true);
   };
@@ -206,6 +209,7 @@ const InventoryPage = () => {
                 <th className="text-end">Price</th>
                 <th className="text-center">Stock</th>
                 <th>Barcode</th>
+                <th className="text-center">Expiry Date</th>
                 <th className="text-center">Actions</th>
               </tr>
             </thead>
@@ -230,6 +234,19 @@ const InventoryPage = () => {
                   </td>
                   <td>
                     <code className="text-muted">{item.barcode || '-'}</code>
+                  </td>
+                  <td className="text-center">
+                    {item.expiryDate ? (
+                      <Badge 
+                        bg={new Date(item.expiryDate) < new Date() ? 'danger' : 
+                            new Date(item.expiryDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? 'warning' : 'success'}
+                        className="fs-6"
+                      >
+                        {new Date(item.expiryDate).toLocaleDateString()}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted">-</span>
+                    )}
                   </td>
                   <td className="text-center">
                     <div className="d-flex justify-content-center gap-1">
@@ -365,6 +382,19 @@ const InventoryPage = () => {
                 </Form.Group>
               </Col>
             </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Expiry Date</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="expiryDate"
+                    value={formData.expiryDate}
+                    onChange={handleInputChange}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowAddModal(false)}>
@@ -474,6 +504,19 @@ const InventoryPage = () => {
                     value={formData.stockQuantity}
                     onChange={handleInputChange}
                     required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Expiry Date</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="expiryDate"
+                    value={formData.expiryDate}
+                    onChange={handleInputChange}
                   />
                 </Form.Group>
               </Col>

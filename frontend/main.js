@@ -10,24 +10,11 @@ let mainWindow;
 let backendProcess;
 
 function startBackend() {
-  let jarPath;
-  
-  if (isDev) {
-    // Development: Look for JAR in backend/target directory
-    jarPath = path.join(__dirname, '..', 'backend', 'target', 'inventory-management-0.0.1-SNAPSHOT.jar');
-  } else {
-    // Production: Look for JAR in resources/backend directory
-    jarPath = path.join(process.resourcesPath, 'backend', 'inventory-management-0.0.1-SNAPSHOT.jar');
-  }
+  const jarPath = isDev
+    ? path.join(__dirname, 'backend', 'inventory-management-0.0.1-SNAPSHOT.jar')
+    : path.join(process.resourcesPath, 'backend', 'inventory-management-0.0.1-SNAPSHOT.jar');
 
   console.log("👉 Launching backend from:", jarPath);
-  console.log("👉 Is Dev:", isDev);
-
-  // Check if JAR file exists
-  if (!fs.existsSync(jarPath)) {
-    console.error('❌ JAR file not found at:', jarPath);
-    return;
-  }
 
   backendProcess = spawn('java', ['-jar', jarPath], {
     cwd: path.dirname(jarPath),

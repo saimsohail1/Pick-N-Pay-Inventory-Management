@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain } = require('electron');
 const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
 const path = require('path');
@@ -109,6 +109,13 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   }
 }
+
+// ✅ Handle app-closing message from renderer process
+ipcMain.on('app-closing', (event) => {
+  console.log('Received app-closing message from renderer');
+  // Close the app
+  app.quit();
+});
 
 app.whenReady().then(() => {
   startBackend();

@@ -120,6 +120,38 @@ const Layout = ({ children }) => {
                     </Nav.Link>
                   ))}
               
+              {/* Close App Button */}
+              <button
+                className="btn btn-outline-light d-flex align-items-center hover-lift ms-3"
+                onClick={() => {
+                  // Check if running in Electron
+                  if (window && window.require) {
+                    try {
+                      const { ipcRenderer } = window.require('electron');
+                      ipcRenderer.send('app-closing');
+                    } catch (error) {
+                      console.error('Error closing app:', error);
+                    }
+                  } else {
+                    // If not in Electron, just logout
+                    handleLogout();
+                  }
+                }}
+                style={{
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '0.75rem 1.25rem',
+                  fontWeight: '500',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  backdropFilter: 'blur(10px)'
+                }}
+                title="Close Application"
+              >
+                <i className="bi bi-x-circle me-2" style={{ fontSize: '1.25rem' }}></i>
+                <span className="d-none d-md-inline">Close</span>
+              </button>
+
               {/* User Dropdown */}
               {isAuthenticated() && (
                 <Dropdown align="end" className="ms-3">

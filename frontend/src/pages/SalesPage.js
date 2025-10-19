@@ -26,7 +26,7 @@ const SalesPage = () => {
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [companyName, setCompanyName] = useState('PickNPay');
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -968,7 +968,27 @@ const SalesPage = () => {
                       <i className="bi bi-percent me-2"></i>
                       Discount
                     </Button>
-                  <Button variant="secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }}>
+                  <Button 
+                    variant="secondary" 
+                    size="lg" 
+                    className="fw-bold" 
+                    style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }}
+                    onClick={() => {
+                      // Check if running in Electron
+                      if (window && window.require) {
+                        try {
+                          const { ipcRenderer } = window.require('electron');
+                          ipcRenderer.send('app-closing');
+                        } catch (error) {
+                          console.error('Error closing app:', error);
+                        }
+                      } else {
+                        // If not in Electron, just logout
+                        logout();
+                        navigate('/login');
+                      }
+                    }}
+                  >
                       <i className="bi bi-x-circle me-2"></i>
                       Exit
                     </Button>

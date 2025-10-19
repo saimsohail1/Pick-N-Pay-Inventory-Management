@@ -36,19 +36,27 @@ export const AuthProvider = ({ children }) => {
 
     // ✅ Listen for app closing event in Electron
     if (isElectron) {
-      const { ipcRenderer } = window.require('electron');
-      
-      const handleAppClosing = () => {
-        console.log('App is closing, logging out user...');
-        logout();
-      };
-      
-      ipcRenderer.on('app-closing', handleAppClosing);
-      
-      // Cleanup listener on unmount
-      return () => {
-        ipcRenderer.removeListener('app-closing', handleAppClosing);
-      };
+      try {
+        const { ipcRenderer } = window.require('electron');
+        
+        const handleAppClosing = () => {
+          console.log('App is closing, logging out user...');
+          logout();
+        };
+        
+        ipcRenderer.on('app-closing', handleAppClosing);
+        
+        // Cleanup listener on unmount
+        return () => {
+          try {
+            ipcRenderer.removeListener('app-closing', handleAppClosing);
+          } catch (error) {
+            console.error('Error removing IPC listener:', error);
+          }
+        };
+      } catch (error) {
+        console.error('Error setting up IPC listener:', error);
+      }
     }
   }, []);
 

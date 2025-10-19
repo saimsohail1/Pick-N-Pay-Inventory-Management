@@ -38,9 +38,12 @@ function createWindow() {
     width: 1200,
     height: 800,
     fullscreen: true, // ✅ Start in fullscreen mode
+    frame: false, // ✅ Remove window frame for true fullscreen
+    autoHideMenuBar: true, // ✅ Hide menu bar
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      enableRemoteModule: true
     },
     icon: path.join(__dirname, 'icon.png'),
     show: false
@@ -55,6 +58,7 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     mainWindow.setFullScreen(true); // ✅ Ensure fullscreen on show
+    mainWindow.setMenuBarVisibility(false); // ✅ Hide menu bar in fullscreen
   });
 
   // ✅ ESC key to exit fullscreen
@@ -62,6 +66,7 @@ function createWindow() {
     if (input.key === 'Escape') {
       if (mainWindow.isFullScreen()) {
         mainWindow.setFullScreen(false);
+        mainWindow.setMenuBarVisibility(true); // ✅ Show menu bar when exiting fullscreen
         // Show a brief notification
         mainWindow.webContents.send('fullscreen-exited');
       }
@@ -71,14 +76,32 @@ function createWindow() {
   // ✅ F11 key to toggle fullscreen
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (input.key === 'F11' && input.type === 'keyDown') {
-      mainWindow.setFullScreen(!mainWindow.isFullScreen());
+      const isFullScreen = mainWindow.isFullScreen();
+      mainWindow.setFullScreen(!isFullScreen);
+      if (!isFullScreen) {
+        mainWindow.setMenuBarVisibility(false); // ✅ Hide menu bar when entering fullscreen
+      } else {
+        mainWindow.setMenuBarVisibility(true); // ✅ Show menu bar when exiting fullscreen
+      }
     }
   });
 
   // ✅ Logout user when window is closed
+  mainWindow.on('close', (event) => {
+    // Send logout message to renderer process before closing
+    try {
+      mainWindow.webContents.send('app-closing');
+      // Give a small delay for the logout to complete
+      setTimeout(() => {
+        mainWindow = null;
+      }, 100);
+    } catch (error) {
+      console.error('Error sending app-closing message:', error);
+      mainWindow = null;
+    }
+  });
+
   mainWindow.on('closed', () => {
-    // Send logout message to renderer process
-    mainWindow.webContents.send('app-closing');
     mainWindow = null;
   });
 
@@ -93,6 +116,14 @@ app.whenReady().then(() => {
 });
 
 app.on('before-quit', () => {
+  // Force logout before quitting
+  if (mainWindow && mainWindow.webContents) {
+    try {
+      mainWindow.webContents.send('app-closing');
+    } catch (error) {
+      console.error('Error sending logout message:', error);
+    }
+  }
   if (backendProcess) backendProcess.kill();
 });
 

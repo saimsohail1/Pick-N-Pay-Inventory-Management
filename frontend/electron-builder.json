@@ -18,7 +18,7 @@
   },
   "extraResources": [
     {
-      "from": "backend/",
+      "from": "../backend/target/",
       "to": "backend",
       "filter": ["*.jar"]
     }

@@ -129,7 +129,7 @@ CREATE TRIGGER update_company_settings_updated_at BEFORE UPDATE ON company_setti
 -- ============================================
 
 -- Insert default admin user
--- Password: admin123 (bcrypt hashed)
+-- Password: admin123 (bcrypt hashed with BCryptPasswordEncoder)
 INSERT INTO users (
     username, 
     email, 
@@ -140,7 +140,7 @@ INSERT INTO users (
 ) VALUES (
     'admin', 
     'admin@picknpay.com', 
-    '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 
+    '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 
     'System Administrator', 
     'ADMIN', 
     true
@@ -218,10 +218,11 @@ BEGIN
     RAISE NOTICE '============================================';
     RAISE NOTICE 'Admin User Created:';
     RAISE NOTICE '  Username: admin';
-    RAISE NOTICE '  Password: admin123';
+    RAISE NOTICE '  Password: admin123 (BCrypt encoded)';
     RAISE NOTICE '  Email: admin@picknpay.com';
     RAISE NOTICE '============================================';
     RAISE NOTICE 'Default Categories and Items Added';
     RAISE NOTICE 'Company Settings Configured';
+    RAISE NOTICE 'BCrypt Password Encoding: ENABLED';
     RAISE NOTICE '============================================';
 END $$;

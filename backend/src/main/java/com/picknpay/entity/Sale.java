@@ -25,7 +25,7 @@ public class Sale {
     private LocalDateTime saleDate;
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = false)
+    @Column(name = "payment_method", nullable = false, columnDefinition = "payment_method")
     private PaymentMethod paymentMethod;
     
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

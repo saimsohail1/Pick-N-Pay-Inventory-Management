@@ -73,6 +73,7 @@ CREATE TABLE items (
     price DECIMAL(10,2) NOT NULL CHECK (price > 0),
     stock_quantity INTEGER NOT NULL DEFAULT 0,
     barcode VARCHAR(255) UNIQUE,
+    vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00,
     category_id BIGINT REFERENCES categories(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -115,6 +116,9 @@ CREATE TABLE sale_items (
     unit_price DECIMAL(10,2) NOT NULL CHECK (unit_price > 0),
     total_price DECIMAL(10,2) NOT NULL CHECK (total_price > 0),
     batch_id VARCHAR(255),
+    vat_rate DECIMAL(5,2),
+    vat_amount DECIMAL(10,2),
+    price_excluding_vat DECIMAL(10,2),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

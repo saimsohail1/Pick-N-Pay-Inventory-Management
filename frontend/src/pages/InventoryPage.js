@@ -29,6 +29,7 @@ const InventoryPage = () => {
     price: '',
     stockQuantity: '',
     barcode: '',
+    vatRate: '23.00', // Default 23% VAT
     categoryId: '',
     batchId: '',
     expiryDate: ''
@@ -75,7 +76,8 @@ const InventoryPage = () => {
       const itemData = {
         ...formData,
         price: parseFloat(formData.price),
-        stockQuantity: parseInt(formData.stockQuantity)
+        stockQuantity: parseInt(formData.stockQuantity),
+        vatRate: parseFloat(formData.vatRate)
       };
 
       if (editingItem) {
@@ -95,6 +97,7 @@ const InventoryPage = () => {
         price: '',
         stockQuantity: '',
         barcode: '',
+        vatRate: '23.00',
         categoryId: '',
         batchId: '',
         expiryDate: ''
@@ -116,6 +119,7 @@ const InventoryPage = () => {
       price: item.price.toString(),
       stockQuantity: item.stockQuantity.toString(),
       barcode: item.barcode || '',
+      vatRate: item.vatRate ? item.vatRate.toString() : '23.00',
       categoryId: item.categoryId || '',
       batchId: item.batchId || '',
       expiryDate: item.expiryDate || ''
@@ -391,6 +395,24 @@ const InventoryPage = () => {
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
+                  <Form.Label>VAT Rate (%) *</Form.Label>
+                  <InputGroup>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      name="vatRate"
+                      value={formData.vatRate}
+                      onChange={handleInputChange}
+                      placeholder="23.00"
+                    />
+                    <InputGroup.Text>%</InputGroup.Text>
+                  </InputGroup>
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
                   <Form.Label>Batch ID</Form.Label>
                   <Form.Control
                     type="text"
@@ -519,6 +541,24 @@ const InventoryPage = () => {
                     value={formData.stockQuantity}
                     onChange={handleInputChange}
                   />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>VAT Rate (%) *</Form.Label>
+                  <InputGroup>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      name="vatRate"
+                      value={formData.vatRate}
+                      onChange={handleInputChange}
+                      placeholder="23.00"
+                    />
+                    <InputGroup.Text>%</InputGroup.Text>
+                  </InputGroup>
                 </Form.Group>
               </Col>
             </Row>

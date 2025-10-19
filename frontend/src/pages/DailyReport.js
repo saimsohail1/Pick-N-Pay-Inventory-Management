@@ -41,7 +41,12 @@ const DailyReport = () => {
           ],
           categories: [
             { category: 'Total', count: 0, total: 0 }
-          ]
+          ],
+          vatInfo: {
+            totalVatAmount: 0,
+            totalAmountExcludingVat: 0,
+            totalAmountIncludingVat: 0
+          }
         });
         return;
       }
@@ -54,6 +59,8 @@ const DailyReport = () => {
       
       const totalCount = cashCount + cardCount;
       const totalAmount = cashTotal + cardTotal;
+      const totalVatAmount = parseFloat(dailyReport.totalVatAmount || 0);
+      const totalAmountExcludingVat = parseFloat(dailyReport.totalAmountExcludingVat || 0);
 
       setReportData({
         paymentMethods: [
@@ -63,7 +70,12 @@ const DailyReport = () => {
         ],
         categories: [
           { category: 'Total', count: totalCount, total: totalAmount }
-        ]
+        ],
+        vatInfo: {
+          totalVatAmount,
+          totalAmountExcludingVat,
+          totalAmountIncludingVat: totalAmount
+        }
       });
 
     } catch (err) {
@@ -269,6 +281,44 @@ const DailyReport = () => {
                     ))}
                             </tbody>
                           </Table>
+              </div>
+            </div>
+          )}
+
+          {/* VAT Summary Section */}
+          {reportData.vatInfo && (
+            <div className="col-md-6 mb-4">
+              <div className="card h-100">
+                <div className="card-header bg-info text-white">
+                  <h5 className="card-title mb-0">
+                    <i className="bi bi-percent me-2"></i>
+                    VAT Summary
+                  </h5>
+                </div>
+                <div className="card-body">
+                  <Table striped bordered hover className="mb-0">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Description</th>
+                        <th>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="fw-bold">Amount Excluding VAT</td>
+                        <td className="text-end fw-bold">€ {reportData.vatInfo.totalAmountExcludingVat.toFixed(2)}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold">Total VAT Amount</td>
+                        <td className="text-end fw-bold text-success">€ {reportData.vatInfo.totalVatAmount.toFixed(2)}</td>
+                      </tr>
+                      <tr className="table-dark">
+                        <td className="fw-bold">Total Amount Including VAT</td>
+                        <td className="text-end fw-bold">€ {reportData.vatInfo.totalAmountIncludingVat.toFixed(2)}</td>
+                      </tr>
+                    </tbody>
+                  </Table>
+                </div>
               </div>
             </div>
           )}

@@ -50,6 +50,7 @@ const SalesPage = () => {
     barcode: '',
     price: '',
     stockQuantity: '',
+    vatRate: '23.00', // Default 23% VAT
     categoryId: ''
   });
   const [selectedCartItem, setSelectedCartItem] = useState(null);
@@ -1503,6 +1504,7 @@ const SalesPage = () => {
                   barcode: scannedBarcode,
                   price: '',
                   stockQuantity: '',
+                  vatRate: '23.00',
                   categoryId: ''
                 });
                 setRegisterItemDialogOpen(true);
@@ -1571,6 +1573,21 @@ const SalesPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
+              <Form.Label>VAT Rate (%) *</Form.Label>
+              <InputGroup>
+                <Form.Control
+                  type="number"
+                  step="0.01"
+                  placeholder="23.00"
+                  value={newItem.vatRate}
+                  onChange={(e) => setNewItem(prev => ({ ...prev, vatRate: e.target.value }))}
+                  required
+                />
+                <InputGroup.Text>%</InputGroup.Text>
+              </InputGroup>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
               <Form.Label>Category</Form.Label>
               <Form.Select
                 value={newItem.categoryId}
@@ -1599,6 +1616,7 @@ const SalesPage = () => {
                   barcode: newItem.barcode,
                   price: parseFloat(newItem.price),
                   stockQuantity: parseInt(newItem.stockQuantity),
+                  vatRate: parseFloat(newItem.vatRate),
                   categoryId: parseInt(newItem.categoryId)
                 };
                 
@@ -1613,6 +1631,7 @@ const SalesPage = () => {
                   barcode: '',
                   price: '',
                   stockQuantity: '',
+                  vatRate: '23.00',
                   categoryId: ''
                 });
                 
@@ -1624,7 +1643,7 @@ const SalesPage = () => {
                 setTimeout(() => setError(null), 5000);
               }
             }}
-            disabled={!newItem.name || !newItem.barcode || !newItem.price || !newItem.stockQuantity}
+            disabled={!newItem.name || !newItem.barcode || !newItem.price || !newItem.stockQuantity || !newItem.vatRate}
           >
             Register Item
           </Button>

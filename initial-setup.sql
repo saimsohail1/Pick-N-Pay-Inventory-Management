@@ -1,35 +1,49 @@
--- PickNPay Inventory Management System - Initial Setup Script
--- This script creates the database, tables, and adds the first admin user
--- 
--- IMPORTANT: Uses VARCHAR columns instead of PostgreSQL enum types
--- This ensures compatibility with Hibernate/JPA and prevents enum casting errors
-
 -- ============================================
--- 1. DATABASE CREATION
+-- PickNPay Inventory Management System
+-- Complete Initial Setup Script with Batch System
 -- ============================================
 
--- Create database (run this as postgres superuser)
-CREATE DATABASE picknpay_inventory;
-
--- Connect to the database
-\c picknpay_inventory;
+-- Connect to the database (run this first if needed)
+-- \c picknpay_inventory;
 
 -- ============================================
--- 2. TABLE CREATION
+-- 1. DROP EXISTING TABLES (if they exist)
 -- ============================================
 
--- Note: Using VARCHAR instead of enum types for better Hibernate compatibility
--- PostgreSQL enum types can cause casting issues with Hibernate/JPA
+-- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS sale_items CASCADE;
+DROP TABLE IF EXISTS sales CASCADE;
+DROP TABLE IF EXISTS batches CASCADE;
+DROP TABLE IF EXISTS items CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS company_settings CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- ============================================
+-- 2. CREATE TABLES
+-- ============================================
 
 -- Create users table
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    email VARCHAR(100) NOT NULL UNIQUE,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
     role VARCHAR(10) NOT NULL CHECK (role IN ('ADMIN', 'USER')),
     is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create company_settings table
+CREATE TABLE company_settings (
+    id BIGSERIAL PRIMARY KEY,
+    company_name VARCHAR(100) NOT NULL DEFAULT 'PickNPay',
+    address TEXT,
+    phone VARCHAR(20),
+    email VARCHAR(100),
+    tax_number VARCHAR(50),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -44,7 +58,7 @@ CREATE TABLE categories (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create items table
+-- Create items table (Master Data)
 CREATE TABLE items (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -52,12 +66,12 @@ CREATE TABLE items (
     price DECIMAL(10,2) NOT NULL CHECK (price > 0),
     stock_quantity INTEGER NOT NULL DEFAULT 0,
     barcode VARCHAR(255) UNIQUE,
-    category_id BIGINT NOT NULL REFERENCES categories(id),
+    category_id BIGINT REFERENCES categories(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create batches table
+-- Create batches table (Inventory Tracking)
 CREATE TABLE batches (
     id BIGSERIAL PRIMARY KEY,
     product_id BIGINT NOT NULL REFERENCES items(id),
@@ -86,89 +100,63 @@ CREATE TABLE sales (
 -- Create sale_items table
 CREATE TABLE sale_items (
     id BIGSERIAL PRIMARY KEY,
-    sale_id BIGINT NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+    sale_id BIGINT NOT NULL REFERENCES sales(id),
     item_id BIGINT REFERENCES items(id),
+    item_name VARCHAR(255) NOT NULL,
+    item_barcode VARCHAR(255),
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     unit_price DECIMAL(10,2) NOT NULL CHECK (unit_price > 0),
-    total_price DECIMAL(10,2) NOT NULL CHECK (total_price > 0)
-);
-
--- Create company_settings table
-CREATE TABLE company_settings (
-    id BIGSERIAL PRIMARY KEY,
-    company_name VARCHAR(255) NOT NULL DEFAULT 'PickNPay',
-    address TEXT,
-    phone VARCHAR(50),
-    email VARCHAR(100),
-    tax_number VARCHAR(100),
-    currency VARCHAR(10) DEFAULT 'EUR',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    total_price DECIMAL(10,2) NOT NULL CHECK (total_price > 0),
+    batch_id VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
--- 3. INDEXES FOR PERFORMANCE
+-- 3. CREATE INDEXES
 -- ============================================
 
+-- Users indexes
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(role);
+
+-- Items indexes
+CREATE INDEX idx_items_name ON items(name);
 CREATE INDEX idx_items_barcode ON items(barcode);
-CREATE INDEX idx_items_category ON items(category_id);
+CREATE INDEX idx_items_category_id ON items(category_id);
+
+-- Batches indexes
+CREATE INDEX idx_batches_product_id ON batches(product_id);
+CREATE INDEX idx_batches_expiry_date ON batches(expiry_date);
+CREATE INDEX idx_batches_batch_id ON batches(batch_id);
+
+-- Sales indexes
 CREATE INDEX idx_sales_date ON sales(sale_date);
-CREATE INDEX idx_sales_user ON sales(user_id);
-CREATE INDEX idx_sale_items_sale ON sale_items(sale_id);
-CREATE INDEX idx_sale_items_item ON sale_items(item_id);
+CREATE INDEX idx_sales_user_id ON sales(user_id);
+CREATE INDEX idx_sales_payment_method ON sales(payment_method);
+
+-- Sale items indexes
+CREATE INDEX idx_sale_items_sale_id ON sale_items(sale_id);
+CREATE INDEX idx_sale_items_item_id ON sale_items(item_id);
 
 -- ============================================
--- 4. JPA HANDLES UPDATED_AT AUTOMATICALLY
+-- 4. INSERT INITIAL DATA
 -- ============================================
 
--- Note: JPA entities use @PreUpdate and @PrePersist annotations
--- to automatically handle created_at and updated_at timestamps.
--- No database triggers are needed as this is handled at the application level.
+-- Insert admin user with BCrypt encoded password for "admin123"
+INSERT INTO users (username, email, password, full_name, role, is_active) VALUES
+('admin', 'admin@picknpay.com', '$2a$10$Zsk8XbjYk3FiVDKjrCKu.O9KrtQ1985FD2Qw4FsdMWt4GjCSIB5j6', 'System Administrator', 'ADMIN', true);
+
+-- Insert company settings
+INSERT INTO company_settings (company_name, address, phone, email, tax_number) VALUES
+('PickNPay', 
+'123 Main Street, Dublin, Ireland', 
+'+353-1-234-5678', 
+'info@picknpay.com', 
+'IE123456789');
 
 -- ============================================
--- 5. INITIAL DATA
--- ============================================
-
--- Insert default admin user
--- Password: admin123 (bcrypt hashed with BCryptPasswordEncoder)
-INSERT INTO users (
-    username, 
-    email, 
-    password, 
-    full_name, 
-    role, 
-    is_active
-) VALUES (
-    'admin', 
-    'admin@picknpay.com', 
-    '$2a$10$Zsk8XbjYk3FiVDKjrCKu.O9KrtQ1985FD2Qw4FsdMWt4GjCSIB5j6', 
-    'System Administrator', 
-    'ADMIN', 
-    true
-);
-
--- Insert default company settings
-INSERT INTO company_settings (
-    company_name, 
-    address, 
-    phone, 
-    email, 
-    tax_number
-) VALUES (
-    'PickNPay Store', 
-    '123 Main Street, Dublin, Ireland', 
-    '+353-1-234-5678', 
-    'info@picknpay.com', 
-    'IE123456789'
-);
-
--- Categories and items will be created through the application
--- No default data inserted - users can create their own categories and products
-
--- ============================================
--- 6. GRANTS AND PERMISSIONS
+-- 5. GRANTS AND PERMISSIONS
 -- ============================================
 
 -- Grant permissions to postgres user (adjust as needed)
@@ -177,7 +165,7 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;
 
 -- ============================================
--- 7. VERIFICATION QUERIES
+-- 6. VERIFICATION QUERIES
 -- ============================================
 
 -- Verify tables were created
@@ -186,10 +174,11 @@ SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' O
 -- Verify admin user was created
 SELECT username, email, role, is_active FROM users WHERE role = 'ADMIN';
 
--- Verify table structure (no sample data inserted)
-SELECT COUNT(*) as category_count FROM categories;
-SELECT COUNT(*) as item_count FROM items;
-SELECT COUNT(*) as company_settings_count FROM company_settings;
+-- Verify table structure
+SELECT table_name, column_name, data_type, is_nullable 
+FROM information_schema.columns 
+WHERE table_name IN ('users', 'items', 'batches', 'categories', 'sales', 'sale_items', 'company_settings') 
+ORDER BY table_name, ordinal_position;
 
 -- ============================================
 -- SETUP COMPLETE
@@ -211,11 +200,12 @@ BEGIN
     RAISE NOTICE 'BCrypt Password Encoding: ENABLED';
     RAISE NOTICE 'JPA Timestamp Management: ENABLED';
     RAISE NOTICE 'VARCHAR Enum Columns: ENABLED (Hibernate Compatible)';
-    RAISE NOTICE 'Expiry Date Support: ENABLED';
+    RAISE NOTICE 'Batch System: ENABLED';
     RAISE NOTICE '============================================';
     RAISE NOTICE 'Next Steps:';
     RAISE NOTICE '1. Start the application';
     RAISE NOTICE '2. Login with admin credentials';
     RAISE NOTICE '3. Create categories and products through the app';
+    RAISE NOTICE '4. Add batches for products with expiry dates';
     RAISE NOTICE '============================================';
 END $$;

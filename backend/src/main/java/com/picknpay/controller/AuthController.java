@@ -4,6 +4,7 @@ import com.picknpay.dto.UserDTO;
 import com.picknpay.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -17,6 +18,9 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
@@ -35,8 +39,8 @@ public class AuthController {
                     return ResponseEntity.badRequest().body(response);
                 }
                 
-                // Simple password validation (in production, use proper password hashing)
-                if (loginRequest.password().equals(user.getPassword())) {
+                // Use BCrypt password verification
+                if (passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
                     Map<String, Object> response = new HashMap<>();
                     response.put("success", "true");
                     response.put("message", "Login successful");

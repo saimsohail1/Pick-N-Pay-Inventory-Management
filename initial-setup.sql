@@ -128,7 +128,7 @@ INSERT INTO users (
 ) VALUES (
     'admin', 
     'admin@picknpay.com', 
-    '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 
+    '$2a$10$Zsk8XbjYk3FiVDKjrCKu.O9KrtQ1985FD2Qw4FsdMWt4GjCSIB5j6', 
     'System Administrator', 
     'ADMIN', 
     true

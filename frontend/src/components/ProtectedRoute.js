@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Spinner, Container } from 'react-bootstrap';
+import Layout from './Layout';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { user, isAuthenticated, isAdmin, loading } = useAuth();
@@ -26,13 +27,15 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   // Check admin requirement
   if (requireAdmin && !isAdmin()) {
     return (
-      <Container className="py-5">
-        <div className="text-center">
-          <h3 className="text-danger">Access Denied</h3>
-          <p>You don't have permission to access this page.</p>
-          <p>Admin privileges required.</p>
-        </div>
-      </Container>
+      <Layout>
+        <Container className="py-5">
+          <div className="text-center">
+            <h3 className="text-danger">Access Denied</h3>
+            <p>You don't have permission to access this page.</p>
+            <p>Admin privileges required.</p>
+          </div>
+        </Container>
+      </Layout>
     );
   }
 

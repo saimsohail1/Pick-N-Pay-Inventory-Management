@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 
 @Entity
@@ -36,6 +37,16 @@ public class SaleItem {
     @DecimalMin(value = "0.0", inclusive = false, message = "Total price must be greater than 0")
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal totalPrice;
+    
+    @NotBlank(message = "Item name is required")
+    @Column(name = "item_name", nullable = false)
+    private String itemName;
+    
+    @Column(name = "item_barcode")
+    private String itemBarcode;
+    
+    @Column(name = "batch_id")
+    private String batchId;
     
     // Constructors
     public SaleItem() {}
@@ -101,5 +112,29 @@ public class SaleItem {
     
     public void setTotalPrice(BigDecimal totalPrice) {
         this.totalPrice = totalPrice;
+    }
+    
+    public String getItemName() {
+        return itemName;
+    }
+    
+    public void setItemName(String itemName) {
+        this.itemName = itemName;
+    }
+    
+    public String getItemBarcode() {
+        return itemBarcode;
+    }
+    
+    public void setItemBarcode(String itemBarcode) {
+        this.itemBarcode = itemBarcode;
+    }
+    
+    public String getBatchId() {
+        return batchId;
+    }
+    
+    public void setBatchId(String batchId) {
+        this.batchId = batchId;
     }
 }

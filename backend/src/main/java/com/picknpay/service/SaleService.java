@@ -116,6 +116,9 @@ public class SaleService {
                     }
                     
                     saleItem.setItem(item);
+                    saleItem.setItemName(item.getName());
+                    saleItem.setItemBarcode(item.getBarcode());
+                    saleItem.setBatchId(saleItemDTO.getBatchId()); // Set batch ID from DTO
                     
                     // Update stock
                     item.setStockQuantity(item.getStockQuantity() - saleItemDTO.getQuantity());
@@ -126,6 +129,9 @@ public class SaleService {
             } else {
                 // Quick sale - no specific item, just a cash transaction
                 saleItem.setItem(null);
+                saleItem.setItemName(saleItemDTO.getItemName() != null ? saleItemDTO.getItemName() : "Quick Sale");
+                saleItem.setItemBarcode(saleItemDTO.getItemBarcode() != null ? saleItemDTO.getItemBarcode() : "N/A");
+                saleItem.setBatchId(null); // Quick sales don't have batch IDs
             }
             
             sale.getSaleItems().add(saleItem);
@@ -164,16 +170,17 @@ public class SaleService {
         dto.setQuantity(saleItem.getQuantity());
         dto.setUnitPrice(saleItem.getUnitPrice());
         dto.setTotalPrice(saleItem.getTotalPrice());
+        dto.setBatchId(saleItem.getBatchId());
         
         // Handle null items (quick sales)
         if (saleItem.getItem() != null) {
             dto.setItemId(saleItem.getItem().getId());
-            dto.setItemName(saleItem.getItem().getName());
-            dto.setItemBarcode(saleItem.getItem().getBarcode());
+            dto.setItemName(saleItem.getItemName()); // Use stored item name
+            dto.setItemBarcode(saleItem.getItemBarcode()); // Use stored barcode
         } else {
             dto.setItemId(null);
-            dto.setItemName("Quick Sale");
-            dto.setItemBarcode("N/A");
+            dto.setItemName(saleItem.getItemName()); // Use stored item name
+            dto.setItemBarcode(saleItem.getItemBarcode()); // Use stored barcode
         }
         
         return dto;
@@ -287,7 +294,16 @@ public class SaleService {
                 if (itemOpt.isPresent()) {
                     Item item = itemOpt.get();
                     saleItem.setItem(item);
+                    saleItem.setItemName(item.getName());
+                    saleItem.setItemBarcode(item.getBarcode());
+                    saleItem.setBatchId(saleItemDTO.getBatchId());
                 }
+            } else {
+                // Quick sale
+                saleItem.setItem(null);
+                saleItem.setItemName(saleItemDTO.getItemName() != null ? saleItemDTO.getItemName() : "Quick Sale");
+                saleItem.setItemBarcode(saleItemDTO.getItemBarcode() != null ? saleItemDTO.getItemBarcode() : "N/A");
+                saleItem.setBatchId(null);
             }
             
             existingSale.getSaleItems().add(saleItem);

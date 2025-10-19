@@ -28,6 +28,7 @@ public class SaleItemDTO {
     // Additional fields for display
     private String itemName;
     private String itemBarcode;
+    private String batchId;
     
     // Constructors
     public SaleItemDTO() {}
@@ -100,5 +101,13 @@ public class SaleItemDTO {
     
     public void setItemBarcode(String itemBarcode) {
         this.itemBarcode = itemBarcode;
+    }
+    
+    public String getBatchId() {
+        return batchId;
+    }
+    
+    public void setBatchId(String batchId) {
+        this.batchId = batchId;
     }
 }

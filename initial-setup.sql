@@ -53,9 +53,23 @@ CREATE TABLE items (
     stock_quantity INTEGER NOT NULL DEFAULT 0,
     barcode VARCHAR(255) UNIQUE,
     category_id BIGINT NOT NULL REFERENCES categories(id),
-    expiry_date DATE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create batches table
+CREATE TABLE batches (
+    id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL REFERENCES items(id),
+    batch_id VARCHAR(255) NOT NULL,
+    expiry_date DATE,
+    manufacture_date DATE,
+    quantity INTEGER NOT NULL DEFAULT 0,
+    received_date DATE,
+    supplier_id VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(product_id, batch_id)
 );
 
 -- Create sales table

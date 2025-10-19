@@ -28,8 +28,6 @@ public class ItemDTO {
     private Long categoryId;
     private String categoryName;
     
-    private LocalDate expiryDate;
-    
     // Constructors
     public ItemDTO() {}
     
@@ -104,13 +102,5 @@ public class ItemDTO {
     
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
-    }
-    
-    public LocalDate getExpiryDate() {
-        return expiryDate;
-    }
-    
-    public void setExpiryDate(LocalDate expiryDate) {
-        this.expiryDate = expiryDate;
     }
 }

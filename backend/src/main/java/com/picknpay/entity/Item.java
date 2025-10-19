@@ -41,9 +41,6 @@ public class Item {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    @Column(name = "expiry_date")
-    private LocalDate expiryDate;
-    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
@@ -126,14 +123,6 @@ public class Item {
     
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-    
-    public LocalDate getExpiryDate() {
-        return expiryDate;
-    }
-    
-    public void setExpiryDate(LocalDate expiryDate) {
-        this.expiryDate = expiryDate;
     }
     
     public Category getCategory() {

@@ -78,7 +78,6 @@ public class ItemService {
                     existingItem.setPrice(itemDTO.getPrice());
                     existingItem.setStockQuantity(itemDTO.getStockQuantity());
                     existingItem.setBarcode(itemDTO.getBarcode());
-                    existingItem.setExpiryDate(itemDTO.getExpiryDate());
                     Item updatedItem = itemRepository.save(existingItem);
                     return convertToDTO(updatedItem);
                 });
@@ -128,7 +127,6 @@ public class ItemService {
         dto.setPrice(item.getPrice());
         dto.setStockQuantity(item.getStockQuantity());
         dto.setBarcode(item.getBarcode());
-        dto.setExpiryDate(item.getExpiryDate());
         if (item.getCategory() != null) {
             dto.setCategoryId(item.getCategory().getId());
             dto.setCategoryName(item.getCategory().getName());
@@ -143,7 +141,6 @@ public class ItemService {
         item.setPrice(dto.getPrice());
         item.setStockQuantity(dto.getStockQuantity());
         item.setBarcode(dto.getBarcode());
-        item.setExpiryDate(dto.getExpiryDate());
         if (dto.getCategoryId() != null) {
             Category category = categoryRepository.findById(dto.getCategoryId()).orElse(null);
             item.setCategory(category);

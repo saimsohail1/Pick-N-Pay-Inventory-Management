@@ -30,6 +30,7 @@ const InventoryPage = () => {
     stockQuantity: '',
     barcode: '',
     categoryId: '',
+    batchId: '',
     expiryDate: ''
   });
 
@@ -93,7 +94,10 @@ const InventoryPage = () => {
         description: '',
         price: '',
         stockQuantity: '',
-        barcode: ''
+        barcode: '',
+        categoryId: '',
+        batchId: '',
+        expiryDate: ''
       });
       fetchItems();
     } catch (err) {
@@ -112,6 +116,7 @@ const InventoryPage = () => {
       stockQuantity: item.stockQuantity.toString(),
       barcode: item.barcode || '',
       categoryId: item.categoryId || '',
+      batchId: item.batchId || '',
       expiryDate: item.expiryDate || ''
     });
     setShowEditModal(true);
@@ -209,6 +214,7 @@ const InventoryPage = () => {
                 <th className="text-end">Price</th>
                 <th className="text-center">Stock</th>
                 <th>Barcode</th>
+                <th className="text-center">Batch ID</th>
                 <th className="text-center">Expiry Date</th>
                 <th className="text-center">Actions</th>
               </tr>
@@ -234,6 +240,9 @@ const InventoryPage = () => {
                   </td>
                   <td>
                     <code className="text-muted">{item.barcode || '-'}</code>
+                  </td>
+                  <td className="text-center">
+                    <code className="text-info">{item.batchId || '-'}</code>
                   </td>
                   <td className="text-center">
                     {item.expiryDate ? (
@@ -310,7 +319,6 @@ const InventoryPage = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    required
                   />
                 </Form.Group>
               </Col>
@@ -327,14 +335,13 @@ const InventoryPage = () => {
               </Col>
             </Row>
             <Form.Group className="mb-3">
-              <Form.Label>Category *</Form.Label>
+              <Form.Label>Category</Form.Label>
               <Form.Select
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleInputChange}
-                required
               >
-                <option value="">Select a category</option>
+                <option value="">Select a category (optional)</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -364,7 +371,6 @@ const InventoryPage = () => {
                       name="price"
                       value={formData.price}
                       onChange={handleInputChange}
-                      required
                     />
                   </InputGroup>
                 </Form.Group>
@@ -377,12 +383,23 @@ const InventoryPage = () => {
                     name="stockQuantity"
                     value={formData.stockQuantity}
                     onChange={handleInputChange}
-                    required
                   />
                 </Form.Group>
               </Col>
             </Row>
             <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Batch ID</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="batchId"
+                    value={formData.batchId}
+                    onChange={handleInputChange}
+                    placeholder="Enter batch ID (optional)"
+                  />
+                </Form.Group>
+              </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Expiry Date</Form.Label>
@@ -436,7 +453,6 @@ const InventoryPage = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    required
                   />
                 </Form.Group>
               </Col>
@@ -453,14 +469,13 @@ const InventoryPage = () => {
               </Col>
             </Row>
             <Form.Group className="mb-3">
-              <Form.Label>Category *</Form.Label>
+              <Form.Label>Category</Form.Label>
               <Form.Select
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleInputChange}
-                required
               >
-                <option value="">Select a category</option>
+                <option value="">Select a category (optional)</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -490,7 +505,6 @@ const InventoryPage = () => {
                       name="price"
                       value={formData.price}
                       onChange={handleInputChange}
-                      required
                     />
                   </InputGroup>
                 </Form.Group>
@@ -503,12 +517,23 @@ const InventoryPage = () => {
                     name="stockQuantity"
                     value={formData.stockQuantity}
                     onChange={handleInputChange}
-                    required
                   />
                 </Form.Group>
               </Col>
             </Row>
             <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Batch ID</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="batchId"
+                    value={formData.batchId}
+                    onChange={handleInputChange}
+                    placeholder="Enter batch ID (optional)"
+                  />
+                </Form.Group>
+              </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Expiry Date</Form.Label>

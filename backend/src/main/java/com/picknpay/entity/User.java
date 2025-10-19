@@ -38,7 +38,7 @@ public class User {
 
     @NotNull(message = "Role is required")
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false, columnDefinition = "user_role")
+    @Column(name = "role", nullable = false)
     private UserRole role;
 
     @Column(name = "is_active", nullable = false)

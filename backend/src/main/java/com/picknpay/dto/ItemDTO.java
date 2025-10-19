@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public class ItemDTO {
     
@@ -26,6 +27,8 @@ public class ItemDTO {
     
     private Long categoryId;
     private String categoryName;
+    
+    private LocalDate expiryDate;
     
     // Constructors
     public ItemDTO() {}
@@ -101,5 +104,13 @@ public class ItemDTO {
     
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+    }
+    
+    public LocalDate getExpiryDate() {
+        return expiryDate;
+    }
+    
+    public void setExpiryDate(LocalDate expiryDate) {
+        this.expiryDate = expiryDate;
     }
 }

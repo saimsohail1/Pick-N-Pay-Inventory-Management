@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,4 +24,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     
     @Query("SELECT i FROM Item i WHERE i.stockQuantity <= :threshold")
     List<Item> findLowStockItems(@Param("threshold") Integer threshold);
+    
+    List<Item> findByExpiryDateLessThanEqualAndExpiryDateIsNotNull(LocalDate expiryDate);
+    
+    List<Item> findByExpiryDateLessThanAndExpiryDateIsNotNull(LocalDate expiryDate);
 }

@@ -91,4 +91,16 @@ public class ItemController {
         boolean updated = itemService.updateStock(id, quantityChange);
         return updated ? ResponseEntity.ok().build() : ResponseEntity.badRequest().build();
     }
+    
+    @GetMapping("/expiring")
+    public ResponseEntity<List<ItemDTO>> getExpiringItems(@RequestParam(defaultValue = "7") Integer daysAhead) {
+        List<ItemDTO> items = itemService.getExpiringItems(daysAhead);
+        return ResponseEntity.ok(items);
+    }
+    
+    @GetMapping("/expired")
+    public ResponseEntity<List<ItemDTO>> getExpiredItems() {
+        List<ItemDTO> items = itemService.getExpiredItems();
+        return ResponseEntity.ok(items);
+    }
 }

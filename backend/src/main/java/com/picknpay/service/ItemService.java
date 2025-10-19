@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -77,6 +78,7 @@ public class ItemService {
                     existingItem.setPrice(itemDTO.getPrice());
                     existingItem.setStockQuantity(itemDTO.getStockQuantity());
                     existingItem.setBarcode(itemDTO.getBarcode());
+                    existingItem.setExpiryDate(itemDTO.getExpiryDate());
                     Item updatedItem = itemRepository.save(existingItem);
                     return convertToDTO(updatedItem);
                 });
@@ -88,6 +90,20 @@ public class ItemService {
             return true;
         }
         return false;
+    }
+    
+    public List<ItemDTO> getExpiringItems(int daysAhead) {
+        LocalDate expiryThreshold = LocalDate.now().plusDays(daysAhead);
+        return itemRepository.findByExpiryDateLessThanEqualAndExpiryDateIsNotNull(expiryThreshold).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    public List<ItemDTO> getExpiredItems() {
+        LocalDate today = LocalDate.now();
+        return itemRepository.findByExpiryDateLessThanAndExpiryDateIsNotNull(today).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
     
     public boolean updateStock(Long itemId, Integer quantityChange) {
@@ -112,6 +128,7 @@ public class ItemService {
         dto.setPrice(item.getPrice());
         dto.setStockQuantity(item.getStockQuantity());
         dto.setBarcode(item.getBarcode());
+        dto.setExpiryDate(item.getExpiryDate());
         if (item.getCategory() != null) {
             dto.setCategoryId(item.getCategory().getId());
             dto.setCategoryName(item.getCategory().getName());
@@ -126,6 +143,7 @@ public class ItemService {
         item.setPrice(dto.getPrice());
         item.setStockQuantity(dto.getStockQuantity());
         item.setBarcode(dto.getBarcode());
+        item.setExpiryDate(dto.getExpiryDate());
         if (dto.getCategoryId() != null) {
             Category category = categoryRepository.findById(dto.getCategoryId()).orElse(null);
             item.setCategory(category);

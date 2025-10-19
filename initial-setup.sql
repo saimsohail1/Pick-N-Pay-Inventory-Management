@@ -53,6 +53,7 @@ CREATE TABLE items (
     stock_quantity INTEGER NOT NULL DEFAULT 0,
     barcode VARCHAR(255) UNIQUE,
     category_id BIGINT NOT NULL REFERENCES categories(id),
+    expiry_date DATE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -149,26 +150,8 @@ INSERT INTO company_settings (
     'IE123456789'
 );
 
--- Insert default categories
-INSERT INTO categories (name, description, display_on_pos) VALUES
-('Beverages', 'Soft drinks, juices, and other beverages', true),
-('Food', 'Food items and snacks', true),
-('Dairy', 'Milk, cheese, and dairy products', true),
-('Bakery', 'Bread, pastries, and baked goods', true),
-('Frozen', 'Frozen food items', true),
-('Cleaning', 'Cleaning supplies and household items', false),
-('Health', 'Health and beauty products', false);
-
--- Insert sample items for testing
-INSERT INTO items (name, description, price, stock_quantity, barcode, category_id) VALUES
-('Coca Cola 330ml', 'Refreshing soft drink', 2.50, 100, '1234567890123', 1),
-('Bread Loaf', 'Fresh white bread', 3.00, 50, '2345678901234', 4),
-('Milk 1L', 'Fresh whole milk', 2.80, 75, '3456789012345', 3),
-('Chocolate Bar', 'Milk chocolate bar', 1.50, 200, '4567890123456', 2),
-('Apple', 'Fresh red apples', 0.80, 150, '5678901234567', 2),
-('Orange Juice 1L', 'Fresh orange juice', 3.20, 60, '6789012345678', 1),
-('Butter 250g', 'Dairy butter', 2.10, 80, '7890123456789', 3),
-('Croissant', 'Fresh baked croissant', 1.80, 120, '8901234567890', 4);
+-- Categories and items will be created through the application
+-- No default data inserted - users can create their own categories and products
 
 -- ============================================
 -- 6. GRANTS AND PERMISSIONS
@@ -189,7 +172,7 @@ SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' O
 -- Verify admin user was created
 SELECT username, email, role, is_active FROM users WHERE role = 'ADMIN';
 
--- Verify sample data
+-- Verify table structure (no sample data inserted)
 SELECT COUNT(*) as category_count FROM categories;
 SELECT COUNT(*) as item_count FROM items;
 SELECT COUNT(*) as company_settings_count FROM company_settings;
@@ -209,10 +192,16 @@ BEGIN
     RAISE NOTICE '  Password: admin123 (BCrypt encoded)';
     RAISE NOTICE '  Email: admin@picknpay.com';
     RAISE NOTICE '============================================';
-    RAISE NOTICE 'Default Categories and Items Added';
+    RAISE NOTICE 'Database Schema Created Successfully';
     RAISE NOTICE 'Company Settings Configured';
     RAISE NOTICE 'BCrypt Password Encoding: ENABLED';
     RAISE NOTICE 'JPA Timestamp Management: ENABLED';
     RAISE NOTICE 'VARCHAR Enum Columns: ENABLED (Hibernate Compatible)';
+    RAISE NOTICE 'Expiry Date Support: ENABLED';
+    RAISE NOTICE '============================================';
+    RAISE NOTICE 'Next Steps:';
+    RAISE NOTICE '1. Start the application';
+    RAISE NOTICE '2. Login with admin credentials';
+    RAISE NOTICE '3. Create categories and products through the app';
     RAISE NOTICE '============================================';
 END $$;

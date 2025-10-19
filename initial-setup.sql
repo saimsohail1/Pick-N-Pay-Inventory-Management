@@ -1,5 +1,8 @@
 -- PickNPay Inventory Management System - Initial Setup Script
 -- This script creates the database, tables, and adds the first admin user
+-- 
+-- IMPORTANT: Uses VARCHAR columns instead of PostgreSQL enum types
+-- This ensures compatibility with Hibernate/JPA and prevents enum casting errors
 
 -- ============================================
 -- 1. DATABASE CREATION
@@ -15,11 +18,8 @@ CREATE DATABASE picknpay_inventory;
 -- 2. TABLE CREATION
 -- ============================================
 
--- Create UserRole enum type
-CREATE TYPE user_role AS ENUM ('ADMIN', 'USER');
-
--- Create PaymentMethod enum type
-CREATE TYPE payment_method AS ENUM ('CASH', 'CARD');
+-- Note: Using VARCHAR instead of enum types for better Hibernate compatibility
+-- PostgreSQL enum types can cause casting issues with Hibernate/JPA
 
 -- Create users table
 CREATE TABLE users (
@@ -28,7 +28,7 @@ CREATE TABLE users (
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
-    role user_role NOT NULL,
+    role VARCHAR(10) NOT NULL CHECK (role IN ('ADMIN', 'USER')),
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -62,7 +62,7 @@ CREATE TABLE sales (
     id BIGSERIAL PRIMARY KEY,
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount > 0),
     sale_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    payment_method payment_method NOT NULL,
+    payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD')),
     user_id BIGINT REFERENCES users(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -213,5 +213,6 @@ BEGIN
     RAISE NOTICE 'Company Settings Configured';
     RAISE NOTICE 'BCrypt Password Encoding: ENABLED';
     RAISE NOTICE 'JPA Timestamp Management: ENABLED';
+    RAISE NOTICE 'VARCHAR Enum Columns: ENABLED (Hibernate Compatible)';
     RAISE NOTICE '============================================';
 END $$;

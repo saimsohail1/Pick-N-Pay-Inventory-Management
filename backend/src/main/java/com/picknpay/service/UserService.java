@@ -5,6 +5,7 @@ import com.picknpay.entity.User;
 import com.picknpay.entity.UserRole;
 import com.picknpay.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
 
     public List<UserDTO> getAllUsers() {
@@ -61,6 +65,8 @@ public class UserService {
         }
 
         User user = convertToEntity(userDTO);
+        // Encode password before saving
+        user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         User savedUser = userRepository.save(user);
@@ -84,7 +90,10 @@ public class UserService {
 
                     existingUser.setUsername(userDTO.getUsername());
                     existingUser.setEmail(userDTO.getEmail());
-                    existingUser.setPassword(userDTO.getPassword());
+                    // Only encode password if it's provided and not already encoded
+                    if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
+                        existingUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+                    }
                     existingUser.setFullName(userDTO.getFullName());
                     existingUser.setRole(userDTO.getRole());
                     existingUser.setIsActive(userDTO.getIsActive());
@@ -110,10 +119,26 @@ public class UserService {
                 });
     }
 
+    public boolean changePassword(Long userId, String oldPassword, String newPassword) {
+        return userRepository.findById(userId)
+                .map(user -> {
+                    // Verify old password
+                    if (passwordEncoder.matches(oldPassword, user.getPassword())) {
+                        // Encode and set new password
+                        user.setPassword(passwordEncoder.encode(newPassword));
+                        user.setUpdatedAt(LocalDateTime.now());
+                        userRepository.save(user);
+                        return true;
+                    }
+                    return false;
+                })
+                .orElse(false);
+    }
+
     public void initializeDefaultUsers() {
         // Create default admin user if no users exist
         if (userRepository.count() == 0) {
-            User adminUser = new User("admin", "admin@picknpay.com", "admin123", "System Administrator", UserRole.ADMIN);
+            User adminUser = new User("admin", "admin@picknpay.com", passwordEncoder.encode("admin123"), "System Administrator", UserRole.ADMIN);
             adminUser.setCreatedAt(LocalDateTime.now());
             adminUser.setUpdatedAt(LocalDateTime.now());
             userRepository.save(adminUser);
@@ -139,7 +164,7 @@ public class UserService {
         user.setId(userDTO.getId());
         user.setUsername(userDTO.getUsername());
         user.setEmail(userDTO.getEmail());
-        // Store password as plain text (you can implement your own encryption)
+        // Password encoding is handled in createUser/updateUser methods
         user.setPassword(userDTO.getPassword());
         user.setFullName(userDTO.getFullName());
         user.setRole(userDTO.getRole());

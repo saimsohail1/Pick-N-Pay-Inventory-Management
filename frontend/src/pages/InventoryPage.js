@@ -101,7 +101,8 @@ const InventoryPage = () => {
       });
       fetchItems();
     } catch (err) {
-      setError('Failed to save item');
+      const errorMessage = err.response?.data || 'Failed to save item';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

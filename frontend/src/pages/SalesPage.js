@@ -1619,8 +1619,9 @@ const SalesPage = () => {
                 // Refresh items list
                 fetchItems();
               } catch (error) {
-                setError('Failed to register item. Please try again.');
-                setTimeout(() => setError(null), 3000);
+                const errorMessage = error.response?.data || 'Failed to register item. Please try again.';
+                setError(errorMessage);
+                setTimeout(() => setError(null), 5000);
               }
             }}
             disabled={!newItem.name || !newItem.barcode || !newItem.price || !newItem.stockQuantity}

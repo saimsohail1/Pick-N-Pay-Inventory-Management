@@ -1,13 +1,16 @@
 -- ============================================
 -- PickNPay Inventory Management System
 -- Complete Initial Setup Script with Batch System
+-- 
+-- IMPORTANT: Uses VARCHAR columns instead of ENUM types
+-- for better Hibernate compatibility and to avoid casting errors
 -- ============================================
 
 -- Connect to the database (run this first if needed)
 -- \c picknpay_inventory;
 
 -- ============================================
--- 1. DROP EXISTING TABLES (if they exist)
+-- 1. DROP EXISTING TABLES AND TYPES (if they exist)
 -- ============================================
 
 -- Drop tables in reverse dependency order
@@ -18,6 +21,10 @@ DROP TABLE IF EXISTS items CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS company_settings CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+
+-- Drop any existing enum types that might cause conflicts
+DROP TYPE IF EXISTS payment_method CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
 
 -- ============================================
 -- 2. CREATE TABLES

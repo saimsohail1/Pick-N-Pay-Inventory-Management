@@ -256,66 +256,94 @@ const SalesHistory = () => {
   };
 
   const handlePrintSale = (sale) => {
-    // Create a printable receipt with VAT information
-    const printWindow = window.open('', '_blank');
+    // Create a printable receipt optimized for till paper
+    const printWindow = window.open('', '_blank', 'width=300,height=600');
     const receiptContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <title>Receipt - Sale #${sale.id}</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
-          .item { display: flex; justify-content: space-between; margin: 5px 0; }
-          .total { border-top: 1px solid #000; padding-top: 10px; margin-top: 20px; font-weight: bold; }
-          .vat-info { background-color: #f5f5f5; padding: 10px; margin: 10px 0; }
-          .footer { text-align: center; margin-top: 30px; font-size: 12px; }
+          @media print {
+            @page { 
+              size: 80mm auto; 
+              margin: 0; 
+            }
+            body { 
+              margin: 0; 
+              padding: 5mm; 
+              font-family: 'Courier New', monospace; 
+              font-size: 12px; 
+              line-height: 1.2;
+              width: 70mm;
+            }
+          }
+          body { 
+            font-family: 'Courier New', monospace; 
+            font-size: 12px; 
+            line-height: 1.2; 
+            margin: 0; 
+            padding: 5mm; 
+            width: 70mm;
+          }
+          .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
+          .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
+          .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: bold; }
+          .vat-info { margin: 5px 0; font-size: 10px; }
+          .footer { text-align: center; margin-top: 15px; font-size: 10px; }
+          .divider { border-top: 1px dashed #000; margin: 5px 0; }
+          .center { text-align: center; }
+          .right { text-align: right; }
         </style>
       </head>
       <body>
         <div class="header">
-          <h2>PickNPay</h2>
-          <p>Receipt #${sale.id}</p>
-          <p>Date: ${new Date(sale.saleDate).toLocaleString()}</p>
+          <div class="center"><strong>PICKNPAY</strong></div>
+          <div class="center">Receipt #${sale.id}</div>
+          <div class="center">${new Date(sale.saleDate).toLocaleString()}</div>
         </div>
+        
+        <div class="divider"></div>
         
         <div class="items">
           ${sale.saleItems.map(item => `
             <div class="item">
-              <span>${item.itemName} x${item.quantity}</span>
+              <span>${item.itemName}</span>
               <span>€${parseFloat(item.totalPrice).toFixed(2)}</span>
             </div>
-          `).join('')}
-        </div>
-        
-        <div class="vat-info">
-          <h4>VAT Breakdown:</h4>
-          ${sale.saleItems.map(item => `
-            <div class="item">
-              <span>${item.itemName} (${item.vatRate || 23}% VAT)</span>
-              <span>VAT: €${parseFloat(item.vatAmount || 0).toFixed(2)}</span>
+            <div class="item" style="font-size: 10px; color: #666;">
+              <span>${item.quantity} x €${parseFloat(item.unitPrice).toFixed(2)}</span>
+              <span>${item.vatRate || 23}% VAT</span>
             </div>
           `).join('')}
         </div>
         
-        <div class="total">
+        <div class="divider"></div>
+        
+        <div class="vat-info">
           <div class="item">
-            <span>Subtotal (Excluding VAT):</span>
+            <span>Subtotal (Ex VAT):</span>
             <span>€${sale.saleItems.reduce((sum, item) => sum + parseFloat(item.priceExcludingVat || 0), 0).toFixed(2)}</span>
           </div>
           <div class="item">
             <span>Total VAT:</span>
             <span>€${sale.saleItems.reduce((sum, item) => sum + parseFloat(item.vatAmount || 0), 0).toFixed(2)}</span>
           </div>
+        </div>
+        
+        <div class="total">
           <div class="item">
-            <span><strong>Total (Including VAT):</strong></span>
+            <span><strong>TOTAL:</strong></span>
             <span><strong>€${parseFloat(sale.totalAmount).toFixed(2)}</strong></span>
           </div>
         </div>
         
+        <div class="divider"></div>
+        
         <div class="footer">
-          <p>Payment Method: ${sale.paymentMethod}</p>
-          <p>Thank you for your business!</p>
+          <div>Payment: ${sale.paymentMethod}</div>
+          <div>Thank you for your business!</div>
+          <div>---</div>
         </div>
       </body>
       </html>
@@ -323,7 +351,15 @@ const SalesHistory = () => {
     
     printWindow.document.write(receiptContent);
     printWindow.document.close();
-    printWindow.print();
+    
+    // Auto-print without dialog
+    setTimeout(() => {
+      printWindow.print();
+      // Close the window after printing
+      setTimeout(() => {
+        printWindow.close();
+      }, 1000);
+    }, 500);
   };
 
   return (

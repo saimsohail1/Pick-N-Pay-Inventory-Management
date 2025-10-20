@@ -1243,7 +1243,7 @@ const SalesPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Unit Price</Form.Label>
+              <Form.Label>Price</Form.Label>
               <Controller
                 name="unitPrice"
                 control={control}

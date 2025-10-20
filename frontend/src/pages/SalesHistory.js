@@ -131,28 +131,45 @@ const SalesHistory = () => {
   };
 
   const handleItemQuantityChange = (index, newQuantity) => {
+    const quantity = parseInt(newQuantity) || 0;
+    if (quantity < 0) return; // Prevent negative quantities
+    
     const updatedItems = [...editSaleItems];
-    updatedItems[index].quantity = parseInt(newQuantity) || 0;
-    updatedItems[index].totalPrice = updatedItems[index].unitPrice * updatedItems[index].quantity;
+    updatedItems[index].quantity = quantity;
+    updatedItems[index].totalPrice = updatedItems[index].unitPrice * quantity;
     setEditSaleItems(updatedItems);
   };
 
   const handleItemPriceChange = (index, newPrice) => {
+    const price = parseFloat(newPrice) || 0;
+    if (price < 0) return; // Prevent negative prices
+    
     const updatedItems = [...editSaleItems];
-    updatedItems[index].unitPrice = parseFloat(newPrice) || 0;
-    updatedItems[index].totalPrice = updatedItems[index].unitPrice * updatedItems[index].quantity;
+    updatedItems[index].unitPrice = price;
+    updatedItems[index].totalPrice = price * updatedItems[index].quantity;
     setEditSaleItems(updatedItems);
   };
 
   const confirmEditSale = async () => {
     if (!saleToEdit) return;
     
+    // Validate data before sending
+    const hasValidItems = editSaleItems.every(item => 
+      item.quantity > 0 && item.unitPrice > 0 && item.totalPrice > 0
+    );
+    
+    if (!hasValidItems) {
+      setError('Please ensure all items have valid quantities and prices');
+      return;
+    }
+    
     setEditing(true);
     try {
-      // Create updated sale data with VAT calculations
+      // Create clean updated sale data - only send what's needed
       const updatedSaleData = {
-        ...saleToEdit,
+        id: saleToEdit.id,
         paymentMethod: editPaymentMethod,
+        userId: saleToEdit.userId,
         saleItems: editSaleItems.map(item => {
           // Recalculate VAT for each item
           const vatRate = item.vatRate || 23.00;
@@ -161,7 +178,13 @@ const SalesHistory = () => {
           const vatAmount = totalPriceIncludingVat - totalPriceExcludingVat;
           
           return {
-            ...item,
+            itemId: item.itemId,
+            itemName: item.itemName,
+            itemBarcode: item.itemBarcode,
+            batchId: item.batchId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
             vatRate: vatRate,
             vatAmount: vatAmount,
             priceExcludingVat: totalPriceExcludingVat
@@ -176,6 +199,7 @@ const SalesHistory = () => {
       setError(null);
       setEditDialogOpen(false);
       setSaleToEdit(null);
+      setEditSaleItems([]);
       // Refresh the sales list
       await fetchTodaySales();
     } catch (err) {
@@ -206,6 +230,8 @@ const SalesHistory = () => {
   const cancelEditSale = () => {
     setEditDialogOpen(false);
     setSaleToEdit(null);
+    setEditSaleItems([]);
+    setEditPaymentMethod('');
   };
 
   const cancelDeleteSale = () => {
@@ -526,7 +552,7 @@ const SalesHistory = () => {
                   <tr>
                     <th>Item</th>
                     <th>Qty</th>
-                    <th>Unit Price</th>
+                    <th>Price</th>
                     <th>VAT Rate</th>
                     <th>VAT Amount</th>
                     <th>Total</th>
@@ -555,6 +581,7 @@ const SalesHistory = () => {
                           min="0"
                           step="0.01"
                           style={{ width: '80px' }}
+                          title="Price per unit"
                         />
                       </td>
                       <td>{item.vatRate || 23}%</td>
@@ -658,7 +685,7 @@ const SalesHistory = () => {
           </Button>
           <Button variant="danger" onClick={confirmDeleteSale} disabled={deleting}>
             {deleting ? <Spinner animation="border" size="sm" className="me-2" /> : null}
-            Delete Sale
+                Delete Sale
           </Button>
         </Modal.Footer>
       </Modal>

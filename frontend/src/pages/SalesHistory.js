@@ -113,21 +113,25 @@ const SalesHistory = () => {
       const endDate = new Date(date);
       endDate.setHours(23, 59, 59, 999);
 
+      const currentUser = user;
+      const currentSelectedUserId = selectedUserId;
+      const isAdminUser = isAdmin();
+
       let response;
-      if (isAdmin() && selectedUserId) {
+      if (isAdminUser && currentSelectedUserId) {
         // Admin viewing specific user's sales for a date
         response = await salesAPI.getSalesByUserIdAndDateRange(
-          selectedUserId,
+          currentSelectedUserId,
           startDate.toISOString(),
           endDate.toISOString()
         );
-      } else {
+      } else if (currentUser?.id) {
         // Regular user viewing their own sales for a date
         response = await salesAPI.getSalesByUserIdAndDateRange(
-          user?.id,
-        startDate.toISOString(),
-        endDate.toISOString()
-      );
+          currentUser.id,
+          startDate.toISOString(),
+          endDate.toISOString()
+        );
       }
       
       setSales(response.data);

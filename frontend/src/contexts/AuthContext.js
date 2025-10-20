@@ -100,9 +100,9 @@ export const AuthProvider = ({ children }) => {
     return !!user;
   };
 
-  const isAdmin = () => {
+  const isAdmin = useCallback(() => {
     return user && user.role === 'ADMIN';
-  };
+  }, [user]);
 
   const value = {
     user,

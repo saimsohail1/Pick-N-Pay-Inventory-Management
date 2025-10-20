@@ -144,9 +144,11 @@ const SalesHistory = () => {
     const price = parseFloat(newPrice) || 0;
     if (price < 0) return; // Prevent negative prices
     
+    // Interpret input as LINE TOTAL price, recompute unit price from it
     const updatedItems = [...editSaleItems];
-    updatedItems[index].unitPrice = price;
-    updatedItems[index].totalPrice = price * updatedItems[index].quantity;
+    updatedItems[index].totalPrice = price;
+    const quantity = updatedItems[index].quantity || 1;
+    updatedItems[index].unitPrice = quantity > 0 ? price / quantity : 0;
     setEditSaleItems(updatedItems);
   };
 
@@ -576,12 +578,12 @@ const SalesHistory = () => {
                         <input
                           type="number"
                           className="form-control form-control-sm"
-                          value={item.unitPrice.toFixed(2)}
+                          value={item.totalPrice.toFixed(2)}
                           onChange={(e) => handleItemPriceChange(index, e.target.value)}
                           min="0"
                           step="0.01"
                           style={{ width: '80px' }}
-                          title="Price per unit"
+                          title="Line total (price)"
                         />
                       </td>
                       <td>{item.vatRate || 23}%</td>

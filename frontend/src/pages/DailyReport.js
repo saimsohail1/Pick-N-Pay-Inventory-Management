@@ -254,7 +254,7 @@ const DailyReport = () => {
 
   return (
     <div className="d-flex flex-column vh-100">
-      <style jsx>{`
+      <style>{`
         @media print {
           .no-print { display: none !important; }
           .print-header { display: block !important; }

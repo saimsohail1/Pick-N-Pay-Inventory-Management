@@ -47,7 +47,7 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-vh-100 bg-light">
-      <style jsx>{`
+      <style>{`
         .navbar-nav {
           flex-wrap: nowrap;
         }

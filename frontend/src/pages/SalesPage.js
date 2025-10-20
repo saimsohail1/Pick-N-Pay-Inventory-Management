@@ -79,6 +79,9 @@ const SalesPage = () => {
     fetchItems();
     fetchCategories();
     fetchCompanyName();
+  }, []);
+
+  useEffect(() => {
     // Focus on barcode input when component mounts
     const handleKeyDown = (event) => {
       // Only process if a barcode scanner is likely being used (e.g., Enter key)
@@ -658,7 +661,7 @@ const SalesPage = () => {
 
   return (
     <div className="sales-page-container d-flex flex-column vh-100" style={{ backgroundColor: '#f8f9fa', margin: 0, padding: 0 }}>
-      <style jsx>{`
+      <style>{`
         .sales-page-container {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }

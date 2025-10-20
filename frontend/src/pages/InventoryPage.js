@@ -142,18 +142,6 @@ const InventoryPage = () => {
     }
   };
 
-  const handleStockUpdate = async (id, quantityChange) => {
-    setLoading(true);
-    try {
-      await itemsAPI.updateStock(id, quantityChange);
-      setSuccess('Stock updated successfully');
-      fetchItems();
-    } catch (err) {
-      setError('Failed to update stock');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading && items.length === 0) {
     return (
@@ -271,22 +259,6 @@ const InventoryPage = () => {
                         title="Edit Item"
                       >
                         <i className="bi bi-pencil"></i>
-                      </Button>
-                      <Button
-                        variant="outline-success"
-                        size="sm"
-                        onClick={() => handleStockUpdate(item.id, 1)}
-                        title="Add Stock"
-                      >
-                        <i className="bi bi-plus"></i>
-                      </Button>
-                      <Button
-                        variant="outline-warning"
-                        size="sm"
-                        onClick={() => handleStockUpdate(item.id, -1)}
-                        title="Remove Stock"
-                      >
-                        <i className="bi bi-dash"></i>
                       </Button>
                       <Button
                         variant="outline-danger"

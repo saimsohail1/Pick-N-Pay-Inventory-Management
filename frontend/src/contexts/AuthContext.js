@@ -39,7 +39,9 @@ export const AuthProvider = ({ children }) => {
       }
     }
     setLoading(false);
+  }, []);
 
+  useEffect(() => {
     // ✅ Listen for app closing event in Electron
     if (isElectron) {
       try {

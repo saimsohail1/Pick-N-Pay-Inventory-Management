@@ -332,6 +332,15 @@ public class SaleService {
         Sale existingSale = saleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sale not found with id: " + id));
         
+        // Restore stock for existing items before updating
+        for (SaleItem existingItem : existingSale.getSaleItems()) {
+            if (existingItem.getItem() != null) {
+                Item item = existingItem.getItem();
+                item.setStockQuantity(item.getStockQuantity() + existingItem.getQuantity());
+                itemRepository.save(item);
+            }
+        }
+        
         // Update basic sale information
         existingSale.setPaymentMethod(saleDTO.getPaymentMethod());
         
@@ -345,7 +354,7 @@ public class SaleService {
         // Clear existing sale items
         existingSale.getSaleItems().clear();
         
-        // Add new sale items
+        // Add new sale items with VAT calculations
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (SaleItemDTO saleItemDTO : saleDTO.getSaleItems()) {
             SaleItem saleItem = new SaleItem();
@@ -362,13 +371,41 @@ public class SaleService {
                     saleItem.setItemName(item.getName());
                     saleItem.setItemBarcode(item.getBarcode());
                     saleItem.setBatchId(saleItemDTO.getBatchId());
+                    
+                    // Calculate VAT for regular items
+                    BigDecimal vatRate = item.getVatRate() != null ? item.getVatRate() : new BigDecimal("23.00");
+                    BigDecimal totalPriceIncludingVat = saleItemDTO.getTotalPrice();
+                    BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, BigDecimal.ROUND_HALF_UP);
+                    BigDecimal totalVatAmount = totalPriceIncludingVat.subtract(totalPriceExcludingVat);
+                    
+                    saleItem.setVatRate(vatRate);
+                    saleItem.setVatAmount(totalVatAmount);
+                    saleItem.setPriceExcludingVat(totalPriceExcludingVat);
+                    
+                    // Update stock
+                    if (item.getStockQuantity() >= saleItemDTO.getQuantity()) {
+                        item.setStockQuantity(item.getStockQuantity() - saleItemDTO.getQuantity());
+                        itemRepository.save(item);
+                    } else {
+                        throw new RuntimeException("Insufficient stock for item: " + item.getName());
+                    }
                 }
             } else {
-                // Quick sale
+                // Quick sale with default VAT
                 saleItem.setItem(null);
                 saleItem.setItemName(saleItemDTO.getItemName() != null ? saleItemDTO.getItemName() : "Quick Sale");
                 saleItem.setItemBarcode(saleItemDTO.getItemBarcode() != null ? saleItemDTO.getItemBarcode() : "N/A");
                 saleItem.setBatchId(null);
+                
+                // Calculate VAT for quick sales (default 23%)
+                BigDecimal vatRate = new BigDecimal("23.00");
+                BigDecimal totalPriceIncludingVat = saleItemDTO.getTotalPrice();
+                BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, BigDecimal.ROUND_HALF_UP);
+                BigDecimal totalVatAmount = totalPriceIncludingVat.subtract(totalPriceExcludingVat);
+                
+                saleItem.setVatRate(vatRate);
+                saleItem.setVatAmount(totalVatAmount);
+                saleItem.setPriceExcludingVat(totalPriceExcludingVat);
             }
             
             existingSale.getSaleItems().add(saleItem);

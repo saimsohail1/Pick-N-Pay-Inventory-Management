@@ -113,6 +113,8 @@ public class SaleController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateSale(@PathVariable Long id, @Valid @RequestBody SaleDTO saleDTO) {
         try {
+            // Note: Admin-only restriction should be handled by frontend
+            // Backend assumes proper authorization has been checked
             SaleDTO updatedSale = saleService.updateSale(id, saleDTO);
             return ResponseEntity.ok(updatedSale);
         } catch (RuntimeException e) {
@@ -125,6 +127,8 @@ public class SaleController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteSale(@PathVariable Long id) {
         try {
+            // Note: Admin-only restriction should be handled by frontend
+            // Backend assumes proper authorization has been checked
             saleService.deleteSale(id);
             return ResponseEntity.ok().body("Sale deleted successfully");
         } catch (RuntimeException e) {

@@ -189,16 +189,26 @@ const SalesHistory = () => {
     
     setEditing(true);
     try {
-      // For now, we'll just show a success message
-      // The actual edit functionality would require a form to modify sale details
-      // await salesAPI.update(saleToEdit.id, updatedSaleData);
+      // Create updated sale data with VAT calculations
+      const updatedSaleData = {
+        ...saleToEdit,
+        saleItems: saleToEdit.saleItems.map(item => ({
+          ...item,
+          // Recalculate VAT for each item
+          vatRate: item.vatRate || 23.00,
+          vatAmount: item.vatAmount || (item.totalPrice - (item.totalPrice / (1 + (item.vatRate || 23.00) / 100))),
+          priceExcludingVat: item.priceExcludingVat || (item.totalPrice / (1 + (item.vatRate || 23.00) / 100))
+        }))
+      };
+      
+      await salesAPI.update(saleToEdit.id, updatedSaleData);
       setError(null);
       setEditDialogOpen(false);
       setSaleToEdit(null);
       // Refresh the sales list
       await fetchTodaySales();
     } catch (err) {
-      setError('Failed to update sale');
+      setError('Failed to update sale: ' + (err.response?.data || err.message));
     } finally {
       setEditing(false);
     }
@@ -243,6 +253,77 @@ const SalesHistory = () => {
       return <Badge bg="primary">card</Badge>;
     }
     return <Badge bg="secondary">{paymentMethod}</Badge>;
+  };
+
+  const handlePrintSale = (sale) => {
+    // Create a printable receipt with VAT information
+    const printWindow = window.open('', '_blank');
+    const receiptContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Receipt - Sale #${sale.id}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+          .item { display: flex; justify-content: space-between; margin: 5px 0; }
+          .total { border-top: 1px solid #000; padding-top: 10px; margin-top: 20px; font-weight: bold; }
+          .vat-info { background-color: #f5f5f5; padding: 10px; margin: 10px 0; }
+          .footer { text-align: center; margin-top: 30px; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2>PickNPay</h2>
+          <p>Receipt #${sale.id}</p>
+          <p>Date: ${new Date(sale.saleDate).toLocaleString()}</p>
+        </div>
+        
+        <div class="items">
+          ${sale.saleItems.map(item => `
+            <div class="item">
+              <span>${item.itemName} x${item.quantity}</span>
+              <span>€${parseFloat(item.totalPrice).toFixed(2)}</span>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="vat-info">
+          <h4>VAT Breakdown:</h4>
+          ${sale.saleItems.map(item => `
+            <div class="item">
+              <span>${item.itemName} (${item.vatRate || 23}% VAT)</span>
+              <span>VAT: €${parseFloat(item.vatAmount || 0).toFixed(2)}</span>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="total">
+          <div class="item">
+            <span>Subtotal (Excluding VAT):</span>
+            <span>€${sale.saleItems.reduce((sum, item) => sum + parseFloat(item.priceExcludingVat || 0), 0).toFixed(2)}</span>
+          </div>
+          <div class="item">
+            <span>Total VAT:</span>
+            <span>€${sale.saleItems.reduce((sum, item) => sum + parseFloat(item.vatAmount || 0), 0).toFixed(2)}</span>
+          </div>
+          <div class="item">
+            <span><strong>Total (Including VAT):</strong></span>
+            <span><strong>€${parseFloat(sale.totalAmount).toFixed(2)}</strong></span>
+          </div>
+        </div>
+        
+        <div class="footer">
+          <p>Payment Method: ${sale.paymentMethod}</p>
+          <p>Thank you for your business!</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(receiptContent);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   return (
@@ -408,19 +489,63 @@ const SalesHistory = () => {
       </div>
 
       {/* Edit Sale Modal */}
-      <Modal show={editDialogOpen} onHide={cancelEditSale}>
+      <Modal show={editDialogOpen} onHide={cancelEditSale} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>Edit Sale</Modal.Title>
+          <Modal.Title>Edit Sale #{saleToEdit?.id}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {saleToEdit && (
             <div>
-              <p><strong>Sale ID:</strong> {saleToEdit.id}</p>
-              <p><strong>Date:</strong> {format(new Date(saleToEdit.saleDate), 'dd/MM/yyyy HH:mm')}</p>
-              <p><strong>Payment Method:</strong> {saleToEdit.paymentMethod}</p>
-              <p><strong>Total Amount:</strong> €{parseFloat(saleToEdit.totalAmount).toFixed(2)}</p>
-              <Alert variant="info">
-                Edit functionality will be implemented in the next version.
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <strong>Date:</strong> {format(new Date(saleToEdit.saleDate), 'dd/MM/yyyy HH:mm')}
+                </div>
+                <div className="col-md-6">
+                  <strong>Payment Method:</strong> {saleToEdit.paymentMethod}
+                </div>
+              </div>
+              
+              <h5>Sale Items:</h5>
+              <Table striped bordered hover size="sm">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th>VAT Rate</th>
+                    <th>VAT Amount</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {saleToEdit.saleItems.map((item, index) => (
+                    <tr key={index}>
+                      <td>{item.itemName}</td>
+                      <td>{item.quantity}</td>
+                      <td>€{parseFloat(item.unitPrice).toFixed(2)}</td>
+                      <td>{item.vatRate || 23}%</td>
+                      <td>€{parseFloat(item.vatAmount || 0).toFixed(2)}</td>
+                      <td>€{parseFloat(item.totalPrice).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+              
+              <div className="row">
+                <div className="col-md-6">
+                  <strong>Subtotal (Excluding VAT):</strong> €{saleToEdit.saleItems.reduce((sum, item) => sum + parseFloat(item.priceExcludingVat || 0), 0).toFixed(2)}
+                </div>
+                <div className="col-md-6">
+                  <strong>Total VAT:</strong> €{saleToEdit.saleItems.reduce((sum, item) => sum + parseFloat(item.vatAmount || 0), 0).toFixed(2)}
+                </div>
+              </div>
+              <div className="mt-2">
+                <strong>Total Amount:</strong> €{parseFloat(saleToEdit.totalAmount).toFixed(2)}
+              </div>
+              
+              <Alert variant="warning" className="mt-3">
+                <i className="bi bi-exclamation-triangle me-2"></i>
+                <strong>Admin Only:</strong> This action will update the sale and recalculate VAT. Stock levels will be adjusted accordingly.
               </Alert>
             </div>
           )}
@@ -439,17 +564,47 @@ const SalesHistory = () => {
       {/* Delete Sale Modal */}
       <Modal show={deleteDialogOpen} onHide={cancelDeleteSale}>
         <Modal.Header closeButton>
-          <Modal.Title>Delete Sale</Modal.Title>
+          <Modal.Title>Delete Sale #{saleToDelete?.id}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {saleToDelete && (
             <div>
-              <p>Are you sure you want to delete this sale?</p>
-              <p><strong>Sale ID:</strong> {saleToDelete.id}</p>
-              <p><strong>Date:</strong> {format(new Date(saleToDelete.saleDate), 'dd/MM/yyyy HH:mm')}</p>
-              <p><strong>Total Amount:</strong> €{parseFloat(saleToDelete.totalAmount).toFixed(2)}</p>
-              <Alert variant="warning">
-                This action cannot be undone.
+              <p><strong>Are you sure you want to delete this sale?</strong></p>
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <strong>Date:</strong> {format(new Date(saleToDelete.saleDate), 'dd/MM/yyyy HH:mm')}
+                </div>
+                <div className="col-md-6">
+                  <strong>Payment Method:</strong> {saleToDelete.paymentMethod}
+                </div>
+              </div>
+              
+              <div className="mb-3">
+                <strong>Items:</strong>
+                <ul className="list-unstyled mt-1">
+                  {saleToDelete.saleItems.map((item, index) => (
+                    <li key={index} className="ms-3">
+                      • {item.itemName} x{item.quantity} = €{parseFloat(item.totalPrice).toFixed(2)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div className="row">
+                <div className="col-md-6">
+                  <strong>Subtotal (Excluding VAT):</strong> €{saleToDelete.saleItems.reduce((sum, item) => sum + parseFloat(item.priceExcludingVat || 0), 0).toFixed(2)}
+                </div>
+                <div className="col-md-6">
+                  <strong>Total VAT:</strong> €{saleToDelete.saleItems.reduce((sum, item) => sum + parseFloat(item.vatAmount || 0), 0).toFixed(2)}
+                </div>
+              </div>
+              <div className="mt-2">
+                <strong>Total Amount:</strong> €{parseFloat(saleToDelete.totalAmount).toFixed(2)}
+              </div>
+              
+              <Alert variant="danger" className="mt-3">
+                <i className="bi bi-exclamation-triangle me-2"></i>
+                <strong>Admin Only:</strong> This action cannot be undone. Stock levels will be restored for inventory items.
               </Alert>
             </div>
           )}
@@ -460,7 +615,7 @@ const SalesHistory = () => {
           </Button>
           <Button variant="danger" onClick={confirmDeleteSale} disabled={deleting}>
             {deleting ? <Spinner animation="border" size="sm" className="me-2" /> : null}
-                Delete Sale
+            Delete Sale
           </Button>
         </Modal.Footer>
       </Modal>

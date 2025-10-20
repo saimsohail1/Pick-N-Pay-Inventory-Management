@@ -22,6 +22,9 @@ const SalesHistory = () => {
   const [selectedUserId, setSelectedUserId] = useState('');
   const { user, isAdmin } = useAuth();
 
+  // Memoize admin status to prevent unnecessary re-renders
+  const isAdminUser = useMemo(() => isAdminUser, [isAdmin]);
+
   // Memoized calculations for edit modal to prevent performance issues
   const editCalculations = useMemo(() => {
     if (editSaleItems.length === 0) {
@@ -59,7 +62,7 @@ const SalesHistory = () => {
   }, []);
 
   useEffect(() => {
-    if (isAdmin()) {
+    if (isAdminUser) {
       fetchUsers();
     }
   }, [user]);
@@ -85,7 +88,7 @@ const SalesHistory = () => {
       
       const currentUser = user;
       const currentSelectedUserId = selectedUserId;
-      const isAdminUser = isAdmin();
+      const isAdminUser = isAdminUser;
       
       if (isAdminUser && currentSelectedUserId) {
         // Admin viewing specific user's sales
@@ -115,7 +118,7 @@ const SalesHistory = () => {
 
       const currentUser = user;
       const currentSelectedUserId = selectedUserId;
-      const isAdminUser = isAdmin();
+      const isAdminUser = isAdminUser;
 
       let response;
       if (isAdminUser && currentSelectedUserId) {
@@ -375,13 +378,19 @@ const SalesHistory = () => {
     printWindow.document.close();
     
     // Auto-print without dialog - optimized for till paper
-    setTimeout(() => {
+    const printTimeout = setTimeout(() => {
       printWindow.print();
       // Close the window after printing
-      setTimeout(() => {
+      const closeTimeout = setTimeout(() => {
         printWindow.close();
       }, 1000);
+      
+      // Store closeTimeout for potential cleanup
+      printWindow._closeTimeout = closeTimeout;
     }, 100);
+    
+    // Store printTimeout for potential cleanup
+    printWindow._printTimeout = printTimeout;
   };
 
   return (
@@ -420,7 +429,7 @@ const SalesHistory = () => {
 
         {/* Filters */}
         <div className="d-flex gap-3 align-items-end mb-4">
-          {isAdmin() && (
+          {isAdminUser && (
             <div>
               <Form.Label className="small fw-bold">User</Form.Label>
               <div className="d-flex align-items-center">
@@ -509,7 +518,7 @@ const SalesHistory = () => {
                       >
                         <i className="bi bi-printer"></i>
                       </Button>
-                      {isAdmin() && (
+                      {isAdminUser && (
                         <>
                           <Button
                             variant="outline-warning"

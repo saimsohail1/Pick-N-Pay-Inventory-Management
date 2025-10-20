@@ -1282,14 +1282,14 @@ const SalesPage = () => {
       </Modal>
 
       <BarcodeScanner
-        show={scannerOpen}
-        onHide={() => setScannerOpen(false)}
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
         onBarcodeScanned={processBarcode}
       />
 
       <SimpleBarcodeScanner
-        show={simpleScannerOpen}
-        onHide={() => setSimpleScannerOpen(false)}
+        open={simpleScannerOpen}
+        onClose={() => setSimpleScannerOpen(false)}
         onBarcodeScanned={processBarcode}
       />
 

@@ -7,6 +7,16 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [companyName, setCompanyName] = useState('PickNPay');
 
+  const fetchCompanyName = useCallback(async () => {
+    try {
+      const response = await companySettingsAPI.get();
+      setCompanyName(response.data.companyName);
+    } catch (error) {
+      console.error('Failed to fetch company name:', error);
+      // Keep default name if fetch fails
+    }
+  }, []);
+
   useEffect(() => {
     fetchCompanyName();
   }, [fetchCompanyName]);
@@ -19,16 +29,6 @@ const Dashboard = () => {
 
     window.addEventListener('companyNameUpdated', handleCompanyNameUpdate);
     return () => window.removeEventListener('companyNameUpdated', handleCompanyNameUpdate);
-  }, []);
-
-  const fetchCompanyName = useCallback(async () => {
-    try {
-      const response = await companySettingsAPI.get();
-      setCompanyName(response.data.companyName);
-    } catch (error) {
-      console.error('Failed to fetch company name:', error);
-      // Keep default name if fetch fails
-    }
   }, []);
 
 

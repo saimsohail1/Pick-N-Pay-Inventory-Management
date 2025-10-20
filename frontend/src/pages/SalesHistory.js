@@ -88,7 +88,7 @@ const SalesHistory = () => {
       
       const currentUser = user;
       const currentSelectedUserId = selectedUserId;
-      const isAdminUser = isAdminUser;
+      const isAdminUser = isAdmin();
       
       if (isAdminUser && currentSelectedUserId) {
         // Admin viewing specific user's sales
@@ -97,7 +97,7 @@ const SalesHistory = () => {
       } else if (currentUser?.id) {
         // Regular user viewing their own sales
         const response = await salesAPI.getTodaySales(currentUser.id, false);
-        setSales(response.data);
+      setSales(response.data);
       }
     } catch (err) {
       setError('Failed to load today\'s sales');
@@ -118,7 +118,7 @@ const SalesHistory = () => {
 
       const currentUser = user;
       const currentSelectedUserId = selectedUserId;
-      const isAdminUser = isAdminUser;
+      const isAdminUser = isAdmin();
 
       let response;
       if (isAdminUser && currentSelectedUserId) {
@@ -132,9 +132,9 @@ const SalesHistory = () => {
         // Regular user viewing their own sales for a date
         response = await salesAPI.getSalesByUserIdAndDateRange(
           currentUser.id,
-          startDate.toISOString(),
-          endDate.toISOString()
-        );
+        startDate.toISOString(),
+        endDate.toISOString()
+      );
       }
       
       setSales(response.data);

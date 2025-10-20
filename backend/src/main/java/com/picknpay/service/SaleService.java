@@ -216,16 +216,8 @@ public class SaleService {
         if (saleOpt.isPresent()) {
             Sale sale = saleOpt.get();
             
-            // Restore stock for items that were sold
-            for (SaleItem saleItem : sale.getSaleItems()) {
-                if (saleItem.getItem() != null) {
-                    Item item = saleItem.getItem();
-                    item.setStockQuantity(item.getStockQuantity() + saleItem.getQuantity());
-                    itemRepository.save(item);
-                }
-            }
-            
-            // Delete the sale (this will cascade delete sale items due to @OneToMany cascade = CascadeType.ALL)
+            // Simply delete the sale - no inventory restoration
+            // Once items are sold, they're gone from inventory
             saleRepository.delete(sale);
         } else {
             throw new RuntimeException("Sale not found with ID: " + saleId);
@@ -332,14 +324,7 @@ public class SaleService {
         Sale existingSale = saleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sale not found with id: " + id));
         
-        // Restore stock for existing items before updating
-        for (SaleItem existingItem : existingSale.getSaleItems()) {
-            if (existingItem.getItem() != null) {
-                Item item = existingItem.getItem();
-                item.setStockQuantity(item.getStockQuantity() + existingItem.getQuantity());
-                itemRepository.save(item);
-            }
-        }
+        // No inventory restoration - once sold, items are gone
         
         // Update basic sale information
         existingSale.setPaymentMethod(saleDTO.getPaymentMethod());
@@ -382,13 +367,7 @@ public class SaleService {
                     saleItem.setVatAmount(totalVatAmount);
                     saleItem.setPriceExcludingVat(totalPriceExcludingVat);
                     
-                    // Update stock
-                    if (item.getStockQuantity() >= saleItemDTO.getQuantity()) {
-                        item.setStockQuantity(item.getStockQuantity() - saleItemDTO.getQuantity());
-                        itemRepository.save(item);
-                    } else {
-                        throw new RuntimeException("Insufficient stock for item: " + item.getName());
-                    }
+                    // No stock management - items are sold as-is
                 }
             } else {
                 // Quick sale with default VAT

@@ -152,10 +152,20 @@ const SalesHistory = () => {
     setEditSaleItems(updatedItems);
   };
 
+  const handleDeleteItem = (index) => {
+    const updatedItems = editSaleItems.filter((_, i) => i !== index);
+    setEditSaleItems(updatedItems);
+  };
+
   const confirmEditSale = async () => {
     if (!saleToEdit) return;
     
     // Validate data before sending
+    if (editSaleItems.length === 0) {
+      setError('Cannot save sale with no items. Please add items or delete the entire sale.');
+      return;
+    }
+    
     const hasValidItems = editSaleItems.every(item => 
       item.quantity > 0 && item.unitPrice > 0 && item.totalPrice > 0
     );
@@ -558,6 +568,7 @@ const SalesHistory = () => {
                     <th>VAT Rate</th>
                     <th>VAT Amount</th>
                     <th>Total</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -589,6 +600,16 @@ const SalesHistory = () => {
                       <td>{item.vatRate || 23}%</td>
                       <td>€{parseFloat(item.vatAmount || 0).toFixed(2)}</td>
                       <td>€{parseFloat(item.totalPrice).toFixed(2)}</td>
+                      <td>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleDeleteItem(index)}
+                          title="Delete Item"
+                        >
+                          <i className="bi bi-trash"></i>
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -617,7 +638,7 @@ const SalesHistory = () => {
               
               <Alert variant="warning" className="mt-3">
                 <i className="bi bi-exclamation-triangle me-2"></i>
-                <strong>Admin Only:</strong> This action will update the sale and recalculate VAT. Stock levels will be adjusted accordingly.
+                <strong>Admin Only:</strong> This action will update the sale and recalculate VAT. You can delete individual items or the entire sale.
               </Alert>
             </div>
           )}
@@ -676,7 +697,7 @@ const SalesHistory = () => {
               
               <Alert variant="danger" className="mt-3">
                 <i className="bi bi-exclamation-triangle me-2"></i>
-                <strong>Admin Only:</strong> This action cannot be undone. Stock levels will be restored for inventory items.
+                <strong>Admin Only:</strong> This action cannot be undone. Once items are sold, they're gone from inventory.
               </Alert>
             </div>
           )}

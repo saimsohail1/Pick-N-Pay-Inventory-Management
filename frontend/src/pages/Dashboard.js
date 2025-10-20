@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Row, Col, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { companySettingsAPI } from '../services/api';
@@ -7,19 +7,19 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [companyName, setCompanyName] = useState('PickNPay');
 
-  const fetchCompanyName = useCallback(async () => {
-    try {
-      const response = await companySettingsAPI.get();
-      setCompanyName(response.data.companyName);
-    } catch (error) {
-      console.error('Failed to fetch company name:', error);
-      // Keep default name if fetch fails
-    }
-  }, []);
-
   useEffect(() => {
+    const fetchCompanyName = async () => {
+      try {
+        const response = await companySettingsAPI.get();
+        setCompanyName(response.data.companyName);
+      } catch (error) {
+        console.error('Failed to fetch company name:', error);
+        // Keep default name if fetch fails
+      }
+    };
+    
     fetchCompanyName();
-  }, [fetchCompanyName]);
+  }, []);
 
   // Listen for company name update events
   useEffect(() => {

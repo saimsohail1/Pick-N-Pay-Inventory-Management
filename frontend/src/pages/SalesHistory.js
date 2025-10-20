@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Form, Alert, Spinner, Badge, Modal } from 'react-bootstrap';
 import { format } from 'date-fns';
 import { salesAPI, usersAPI } from '../services/api';
@@ -22,12 +22,47 @@ const SalesHistory = () => {
   const [selectedUserId, setSelectedUserId] = useState('');
   const { user, isAdmin } = useAuth();
 
+  // Memoized calculations for edit modal to prevent performance issues
+  const editCalculations = useMemo(() => {
+    if (editSaleItems.length === 0) {
+      return {
+        subtotalExcludingVat: 0,
+        totalVat: 0,
+        totalAmount: 0
+      };
+    }
+
+    const subtotalExcludingVat = editSaleItems.reduce((sum, item) => {
+      const vatRate = item.vatRate || 23.00;
+      const totalPriceExcludingVat = item.totalPrice / (1 + vatRate / 100);
+      return sum + totalPriceExcludingVat;
+    }, 0);
+
+    const totalVat = editSaleItems.reduce((sum, item) => {
+      const vatRate = item.vatRate || 23.00;
+      const totalPriceExcludingVat = item.totalPrice / (1 + vatRate / 100);
+      const vatAmount = item.totalPrice - totalPriceExcludingVat;
+      return sum + vatAmount;
+    }, 0);
+
+    const totalAmount = editSaleItems.reduce((sum, item) => sum + item.totalPrice, 0);
+
+    return {
+      subtotalExcludingVat,
+      totalVat,
+      totalAmount
+    };
+  }, [editSaleItems]);
+
   useEffect(() => {
     fetchTodaySales();
+  }, []);
+
+  useEffect(() => {
     if (isAdmin()) {
       fetchUsers();
     }
-  }, []);
+  }, [user]);
 
   const fetchUsers = async () => {
     try {
@@ -48,14 +83,18 @@ const SalesHistory = () => {
       setLoading(true);
       setError(null);
       
-      if (isAdmin() && selectedUserId) {
+      const currentUser = user;
+      const currentSelectedUserId = selectedUserId;
+      const isAdminUser = isAdmin();
+      
+      if (isAdminUser && currentSelectedUserId) {
         // Admin viewing specific user's sales
-        const response = await salesAPI.getTodaySales(selectedUserId, false);
+        const response = await salesAPI.getTodaySales(currentSelectedUserId, false);
         setSales(response.data);
-      } else {
+      } else if (currentUser?.id) {
         // Regular user viewing their own sales
-        const response = await salesAPI.getTodaySales(user?.id, false);
-      setSales(response.data);
+        const response = await salesAPI.getTodaySales(currentUser.id, false);
+        setSales(response.data);
       }
     } catch (err) {
       setError('Failed to load today\'s sales');
@@ -571,23 +610,14 @@ const SalesHistory = () => {
               
               <div className="row">
                 <div className="col-md-6">
-                  <strong>Subtotal (Excluding VAT):</strong> €{editSaleItems.reduce((sum, item) => {
-                    const vatRate = item.vatRate || 23.00;
-                    const totalPriceExcludingVat = item.totalPrice / (1 + vatRate / 100);
-                    return sum + totalPriceExcludingVat;
-                  }, 0).toFixed(2)}
+                  <strong>Subtotal (Excluding VAT):</strong> €{editCalculations.subtotalExcludingVat.toFixed(2)}
                 </div>
                 <div className="col-md-6">
-                  <strong>Total VAT:</strong> €{editSaleItems.reduce((sum, item) => {
-                    const vatRate = item.vatRate || 23.00;
-                    const totalPriceExcludingVat = item.totalPrice / (1 + vatRate / 100);
-                    const vatAmount = item.totalPrice - totalPriceExcludingVat;
-                    return sum + vatAmount;
-                  }, 0).toFixed(2)}
+                  <strong>Total VAT:</strong> €{editCalculations.totalVat.toFixed(2)}
                 </div>
               </div>
               <div className="mt-2">
-                <strong>Total Amount:</strong> €{editSaleItems.reduce((sum, item) => sum + item.totalPrice, 0).toFixed(2)}
+                <strong>Total Amount:</strong> €{editCalculations.totalAmount.toFixed(2)}
               </div>
               
               <Alert variant="warning" className="mt-3">

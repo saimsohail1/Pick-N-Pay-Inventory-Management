@@ -13,6 +13,7 @@ const SalesHistory = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [saleToEdit, setSaleToEdit] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [editPaymentMethod, setEditPaymentMethod] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [saleToDelete, setSaleToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -118,6 +119,7 @@ const SalesHistory = () => {
 
   const handleEditSale = (sale) => {
     setSaleToEdit(sale);
+    setEditPaymentMethod(sale.paymentMethod);
     setEditDialogOpen(true);
   };
 
@@ -134,6 +136,7 @@ const SalesHistory = () => {
       // Create updated sale data with VAT calculations
       const updatedSaleData = {
         ...saleToEdit,
+        paymentMethod: editPaymentMethod,
         saleItems: saleToEdit.saleItems.map(item => ({
           ...item,
           // Recalculate VAT for each item
@@ -294,14 +297,14 @@ const SalesHistory = () => {
     printWindow.document.write(receiptContent);
     printWindow.document.close();
     
-    // Auto-print without dialog
+    // Auto-print without dialog - optimized for till paper
     setTimeout(() => {
       printWindow.print();
       // Close the window after printing
       setTimeout(() => {
         printWindow.close();
       }, 1000);
-    }, 500);
+    }, 100);
   };
 
   return (
@@ -479,7 +482,15 @@ const SalesHistory = () => {
                   <strong>Date:</strong> {format(new Date(saleToEdit.saleDate), 'dd/MM/yyyy HH:mm')}
                 </div>
                 <div className="col-md-6">
-                  <strong>Payment Method:</strong> {saleToEdit.paymentMethod}
+                  <label className="form-label"><strong>Payment Method:</strong></label>
+                  <select 
+                    className="form-select" 
+                    value={editPaymentMethod} 
+                    onChange={(e) => setEditPaymentMethod(e.target.value)}
+                  >
+                    <option value="CASH">Cash</option>
+                    <option value="CARD">Card</option>
+                  </select>
                 </div>
               </div>
               

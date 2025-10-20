@@ -105,9 +105,6 @@ const DailyReport = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   const handleSearch = () => {
     generateReport();
@@ -233,14 +230,14 @@ const DailyReport = () => {
     printWindow.document.write(reportContent);
     printWindow.document.close();
     
-    // Auto-print without dialog
+    // Auto-print without dialog - optimized for till paper
     setTimeout(() => {
       printWindow.print();
       // Close the window after printing
       setTimeout(() => {
         printWindow.close();
       }, 1000);
-    }, 500);
+    }, 100);
   };
 
   return (
@@ -273,7 +270,7 @@ const DailyReport = () => {
           <h2 className="mb-0 fw-bold text-primary">Daily Report</h2>
           <Button
             variant="primary" 
-            onClick={handlePrint}
+            onClick={handlePrintReport}
             className="no-print"
           >
             <i className="bi bi-printer me-2"></i>
@@ -337,16 +334,6 @@ const DailyReport = () => {
               {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-search me-2"></i>}
               SEARCH
             </Button>
-            {reportData && (
-              <Button 
-                variant="success" 
-                onClick={handlePrintReport}
-                className="no-print ms-2"
-              >
-                <i className="bi bi-printer me-2"></i>
-                PRINT REPORT
-              </Button>
-            )}
       </div>
 
       {error && (

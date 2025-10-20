@@ -23,7 +23,7 @@ const SalesHistory = () => {
   const { user, isAdmin } = useAuth();
 
   // Memoize admin status to prevent unnecessary re-renders
-  const isAdminUser = useMemo(() => isAdminUser, [isAdmin]);
+  const isAdminUser = useMemo(() => isAdmin(), [isAdmin]);
 
   // Memoized calculations for edit modal to prevent performance issues
   const editCalculations = useMemo(() => {

@@ -14,6 +14,7 @@ const SalesHistory = () => {
   const [saleToEdit, setSaleToEdit] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editPaymentMethod, setEditPaymentMethod] = useState('');
+  const [editSaleItems, setEditSaleItems] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [saleToDelete, setSaleToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -120,12 +121,27 @@ const SalesHistory = () => {
   const handleEditSale = (sale) => {
     setSaleToEdit(sale);
     setEditPaymentMethod(sale.paymentMethod);
+    setEditSaleItems(sale.saleItems.map(item => ({ ...item })));
     setEditDialogOpen(true);
   };
 
   const handleDeleteSale = (sale) => {
     setSaleToDelete(sale);
     setDeleteDialogOpen(true);
+  };
+
+  const handleItemQuantityChange = (index, newQuantity) => {
+    const updatedItems = [...editSaleItems];
+    updatedItems[index].quantity = parseInt(newQuantity) || 0;
+    updatedItems[index].totalPrice = updatedItems[index].unitPrice * updatedItems[index].quantity;
+    setEditSaleItems(updatedItems);
+  };
+
+  const handleItemPriceChange = (index, newPrice) => {
+    const updatedItems = [...editSaleItems];
+    updatedItems[index].unitPrice = parseFloat(newPrice) || 0;
+    updatedItems[index].totalPrice = updatedItems[index].unitPrice * updatedItems[index].quantity;
+    setEditSaleItems(updatedItems);
   };
 
   const confirmEditSale = async () => {
@@ -137,14 +153,24 @@ const SalesHistory = () => {
       const updatedSaleData = {
         ...saleToEdit,
         paymentMethod: editPaymentMethod,
-        saleItems: saleToEdit.saleItems.map(item => ({
-          ...item,
+        saleItems: editSaleItems.map(item => {
           // Recalculate VAT for each item
-          vatRate: item.vatRate || 23.00,
-          vatAmount: item.vatAmount || (item.totalPrice - (item.totalPrice / (1 + (item.vatRate || 23.00) / 100))),
-          priceExcludingVat: item.priceExcludingVat || (item.totalPrice / (1 + (item.vatRate || 23.00) / 100))
-        }))
+          const vatRate = item.vatRate || 23.00;
+          const totalPriceIncludingVat = item.totalPrice;
+          const totalPriceExcludingVat = totalPriceIncludingVat / (1 + vatRate / 100);
+          const vatAmount = totalPriceIncludingVat - totalPriceExcludingVat;
+          
+          return {
+            ...item,
+            vatRate: vatRate,
+            vatAmount: vatAmount,
+            priceExcludingVat: totalPriceExcludingVat
+          };
+        })
       };
+      
+      // Calculate new total amount
+      updatedSaleData.totalAmount = editSaleItems.reduce((sum, item) => sum + item.totalPrice, 0);
       
       await salesAPI.update(saleToEdit.id, updatedSaleData);
       setError(null);
@@ -309,7 +335,7 @@ const SalesHistory = () => {
 
   return (
     <div>
-      <style jsx>{`
+      <style>{`
         .date-input {
           width: 120px;
           border: 1px solid #ccc;
@@ -507,11 +533,30 @@ const SalesHistory = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {saleToEdit.saleItems.map((item, index) => (
+                  {editSaleItems.map((item, index) => (
                     <tr key={index}>
                       <td>{item.itemName}</td>
-                      <td>{item.quantity}</td>
-                      <td>€{parseFloat(item.unitPrice).toFixed(2)}</td>
+                      <td>
+                        <input
+                          type="number"
+                          className="form-control form-control-sm"
+                          value={item.quantity}
+                          onChange={(e) => handleItemQuantityChange(index, e.target.value)}
+                          min="0"
+                          style={{ width: '60px' }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          className="form-control form-control-sm"
+                          value={item.unitPrice.toFixed(2)}
+                          onChange={(e) => handleItemPriceChange(index, e.target.value)}
+                          min="0"
+                          step="0.01"
+                          style={{ width: '80px' }}
+                        />
+                      </td>
                       <td>{item.vatRate || 23}%</td>
                       <td>€{parseFloat(item.vatAmount || 0).toFixed(2)}</td>
                       <td>€{parseFloat(item.totalPrice).toFixed(2)}</td>
@@ -522,14 +567,23 @@ const SalesHistory = () => {
               
               <div className="row">
                 <div className="col-md-6">
-                  <strong>Subtotal (Excluding VAT):</strong> €{saleToEdit.saleItems.reduce((sum, item) => sum + parseFloat(item.priceExcludingVat || 0), 0).toFixed(2)}
+                  <strong>Subtotal (Excluding VAT):</strong> €{editSaleItems.reduce((sum, item) => {
+                    const vatRate = item.vatRate || 23.00;
+                    const totalPriceExcludingVat = item.totalPrice / (1 + vatRate / 100);
+                    return sum + totalPriceExcludingVat;
+                  }, 0).toFixed(2)}
                 </div>
                 <div className="col-md-6">
-                  <strong>Total VAT:</strong> €{saleToEdit.saleItems.reduce((sum, item) => sum + parseFloat(item.vatAmount || 0), 0).toFixed(2)}
+                  <strong>Total VAT:</strong> €{editSaleItems.reduce((sum, item) => {
+                    const vatRate = item.vatRate || 23.00;
+                    const totalPriceExcludingVat = item.totalPrice / (1 + vatRate / 100);
+                    const vatAmount = item.totalPrice - totalPriceExcludingVat;
+                    return sum + vatAmount;
+                  }, 0).toFixed(2)}
                 </div>
               </div>
               <div className="mt-2">
-                <strong>Total Amount:</strong> €{parseFloat(saleToEdit.totalAmount).toFixed(2)}
+                <strong>Total Amount:</strong> €{editSaleItems.reduce((sum, item) => sum + item.totalPrice, 0).toFixed(2)}
               </div>
               
               <Alert variant="warning" className="mt-3">

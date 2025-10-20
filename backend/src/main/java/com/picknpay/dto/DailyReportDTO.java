@@ -13,6 +13,7 @@ public class DailyReportDTO {
     private BigDecimal cardAmount;
     private BigDecimal totalVatAmount;
     private BigDecimal totalAmountExcludingVat;
+    private java.util.List<CategorySummaryDTO> categories;
 
     // Constructors
     public DailyReportDTO() {}
@@ -99,5 +100,13 @@ public class DailyReportDTO {
     
     public void setTotalAmountExcludingVat(BigDecimal totalAmountExcludingVat) {
         this.totalAmountExcludingVat = totalAmountExcludingVat;
+    }
+    
+    public java.util.List<CategorySummaryDTO> getCategories() {
+        return categories;
+    }
+    
+    public void setCategories(java.util.List<CategorySummaryDTO> categories) {
+        this.categories = categories;
     }
 }

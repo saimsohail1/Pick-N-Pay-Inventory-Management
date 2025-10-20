@@ -202,6 +202,18 @@ const DailyReport = () => {
         <div class="divider"></div>
         
         <div class="section">
+          <div class="center"><strong>CATEGORIES</strong></div>
+          ${reportData.categories.map(category => `
+            <div class="item">
+              <span>${category.name.toUpperCase()}:</span>
+              <span>€${category.total.toFixed(2)} (${category.count})</span>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="divider"></div>
+        
+        <div class="section">
           <div class="center"><strong>VAT SUMMARY</strong></div>
           <div class="item">
             <span>Subtotal (Ex VAT):</span>

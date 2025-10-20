@@ -36,8 +36,24 @@ const InventoryPage = () => {
   });
 
   useEffect(() => {
-    fetchItems();
-    fetchCategories();
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [itemsResponse, categoriesResponse] = await Promise.all([
+          itemsAPI.getAll(),
+          categoriesAPI.getAll()
+        ]);
+        setItems(itemsResponse.data);
+        setCategories(categoriesResponse.data);
+      } catch (err) {
+        setError('Failed to fetch data');
+        console.error('Failed to fetch categories:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
   }, []);
 
   const fetchItems = async () => {

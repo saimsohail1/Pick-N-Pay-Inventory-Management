@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
         console.error('Error setting up IPC listener:', error);
       }
     }
-  }, [logout]);
+  }, []);
 
   const login = async (username, password) => {
     try {

@@ -7,7 +7,15 @@ import { useAuth } from '../contexts/AuthContext';
 const DailyReport = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [reportData, setReportData] = useState(null);
+  const [reportData, setReportData] = useState({
+    paymentMethods: [],
+    categories: [],
+    vatInfo: {
+      totalVatAmount: 0,
+      totalAmountExcludingVat: 0,
+      totalAmountIncludingVat: 0
+    }
+  });
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [users, setUsers] = useState([]);
@@ -286,7 +294,7 @@ const DailyReport = () => {
           )}
 
           {/* VAT Summary Section */}
-          {reportData.vatInfo && (
+          {reportData && reportData.vatInfo && (
             <div className="col-md-6 mb-4">
               <div className="card h-100">
                 <div className="card-header bg-info text-white">

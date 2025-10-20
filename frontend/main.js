@@ -70,7 +70,6 @@ function createWindow() {
       if (mainWindow.isFullScreen()) {
         mainWindow.setFullScreen(false);
         mainWindow.setMenuBarVisibility(true); // ✅ Show menu bar when exiting fullscreen
-        mainWindow.setFrame(true); // ✅ Show frame when exiting fullscreen
         // Show a brief notification
         mainWindow.webContents.send('fullscreen-exited');
       }
@@ -84,10 +83,8 @@ function createWindow() {
       mainWindow.setFullScreen(!isFullScreen);
       if (!isFullScreen) {
         mainWindow.setMenuBarVisibility(false); // ✅ Hide menu bar when entering fullscreen
-        mainWindow.setFrame(false); // ✅ Hide frame when entering fullscreen
       } else {
         mainWindow.setMenuBarVisibility(true); // ✅ Show menu bar when exiting fullscreen
-        mainWindow.setFrame(true); // ✅ Show frame when exiting fullscreen
       }
     }
   });

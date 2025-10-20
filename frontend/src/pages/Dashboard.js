@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Row, Col, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { companySettingsAPI } from '../services/api';
@@ -9,7 +9,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchCompanyName();
-  }, []);
+  }, [fetchCompanyName]);
 
   // Listen for company name update events
   useEffect(() => {
@@ -21,7 +21,7 @@ const Dashboard = () => {
     return () => window.removeEventListener('companyNameUpdated', handleCompanyNameUpdate);
   }, []);
 
-  const fetchCompanyName = async () => {
+  const fetchCompanyName = useCallback(async () => {
     try {
       const response = await companySettingsAPI.get();
       setCompanyName(response.data.companyName);
@@ -29,7 +29,7 @@ const Dashboard = () => {
       console.error('Failed to fetch company name:', error);
       // Keep default name if fetch fails
     }
-  };
+  }, []);
 
 
 

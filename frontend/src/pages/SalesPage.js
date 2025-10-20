@@ -112,7 +112,7 @@ const SalesPage = () => {
         });
       }
     }
-  }, [selectedItemId, items]);
+  }, [selectedItemId, items, reset]);
 
   const fetchItems = async () => {
     try {

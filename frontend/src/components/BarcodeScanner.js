@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -27,7 +27,7 @@ const BarcodeScanner = ({ open, onClose, onBarcodeScanned }) => {
     return () => {
       stopScanner();
     };
-  }, [open]);
+  }, [open, startScanner, stopScanner]);
 
   // Cleanup on component unmount
   useEffect(() => {
@@ -42,7 +42,7 @@ const BarcodeScanner = ({ open, onClose, onBarcodeScanned }) => {
     };
   }, []);
 
-  const startScanner = () => {
+  const startScanner = useCallback(() => {
     if (!scannerRef.current) return;
 
     setScanning(true);
@@ -105,9 +105,9 @@ const BarcodeScanner = ({ open, onClose, onBarcodeScanned }) => {
         stopScanner();
       }
     });
-  };
+  }, [onBarcodeScanned]);
 
-  const stopScanner = () => {
+  const stopScanner = useCallback(() => {
     try {
       if (Quagga && Quagga.stop && isInitialized) {
         Quagga.stop();
@@ -118,7 +118,7 @@ const BarcodeScanner = ({ open, onClose, onBarcodeScanned }) => {
     }
     setScanning(false);
     setIsInitialized(false);
-  };
+  }, [isInitialized]);
 
   const handleClose = () => {
     stopScanner();

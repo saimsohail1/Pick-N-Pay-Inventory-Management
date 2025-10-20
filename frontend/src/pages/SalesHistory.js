@@ -130,27 +130,6 @@ const SalesHistory = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleItemQuantityChange = (index, newQuantity) => {
-    const quantity = parseInt(newQuantity) || 0;
-    if (quantity < 0) return; // Prevent negative quantities
-    
-    const updatedItems = [...editSaleItems];
-    updatedItems[index].quantity = quantity;
-    updatedItems[index].totalPrice = updatedItems[index].unitPrice * quantity;
-    setEditSaleItems(updatedItems);
-  };
-
-  const handleItemPriceChange = (index, newPrice) => {
-    const price = parseFloat(newPrice) || 0;
-    if (price < 0) return; // Prevent negative prices
-    
-    // Interpret input as LINE TOTAL price, recompute unit price from it
-    const updatedItems = [...editSaleItems];
-    updatedItems[index].totalPrice = price;
-    const quantity = updatedItems[index].quantity || 1;
-    updatedItems[index].unitPrice = quantity > 0 ? price / quantity : 0;
-    setEditSaleItems(updatedItems);
-  };
 
   const handleDeleteItem = (index) => {
     const updatedItems = editSaleItems.filter((_, i) => i !== index);
@@ -162,16 +141,7 @@ const SalesHistory = () => {
     
     // Validate data before sending
     if (editSaleItems.length === 0) {
-      setError('Cannot save sale with no items. Please add items or delete the entire sale.');
-      return;
-    }
-    
-    const hasValidItems = editSaleItems.every(item => 
-      item.quantity > 0 && item.unitPrice > 0 && item.totalPrice > 0
-    );
-    
-    if (!hasValidItems) {
-      setError('Please ensure all items have valid quantities and prices');
+      setError('Cannot save sale with no items. Please delete the entire sale instead.');
       return;
     }
     
@@ -563,7 +533,7 @@ const SalesHistory = () => {
                 <thead>
                   <tr>
                     <th>Item</th>
-                    <th>Qty</th>
+                    <th>Quantity</th>
                     <th>Price</th>
                     <th>VAT Rate</th>
                     <th>VAT Amount</th>
@@ -576,26 +546,10 @@ const SalesHistory = () => {
                     <tr key={index}>
                       <td>{item.itemName}</td>
                       <td>
-                        <input
-                          type="number"
-                          className="form-control form-control-sm"
-                          value={item.quantity}
-                          onChange={(e) => handleItemQuantityChange(index, e.target.value)}
-                          min="0"
-                          style={{ width: '60px' }}
-                        />
+                        <span className="fw-bold">{item.quantity}</span>
                       </td>
                       <td>
-                        <input
-                          type="number"
-                          className="form-control form-control-sm"
-                          value={item.totalPrice.toFixed(2)}
-                          onChange={(e) => handleItemPriceChange(index, e.target.value)}
-                          min="0"
-                          step="0.01"
-                          style={{ width: '80px' }}
-                          title="Line total (price)"
-                        />
+                        <span className="fw-bold">€{item.totalPrice.toFixed(2)}</span>
                       </td>
                       <td>{item.vatRate || 23}%</td>
                       <td>€{parseFloat(item.vatAmount || 0).toFixed(2)}</td>
@@ -638,7 +592,7 @@ const SalesHistory = () => {
               
               <Alert variant="warning" className="mt-3">
                 <i className="bi bi-exclamation-triangle me-2"></i>
-                <strong>Admin Only:</strong> This action will update the sale and recalculate VAT. You can delete individual items or the entire sale.
+                <strong>Admin Only:</strong> You can only change the payment method and delete individual items. Quantities and prices are fixed.
               </Alert>
             </div>
           )}

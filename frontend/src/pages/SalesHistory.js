@@ -115,64 +115,6 @@ const SalesHistory = () => {
     }
   };
 
-  const handlePrintSale = (sale) => {
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Sale Receipt - ${sale.id}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .sale-info { margin-bottom: 20px; }
-            .items { margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
-            .total { font-weight: bold; font-size: 1.2em; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h2>PickNPay</h2>
-            <h3>Sale Receipt</h3>
-          </div>
-          <div class="sale-info">
-            <p><strong>Sale ID:</strong> ${sale.id}</p>
-            <p><strong>Date:</strong> ${format(new Date(sale.saleDate), 'dd/MM/yyyy HH:mm')}</p>
-            <p><strong>Payment Method:</strong> ${sale.paymentMethod}</p>
-          </div>
-          <div class="items">
-            <table>
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Qty</th>
-                  <th>Price</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${sale.saleItems.map(item => `
-                  <tr>
-                    <td>${item.itemName}</td>
-                    <td>${item.quantity}</td>
-                    <td>€${item.unitPrice.toFixed(2)}</td>
-                    <td>€${item.totalPrice.toFixed(2)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-          <div class="total">
-            <p><strong>Total: €${sale.totalAmount.toFixed(2)}</strong></p>
-          </div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
-  };
 
   const handleEditSale = (sale) => {
     setSaleToEdit(sale);

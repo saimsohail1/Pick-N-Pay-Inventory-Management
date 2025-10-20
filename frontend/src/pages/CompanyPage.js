@@ -11,7 +11,12 @@ const CompanyPage = () => {
   const [success, setSuccess] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  const { control, handleSubmit, reset, formState: { errors } } = useForm();
+  const { control, handleSubmit, reset, formState: { errors } } = useForm({
+    defaultValues: {
+      companyName: '',
+      address: ''
+    }
+  });
 
   useEffect(() => {
     fetchCompanySettings();

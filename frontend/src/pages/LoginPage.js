@@ -13,7 +13,12 @@ const LoginPage = () => {
   const location = useLocation();
   const { login, isAuthenticated } = useAuth();
 
-  const { control, handleSubmit, formState: { errors } } = useForm();
+  const { control, handleSubmit, formState: { errors } } = useForm({
+    defaultValues: {
+      username: '',
+      password: ''
+    }
+  });
 
   // Redirect if already authenticated
   useEffect(() => {

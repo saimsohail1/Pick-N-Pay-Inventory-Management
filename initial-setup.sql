@@ -1,9 +1,10 @@
 -- ============================================
 -- PickNPay Inventory Management System
--- Complete Initial Setup Script with Batch System
+-- Complete Initial Setup Script with Batch System and VAT Support
 -- 
 -- IMPORTANT: Uses VARCHAR columns instead of ENUM types
 -- for better Hibernate compatibility and to avoid casting errors
+-- Includes all database fixes and VAT functionality
 -- ============================================
 
 -- Connect to the database (run this first if needed)
@@ -25,6 +26,95 @@ DROP TABLE IF EXISTS users CASCADE;
 -- Drop any existing enum types that might cause conflicts
 DROP TYPE IF EXISTS payment_method CASCADE;
 DROP TYPE IF EXISTS user_role CASCADE;
+
+-- ============================================
+-- 1.1. MIGRATION SUPPORT (for existing databases)
+-- ============================================
+
+-- Add missing columns if they don't exist (for existing databases)
+-- This section handles migration from older versions
+
+-- Add VAT columns to items table if they don't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'items' AND column_name = 'vat_rate') THEN
+        ALTER TABLE items ADD COLUMN vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00;
+    END IF;
+END $$;
+
+-- Add VAT and item tracking columns to sale_items table if they don't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'sale_items' AND column_name = 'item_name') THEN
+        ALTER TABLE sale_items ADD COLUMN item_name VARCHAR(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'sale_items' AND column_name = 'item_barcode') THEN
+        ALTER TABLE sale_items ADD COLUMN item_barcode VARCHAR(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'sale_items' AND column_name = 'batch_id') THEN
+        ALTER TABLE sale_items ADD COLUMN batch_id VARCHAR(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'sale_items' AND column_name = 'vat_rate') THEN
+        ALTER TABLE sale_items ADD COLUMN vat_rate DECIMAL(5,2);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'sale_items' AND column_name = 'vat_amount') THEN
+        ALTER TABLE sale_items ADD COLUMN vat_amount DECIMAL(10,2);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'sale_items' AND column_name = 'price_excluding_vat') THEN
+        ALTER TABLE sale_items ADD COLUMN price_excluding_vat DECIMAL(10,2);
+    END IF;
+END $$;
+
+-- Make category_id nullable in items table (for existing databases)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'items' AND column_name = 'category_id' AND is_nullable = 'NO') THEN
+        ALTER TABLE items ALTER COLUMN category_id DROP NOT NULL;
+    END IF;
+END $$;
+
+-- Fix existing null values in sale_items (for existing databases)
+UPDATE sale_items
+SET
+    item_name = COALESCE(item_name, 'Quick Sale Item'),
+    item_barcode = COALESCE(item_barcode, 'N/A'),
+    batch_id = COALESCE(batch_id, 'DEFAULT'),
+    vat_rate = COALESCE(vat_rate, 23.00),
+    vat_amount = COALESCE(vat_amount, 0.00),
+    price_excluding_vat = COALESCE(price_excluding_vat, unit_price)
+WHERE
+    item_name IS NULL
+    OR item_barcode IS NULL
+    OR batch_id IS NULL
+    OR vat_rate IS NULL
+    OR vat_amount IS NULL
+    OR price_excluding_vat IS NULL;
+
+-- Recalculate VAT amounts for existing sale items
+UPDATE sale_items
+SET
+    price_excluding_vat = ROUND(total_price / (1 + vat_rate/100), 2),
+    vat_amount = ROUND(total_price - (total_price / (1 + vat_rate/100)), 2)
+WHERE
+    vat_rate IS NOT NULL
+    AND total_price IS NOT NULL;
+
+-- Add NOT NULL constraint to item_name in sale_items (for existing databases)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'sale_items' AND column_name = 'item_name' AND is_nullable = 'YES') THEN
+        ALTER TABLE sale_items ALTER COLUMN item_name SET NOT NULL;
+    END IF;
+END $$;
 
 -- ============================================
 -- 2. CREATE TABLES
@@ -212,11 +302,21 @@ BEGIN
     RAISE NOTICE 'JPA Timestamp Management: ENABLED';
     RAISE NOTICE 'VARCHAR Enum Columns: ENABLED (Hibernate Compatible)';
     RAISE NOTICE 'Batch System: ENABLED';
+    RAISE NOTICE 'VAT Functionality: ENABLED (23% default)';
+    RAISE NOTICE 'Migration Support: ENABLED (handles existing databases)';
+    RAISE NOTICE '============================================';
+    RAISE NOTICE 'Features Included:';
+    RAISE NOTICE '- VAT calculation and reporting';
+    RAISE NOTICE '- Batch tracking with expiry dates';
+    RAISE NOTICE '- Quick sales with default VAT';
+    RAISE NOTICE '- Category management (optional)';
+    RAISE NOTICE '- Stock management and tracking';
     RAISE NOTICE '============================================';
     RAISE NOTICE 'Next Steps:';
     RAISE NOTICE '1. Start the application';
     RAISE NOTICE '2. Login with admin credentials';
     RAISE NOTICE '3. Create categories and products through the app';
     RAISE NOTICE '4. Add batches for products with expiry dates';
+    RAISE NOTICE '5. Configure VAT rates for products';
     RAISE NOTICE '============================================';
 END $$;

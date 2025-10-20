@@ -22,8 +22,8 @@ const SalesHistory = () => {
   const [selectedUserId, setSelectedUserId] = useState('');
   const { user, isAdmin } = useAuth();
 
-  // Memoize admin status to prevent unnecessary re-renders
-  const isAdminUser = useMemo(() => isAdmin(), [isAdmin]);
+  // Cache admin check - depends only on user to prevent loops
+  const isAdminUser = useMemo(() => isAdmin(), [user]);
 
   // Memoized calculations for edit modal to prevent performance issues
   const editCalculations = useMemo(() => {
@@ -57,6 +57,33 @@ const SalesHistory = () => {
     };
   }, [editSaleItems]);
 
+  // Memoized calculations for delete modal to prevent repeated reduces
+  const deleteCalculations = useMemo(() => {
+    if (!saleToDelete) {
+      return {
+        subtotalExcludingVat: 0,
+        totalVat: 0,
+        totalAmount: 0
+      };
+    }
+
+    const subtotalExcludingVat = saleToDelete.saleItems.reduce((sum, item) => 
+      sum + parseFloat(item.priceExcludingVat || 0), 0
+    );
+
+    const totalVat = saleToDelete.saleItems.reduce((sum, item) => 
+      sum + parseFloat(item.vatAmount || 0), 0
+    );
+
+    const totalAmount = parseFloat(saleToDelete.totalAmount);
+
+    return {
+      subtotalExcludingVat,
+      totalVat,
+      totalAmount
+    };
+  }, [saleToDelete]);
+
   useEffect(() => {
     fetchTodaySales();
   }, []);
@@ -81,86 +108,51 @@ const SalesHistory = () => {
     }
   };
 
-  const fetchTodaySales = async () => {
+  // Optimized unified fetch function
+  const fetchSales = async (date) => {
     try {
       setLoading(true);
       setError(null);
       
-      const currentUser = user;
-      const currentSelectedUserId = selectedUserId;
-      const isAdminUser = isAdmin();
-      
-      if (isAdminUser && currentSelectedUserId) {
-        // Admin viewing specific user's sales
-        const response = await salesAPI.getTodaySales(currentSelectedUserId, false);
-        setSales(response.data);
-      } else if (currentUser?.id) {
-        // Regular user viewing their own sales
-        const response = await salesAPI.getTodaySales(currentUser.id, false);
-      setSales(response.data);
+      const startDate = date ? new Date(date) : null;
+      const endDate = date ? new Date(date) : null;
+      if (endDate) {
+        endDate.setHours(23, 59, 59, 999);
       }
-    } catch (err) {
-      setError('Failed to load today\'s sales');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSalesByDate = async (date) => {
-    if (!date) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      const startDate = new Date(date);
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
-
-      const currentUser = user;
-      const currentSelectedUserId = selectedUserId;
-      const isAdminUser = isAdmin();
 
       let response;
-      if (isAdminUser && currentSelectedUserId) {
-        // Admin viewing specific user's sales for a date
-        response = await salesAPI.getSalesByUserIdAndDateRange(
-          currentSelectedUserId,
-          startDate.toISOString(),
-          endDate.toISOString()
-        );
-      } else if (currentUser?.id) {
-        // Regular user viewing their own sales for a date
-        response = await salesAPI.getSalesByUserIdAndDateRange(
-          currentUser.id,
-        startDate.toISOString(),
-        endDate.toISOString()
-      );
+      if (isAdminUser && selectedUserId) {
+        // Admin viewing specific user's sales
+        response = startDate 
+          ? await salesAPI.getSalesByUserIdAndDateRange(selectedUserId, startDate.toISOString(), endDate.toISOString())
+          : await salesAPI.getTodaySales(selectedUserId, false);
+      } else if (user?.id) {
+        // Regular user viewing their own sales
+        response = startDate
+          ? await salesAPI.getSalesByUserIdAndDateRange(user.id, startDate.toISOString(), endDate.toISOString())
+          : await salesAPI.getTodaySales(user.id, false);
       }
-      
-      setSales(response.data);
+
+      setSales(response?.data || []);
     } catch (err) {
-      setError('Failed to load sales for selected date');
+      setError('Failed to load sales');
     } finally {
       setLoading(false);
     }
   };
 
+  // Legacy functions for backward compatibility
+  const fetchTodaySales = () => fetchSales(null);
+  const fetchSalesByDate = (date) => fetchSales(date);
+
   const handleSearch = () => {
-    if (selectedDate) {
-      fetchSalesByDate(selectedDate);
-    } else {
-      fetchTodaySales();
-    }
+    fetchSales(selectedDate);
   };
 
   const handleUserChange = (userId) => {
     setSelectedUserId(userId);
     // Refresh data when user selection changes
-    if (selectedDate) {
-      fetchSalesByDate(selectedDate);
-    } else {
-      fetchTodaySales();
-    }
+    fetchSales(selectedDate);
   };
 
 
@@ -229,7 +221,7 @@ const SalesHistory = () => {
       setSaleToEdit(null);
       setEditSaleItems([]);
       // Refresh the sales list
-      await fetchTodaySales();
+      await fetchSales(selectedDate);
     } catch (err) {
       setError('Failed to update sale: ' + (err.response?.data || err.message));
     } finally {
@@ -247,7 +239,7 @@ const SalesHistory = () => {
       setDeleteDialogOpen(false);
       setSaleToDelete(null);
       // Refresh the sales list
-      await fetchTodaySales();
+      await fetchSales(selectedDate);
     } catch (err) {
       setError('Failed to delete sale');
     } finally {
@@ -280,117 +272,133 @@ const SalesHistory = () => {
     return <Badge bg="secondary">{paymentMethod}</Badge>;
   };
 
+  // Optimized non-blocking print function
   const handlePrintSale = (sale) => {
-    // Create a printable receipt optimized for till paper
-    const printWindow = window.open('', '_blank', 'width=300,height=600');
-    const receiptContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Receipt - Sale #${sale.id}</title>
-        <style>
-          @media print {
-            @page { 
-              size: 80mm auto; 
-              margin: 0; 
-            }
-            body { 
-              margin: 0; 
-              padding: 5mm; 
-              font-family: 'Courier New', monospace; 
-              font-size: 12px; 
-              line-height: 1.2;
-              width: 70mm;
-            }
-          }
-          body { 
-            font-family: 'Courier New', monospace; 
-            font-size: 12px; 
-            line-height: 1.2; 
-            margin: 0; 
-            padding: 5mm; 
-            width: 70mm;
-          }
-          .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
-          .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
-          .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: bold; }
-          .vat-info { margin: 5px 0; font-size: 10px; }
-          .footer { text-align: center; margin-top: 15px; font-size: 10px; }
-          .divider { border-top: 1px dashed #000; margin: 5px 0; }
-          .center { text-align: center; }
-          .right { text-align: right; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="center"><strong>PICKNPAY</strong></div>
-          <div class="center">Receipt #${sale.id}</div>
-          <div class="center">${new Date(sale.saleDate).toLocaleString()}</div>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="items">
-          ${sale.saleItems.map(item => `
-            <div class="item">
-              <span>${item.itemName}</span>
-              <span>€${parseFloat(item.totalPrice).toFixed(2)}</span>
+    // Use setTimeout to make this non-blocking
+    setTimeout(() => {
+      try {
+        // Create a printable receipt optimized for till paper
+        const printWindow = window.open('', '_blank', 'width=300,height=600');
+        if (!printWindow) {
+          console.error('Failed to open print window');
+          return;
+        }
+
+        // Memoize calculations to avoid repeated reduces
+        const subtotalExcludingVat = sale.saleItems.reduce((sum, item) => 
+          sum + parseFloat(item.priceExcludingVat || 0), 0
+        );
+        const totalVat = sale.saleItems.reduce((sum, item) => 
+          sum + parseFloat(item.vatAmount || 0), 0
+        );
+
+        const receiptContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Receipt - Sale #${sale.id}</title>
+            <style>
+              @media print {
+                @page { 
+                  size: 80mm auto; 
+                  margin: 0; 
+                }
+                body { 
+                  margin: 0; 
+                  padding: 5mm; 
+                  font-family: 'Courier New', monospace; 
+                  font-size: 12px; 
+                  line-height: 1.2;
+                  width: 70mm;
+                }
+              }
+              body { 
+                font-family: 'Courier New', monospace; 
+                font-size: 12px; 
+                line-height: 1.2; 
+                margin: 0; 
+                padding: 5mm; 
+                width: 70mm;
+              }
+              .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
+              .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
+              .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: bold; }
+              .vat-info { margin: 5px 0; font-size: 10px; }
+              .footer { text-align: center; margin-top: 15px; font-size: 10px; }
+              .divider { border-top: 1px dashed #000; margin: 5px 0; }
+              .center { text-align: center; }
+              .right { text-align: right; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="center"><strong>PICKNPAY</strong></div>
+              <div class="center">Receipt #${sale.id}</div>
+              <div class="center">${new Date(sale.saleDate).toLocaleString()}</div>
             </div>
-            <div class="item" style="font-size: 10px; color: #666;">
-              <span>${item.quantity} x €${parseFloat(item.unitPrice).toFixed(2)}</span>
-              <span>${item.vatRate || 23}% VAT</span>
+            
+            <div class="divider"></div>
+            
+            <div class="items">
+              ${sale.saleItems.map(item => `
+                <div class="item">
+                  <span>${item.itemName}</span>
+                  <span>€${parseFloat(item.totalPrice).toFixed(2)}</span>
+                </div>
+                <div class="item" style="font-size: 10px; color: #666;">
+                  <span>${item.quantity} x €${parseFloat(item.unitPrice).toFixed(2)}</span>
+                  <span>${item.vatRate || 23}% VAT</span>
+                </div>
+              `).join('')}
             </div>
-          `).join('')}
-        </div>
+            
+            <div class="divider"></div>
+            
+            <div class="vat-info">
+              <div class="item">
+                <span>Subtotal (Ex VAT):</span>
+                <span>€${subtotalExcludingVat.toFixed(2)}</span>
+              </div>
+              <div class="item">
+                <span>Total VAT:</span>
+                <span>€${totalVat.toFixed(2)}</span>
+              </div>
+            </div>
+            
+            <div class="total">
+              <div class="item">
+                <span><strong>TOTAL:</strong></span>
+                <span><strong>€${parseFloat(sale.totalAmount).toFixed(2)}</strong></span>
+              </div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="footer">
+              <div>Payment: ${sale.paymentMethod}</div>
+              <div>Thank you for your business!</div>
+              <div>---</div>
+            </div>
+          </body>
+          </html>
+        `;
         
-        <div class="divider"></div>
+        printWindow.document.write(receiptContent);
+        printWindow.document.close();
         
-        <div class="vat-info">
-          <div class="item">
-            <span>Subtotal (Ex VAT):</span>
-            <span>€${sale.saleItems.reduce((sum, item) => sum + parseFloat(item.priceExcludingVat || 0), 0).toFixed(2)}</span>
-          </div>
-          <div class="item">
-            <span>Total VAT:</span>
-            <span>€${sale.saleItems.reduce((sum, item) => sum + parseFloat(item.vatAmount || 0), 0).toFixed(2)}</span>
-          </div>
-        </div>
+        // Auto-print with longer delay to avoid UI freeze
+        setTimeout(() => {
+          printWindow.print();
+          // Close the window after printing
+          setTimeout(() => {
+            printWindow.close();
+          }, 1000);
+        }, 300); // Increased delay to prevent UI freeze
         
-        <div class="total">
-          <div class="item">
-            <span><strong>TOTAL:</strong></span>
-            <span><strong>€${parseFloat(sale.totalAmount).toFixed(2)}</strong></span>
-          </div>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="footer">
-          <div>Payment: ${sale.paymentMethod}</div>
-          <div>Thank you for your business!</div>
-          <div>---</div>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    printWindow.document.write(receiptContent);
-    printWindow.document.close();
-    
-    // Auto-print without dialog - optimized for till paper
-    const printTimeout = setTimeout(() => {
-      printWindow.print();
-      // Close the window after printing
-      const closeTimeout = setTimeout(() => {
-        printWindow.close();
-      }, 1000);
-      
-      // Store closeTimeout for potential cleanup
-      printWindow._closeTimeout = closeTimeout;
-    }, 100);
-    
-    // Store printTimeout for potential cleanup
-    printWindow._printTimeout = printTimeout;
+      } catch (error) {
+        console.error('Print error:', error);
+      }
+    }, 0); // Non-blocking execution
   };
 
   return (
@@ -682,14 +690,14 @@ const SalesHistory = () => {
               
               <div className="row">
                 <div className="col-md-6">
-                  <strong>Subtotal (Excluding VAT):</strong> €{saleToDelete.saleItems.reduce((sum, item) => sum + parseFloat(item.priceExcludingVat || 0), 0).toFixed(2)}
+                  <strong>Subtotal (Excluding VAT):</strong> €{deleteCalculations.subtotalExcludingVat.toFixed(2)}
                 </div>
                 <div className="col-md-6">
-                  <strong>Total VAT:</strong> €{saleToDelete.saleItems.reduce((sum, item) => sum + parseFloat(item.vatAmount || 0), 0).toFixed(2)}
+                  <strong>Total VAT:</strong> €{deleteCalculations.totalVat.toFixed(2)}
                 </div>
               </div>
               <div className="mt-2">
-                <strong>Total Amount:</strong> €{parseFloat(saleToDelete.totalAmount).toFixed(2)}
+                <strong>Total Amount:</strong> €{deleteCalculations.totalAmount.toFixed(2)}
               </div>
               
               <Alert variant="danger" className="mt-3">

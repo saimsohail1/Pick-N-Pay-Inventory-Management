@@ -439,7 +439,7 @@ const SalesHistory = () => {
           <Table hover className="mb-0">
             <thead className="table-light">
               <tr>
-                <th>Id</th>
+                <th>Sr No</th>
                 <th>Hour</th>
                 <th>Payment Methods</th>
                 <th>Total</th>
@@ -447,9 +447,9 @@ const SalesHistory = () => {
               </tr>
             </thead>
             <tbody>
-              {sales.map((sale) => (
+              {sales.map((sale, index) => (
                 <tr key={sale.id} className="table-row">
-                  <td className="fw-bold">{sale.id}</td>
+                  <td className="fw-bold">{index + 1}</td>
                   <td>
                     <i className="bi bi-clock me-1"></i>
                     {formatTime(sale.saleDate)}

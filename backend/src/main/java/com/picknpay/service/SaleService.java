@@ -10,6 +10,7 @@ import com.picknpay.entity.PaymentMethod;
 import com.picknpay.entity.User;
 import com.picknpay.repository.ItemRepository;
 import com.picknpay.repository.SaleRepository;
+import com.picknpay.repository.SaleItemRepository;
 import com.picknpay.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,9 @@ public class SaleService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private SaleItemRepository saleItemRepository;
     
     public List<SaleDTO> getAllSales() {
         return saleRepository.findAllByOrderBySaleDateDesc().stream()
@@ -336,7 +340,10 @@ public class SaleService {
             existingSale.setUser(user);
         }
         
-        // Clear existing sale items
+        // Delete existing sale items from database first
+        for (SaleItem existingItem : existingSale.getSaleItems()) {
+            saleItemRepository.delete(existingItem);
+        }
         existingSale.getSaleItems().clear();
         
         // Add new sale items with VAT calculations

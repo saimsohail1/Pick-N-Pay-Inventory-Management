@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTimeoutManager } from '../hooks/useTimeoutManager';
 import {
   Container,
   Row,
@@ -21,6 +22,7 @@ const CategoryPage = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const { addTimeout } = useTimeoutManager();
   const [editingCategory, setEditingCategory] = useState(null);
   const [initializing, setInitializing] = useState(false);
 
@@ -68,11 +70,11 @@ const CategoryPage = () => {
       try {
         await categoriesAPI.delete(id);
         setSuccess('Category deleted successfully!');
-        setTimeout(() => setSuccess(null), 3000);
+        addTimeout(() => setSuccess(null), 3000);
         fetchCategories();
       } catch (err) {
         setError('Failed to delete category.');
-        setTimeout(() => setError(null), 3000);
+        addTimeout(() => setError(null), 3000);
       }
     }
   };
@@ -91,12 +93,12 @@ const CategoryPage = () => {
         setSuccess('Category created successfully!');
       }
       
-      setTimeout(() => setSuccess(null), 3000);
+      addTimeout(() => setSuccess(null), 3000);
       setShowModal(false);
       fetchCategories();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save category.');
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setError(null), 3000);
     } finally {
       setLoading(false);
     }
@@ -111,11 +113,11 @@ const CategoryPage = () => {
       try {
         await categoriesAPI.initialize();
         setSuccess('Default categories initialized successfully!');
-        setTimeout(() => setSuccess(null), 3000);
+        addTimeout(() => setSuccess(null), 3000);
         fetchCategories();
       } catch (err) {
         setError('Failed to initialize default categories.');
-        setTimeout(() => setError(null), 3000);
+        addTimeout(() => setError(null), 3000);
       } finally {
         setInitializing(false);
       }

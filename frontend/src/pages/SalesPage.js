@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTimeoutManager } from '../hooks/useTimeoutManager';
 import {
   Row,
   Col,
@@ -63,6 +64,7 @@ const SalesPage = () => {
   const [showHeldTransactions, setShowHeldTransactions] = useState(false);
   const [selectedHeldTransaction, setSelectedHeldTransaction] = useState(null);
   const lastClickRef = React.useRef({});
+  const { addTimeout } = useTimeoutManager();
 
   const { control, handleSubmit, reset, watch, formState: { errors } } = useForm({
     defaultValues: {
@@ -246,7 +248,7 @@ const SalesPage = () => {
     const item = items.find(i => i.id === parseInt(data.itemId));
     if (!item) {
       setError('Selected item not found.');
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setError(null), 3000);
       return;
     }
 
@@ -314,7 +316,7 @@ const SalesPage = () => {
   const handleCheckout = () => {
     if (cart.length === 0) {
       setError('Cart is empty. Add items before checkout.');
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setError(null), 3000);
       return;
     }
     setCashAmount('');
@@ -418,7 +420,7 @@ const SalesPage = () => {
       setCashAmount('');
       setSelectedNotes({});
       setSuccess('Cash payment completed successfully!');
-      setTimeout(() => setSuccess(null), 3000);
+      addTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Error creating sale:', err);
       console.error('Error response:', err.response?.data);
@@ -460,7 +462,7 @@ const SalesPage = () => {
       
       setCart([]);
       setSuccess('Card payment completed successfully!');
-      setTimeout(() => setSuccess(null), 3000);
+      addTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Error creating sale:', err);
       console.error('Error response:', err.response?.data);
@@ -491,7 +493,7 @@ const SalesPage = () => {
       setQuickPrice('');
     } else {
       setError('Please enter a valid price for quick sale.');
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setError(null), 3000);
     }
   };
 
@@ -508,7 +510,7 @@ const SalesPage = () => {
       } catch (err) {
         console.error('Failed to load category items:', err);
         setError('Failed to load category items. Please try again.');
-        setTimeout(() => setError(null), 3000);
+        addTimeout(() => setError(null), 3000);
       } finally {
         setLoading(false);
       }
@@ -561,7 +563,7 @@ const SalesPage = () => {
     
     if (!selectedCartItem) {
       setError('Please select an item from the cart first.');
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setError(null), 3000);
       return;
     }
     
@@ -577,7 +579,7 @@ const SalesPage = () => {
     
     if (!selectedCartItem) {
       setError('Please select an item from the cart first.');
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setError(null), 3000);
       return;
     }
     
@@ -595,12 +597,12 @@ const SalesPage = () => {
   const handleEditSelectedItem = () => {
     if (!selectedCartItem) {
       setError('Please select an item from the cart first.');
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setError(null), 3000);
       return;
     }
     // For now, just show a message - we'll implement the edit page later
     setSuccess(`Edit functionality for ${selectedCartItem.itemName} will be implemented soon.`);
-    setTimeout(() => setSuccess(null), 3000);
+    addTimeout(() => setSuccess(null), 3000);
   };
 
   const handleConfirmDelete = () => {
@@ -621,7 +623,7 @@ const SalesPage = () => {
   const handleHoldTransaction = () => {
     if (cart.length === 0) {
       setError('Cart is empty. Nothing to hold.');
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setError(null), 3000);
       return;
     }
 
@@ -636,20 +638,20 @@ const SalesPage = () => {
     setHeldTransactions(prev => [...prev, heldTransaction]);
     setCart([]);
     setSuccess('Transaction held successfully!');
-    setTimeout(() => setSuccess(null), 3000);
+    addTimeout(() => setSuccess(null), 3000);
   };
 
   const handleLoadHeldTransaction = (heldTransaction) => {
     setCart(heldTransaction.items);
     setShowHeldTransactions(false);
     setSuccess('Held transaction loaded!');
-    setTimeout(() => setSuccess(null), 3000);
+    addTimeout(() => setSuccess(null), 3000);
   };
 
   const handleDeleteHeldTransaction = (transactionId) => {
     setHeldTransactions(prev => prev.filter(t => t.id !== transactionId));
     setSuccess('Held transaction deleted!');
-    setTimeout(() => setSuccess(null), 3000);
+    addTimeout(() => setSuccess(null), 3000);
   };
 
   const handleCheckoutHeldTransaction = (heldTransaction) => {
@@ -1625,7 +1627,7 @@ const SalesPage = () => {
                 
                 await itemsAPI.create(itemData);
                 setSuccess('Item registered successfully!');
-                setTimeout(() => setSuccess(null), 3000);
+                addTimeout(() => setSuccess(null), 3000);
                 setRegisterItemDialogOpen(false);
                 
                 // Reset form

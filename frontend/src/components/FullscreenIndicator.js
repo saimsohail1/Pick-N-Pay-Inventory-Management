@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Alert } from 'react-bootstrap';
+import { useTimeoutManager } from '../hooks/useTimeoutManager';
 
 const FullscreenIndicator = () => {
   const [showIndicator, setShowIndicator] = useState(false);
+  const { addTimeout } = useTimeoutManager();
 
   useEffect(() => {
     // Check if we're running in Electron
@@ -15,7 +17,7 @@ const FullscreenIndicator = () => {
       const handleFullscreenExited = () => {
         setShowIndicator(true);
         // Hide indicator after 3 seconds
-        timeoutId = setTimeout(() => setShowIndicator(false), 3000);
+        timeoutId = addTimeout(() => setShowIndicator(false), 3000);
       };
       
       ipcRenderer.on('fullscreen-exited', handleFullscreenExited);

@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Card, Table, Button, Modal, Form, Alert, Spinner, Badge } from 'react-bootstrap';
 import { useForm, Controller } from 'react-hook-form';
 import { usersAPI } from '../services/api';
+import { useTimeoutManager } from '../hooks/useTimeoutManager';
+import { debounce } from '../utils/debounce';
 
 const UserPage = () => {
   const [users, setUsers] = useState([]);
@@ -12,6 +14,7 @@ const UserPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
   const [availableRoles, setAvailableRoles] = useState([]);
+  const { addTimeout } = useTimeoutManager();
 
   const { control, handleSubmit, reset, setValue, formState: { errors } } = useForm({
     defaultValues: {
@@ -29,7 +32,7 @@ const UserPage = () => {
     fetchRoles();
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -41,7 +44,13 @@ const UserPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Debounced version of fetchUsers to prevent rapid-fire requests
+  const debouncedFetchUsers = useCallback(
+    debounce(fetchUsers, 300),
+    [fetchUsers]
+  );
 
   const fetchRoles = async () => {
     try {
@@ -95,14 +104,14 @@ const UserPage = () => {
       try {
         await usersAPI.delete(id);
         setSuccess('User deleted successfully!');
-        fetchUsers();
+        debouncedFetchUsers();
       } catch (err) {
         console.error('Failed to delete user:', err);
         setError('Failed to delete user. Please try again.');
       } finally {
         setLoading(false);
-        setTimeout(() => setSuccess(null), 3000);
-        setTimeout(() => setError(null), 3000);
+        addTimeout(() => setSuccess(null), 3000);
+        addTimeout(() => setError(null), 3000);
       }
     }
   };
@@ -114,14 +123,14 @@ const UserPage = () => {
     try {
       await usersAPI.toggleStatus(id);
       setSuccess('User status updated successfully!');
-      fetchUsers();
+      debouncedFetchUsers();
     } catch (err) {
       console.error('Failed to toggle user status:', err);
       setError('Failed to update user status. Please try again.');
     } finally {
       setLoading(false);
-      setTimeout(() => setSuccess(null), 3000);
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setSuccess(null), 3000);
+      addTimeout(() => setError(null), 3000);
     }
   };
 
@@ -143,7 +152,7 @@ const UserPage = () => {
         setSuccess('User added successfully!');
       }
       setShowModal(false);
-      fetchUsers();
+      debouncedFetchUsers();
     } catch (err) {
       console.error('Failed to save user:', err);
       if (err.response && err.response.data) {
@@ -153,8 +162,8 @@ const UserPage = () => {
       }
     } finally {
       setSubmitting(false);
-      setTimeout(() => setSuccess(null), 3000);
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setSuccess(null), 3000);
+      addTimeout(() => setError(null), 3000);
     }
   };
 
@@ -165,14 +174,14 @@ const UserPage = () => {
     try {
       await usersAPI.initialize();
       setSuccess('Default users initialized successfully!');
-      fetchUsers();
+      debouncedFetchUsers();
     } catch (err) {
       console.error('Failed to initialize default users:', err);
       setError('Failed to initialize default users. Please try again.');
     } finally {
       setLoading(false);
-      setTimeout(() => setSuccess(null), 3000);
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setSuccess(null), 3000);
+      addTimeout(() => setError(null), 3000);
     }
   };
 

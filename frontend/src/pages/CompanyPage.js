@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTimeoutManager } from '../hooks/useTimeoutManager';
 import {
   Container, Row, Col, Card, Button, Form, Alert, Spinner
 } from 'react-bootstrap';
@@ -10,6 +11,7 @@ const CompanyPage = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
+  const { addTimeout } = useTimeoutManager();
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: {
@@ -45,7 +47,7 @@ const CompanyPage = () => {
     try {
       await companySettingsAPI.update(data);
       setSuccess('Company information updated successfully!');
-      setTimeout(() => setSuccess(null), 3000);
+      addTimeout(() => setSuccess(null), 3000);
       // Trigger a custom event to notify other components
       window.dispatchEvent(new CustomEvent('companyNameUpdated', { 
         detail: { companyName: data.companyName } 
@@ -56,7 +58,7 @@ const CompanyPage = () => {
       }, 1000);
     } catch (err) {
       setError('Failed to update company information. Please try again.');
-      setTimeout(() => setError(null), 3000);
+      addTimeout(() => setError(null), 3000);
     } finally {
       setLoading(false);
     }

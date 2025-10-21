@@ -85,20 +85,6 @@ const SalesHistory = () => {
     };
   }, [saleToDelete]);
 
-  // Initial data fetch - only run once
-  useEffect(() => {
-    console.log("🔄 SalesHistory: Initial fetch");
-    fetchTodaySales();
-  }, [fetchSales]); // Add fetchSales as dependency since it's now memoized
-
-  // Fetch users when admin status changes - prevent infinite loops
-  useEffect(() => {
-    console.log("🔄 SalesHistory: Admin check", { isAdminUser, user: user?.id });
-    if (isAdminUser) {
-      fetchUsers();
-    }
-  }, [isAdminUser]); // Changed from [user] to [isAdminUser] to prevent loops
-
   const fetchUsers = async () => {
     try {
       const response = await usersAPI.getAll();
@@ -119,7 +105,7 @@ const SalesHistory = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const startDate = date ? new Date(date) : null;
       const endDate = date ? new Date(date) : null;
       if (endDate) {
@@ -129,7 +115,7 @@ const SalesHistory = () => {
       let response;
       if (isAdminUser && selectedUserId) {
         // Admin viewing specific user's sales
-        response = startDate 
+        response = startDate
           ? await salesAPI.getSalesByUserIdAndDateRange(selectedUserId, startDate.toISOString(), endDate.toISOString())
           : await salesAPI.getTodaySales(selectedUserId, false);
       } else if (user?.id) {
@@ -147,6 +133,20 @@ const SalesHistory = () => {
       setLoading(false);
     }
   }, [isAdminUser, selectedUserId, user?.id]); // Proper dependencies
+
+  // Initial data fetch - only run once
+  useEffect(() => {
+    console.log("🔄 SalesHistory: Initial fetch");
+    fetchTodaySales();
+  }, [fetchSales]); // Add fetchSales as dependency since it's now memoized
+
+  // Fetch users when admin status changes - prevent infinite loops
+  useEffect(() => {
+    console.log("🔄 SalesHistory: Admin check", { isAdminUser, user: user?.id });
+    if (isAdminUser) {
+      fetchUsers();
+    }
+  }, [isAdminUser]); // Changed from [user] to [isAdminUser] to prevent loops
 
   // Legacy functions for backward compatibility
   const fetchTodaySales = () => fetchSales(null);
@@ -189,7 +189,7 @@ const SalesHistory = () => {
       setError('Cannot save sale with no items. Please delete the entire sale instead.');
       return;
     }
-    
+
     setEditing(true);
     try {
       // Create clean updated sale data - only send what's needed
@@ -267,7 +267,7 @@ const SalesHistory = () => {
   };
 
   const formatTime = (dateString) => {
-    return format(new Date(dateString), 'HH:mm');
+      return format(new Date(dateString), 'HH:mm');
   };
 
   const getPaymentMethodBadge = (paymentMethod) => {
@@ -319,7 +319,7 @@ const SalesHistory = () => {
       `}</style>
 
       {/* Main Content */}
-      <div className="p-4">
+    <div className="p-4">
         {/* Title */}
         <div className="mb-4">
           <h2 className="mb-0 fw-bold text-primary">Sales History</h2>

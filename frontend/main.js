@@ -1,14 +1,16 @@
-const { app, BrowserWindow, globalShortcut, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
 const path = require('path');
-const fs = require('fs');
 
 app.disableHardwareAcceleration();
 
 let mainWindow;
 let backendProcess;
 
+/**
+ * Start backend Java process
+ */
 function startBackend() {
   const jarPath = isDev
     ? path.join(__dirname, 'backend', 'inventory-management-0.0.1-SNAPSHOT.jar')
@@ -19,8 +21,8 @@ function startBackend() {
   backendProcess = spawn('java', ['-jar', jarPath], {
     cwd: path.dirname(jarPath),
     detached: false,
-    stdio: 'ignore',      // ✅ no extra console window
-    windowsHide: true     // ✅ hides cmd.exe window
+    stdio: 'ignore',
+    windowsHide: true
   });
 
   backendProcess.on('error', (err) => {
@@ -32,23 +34,40 @@ function startBackend() {
   });
 }
 
+/**
+ * Stop backend gracefully
+ */
+function stopBackend() {
+  if (backendProcess) {
+    try {
+      backendProcess.kill('SIGTERM'); // ✅ explicit signal
+      console.log('🛑 Backend stopped');
+    } catch (err) {
+      console.error('❌ Error stopping backend:', err);
+    }
+    backendProcess = null;
+  }
+}
+
+/**
+ * Create the main window
+ */
 function createWindow() {
-  if (mainWindow) return; // ✅ prevents double windows
+  if (mainWindow) return;
 
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    fullscreen: true, // ✅ Start in fullscreen mode
-    frame: false, // ✅ Remove window frame for true fullscreen
-    autoHideMenuBar: true, // ✅ Hide menu bar
+    fullscreen: true,        // ✅ only fullscreen, no maximize
+    frame: false,            // ✅ frameless
+    autoHideMenuBar: true,   // ✅ hide menubar
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      enableRemoteModule: true
+      preload: path.join(__dirname, 'preload.js'), // ✅ safer
+      nodeIntegration: false,
+      contextIsolation: true
     },
     icon: path.join(__dirname, 'icon.png'),
-    show: false,
-    titleBarStyle: 'hidden' // ✅ Hide title bar completely
+    show: false
   });
 
   const startUrl = isDev
@@ -59,55 +78,34 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    mainWindow.setFullScreen(true); // ✅ Ensure fullscreen on show
-    mainWindow.setMenuBarVisibility(false); // ✅ Hide menu bar in fullscreen
-    mainWindow.maximize(); // ✅ Maximize window for better fullscreen experience
+    mainWindow.setFullScreen(true);
+    mainWindow.setMenuBarVisibility(false);
   });
 
-  // ✅ ESC key to exit fullscreen
+  // ✅ Single input handler
   mainWindow.webContents.on('before-input-event', (event, input) => {
-    if (input.key === 'Escape' && input.type === 'keyDown') {
-      if (mainWindow.isFullScreen()) {
-        mainWindow.setFullScreen(false);
-        mainWindow.setMenuBarVisibility(true); // ✅ Show menu bar when exiting fullscreen
-        // Show a brief notification
-        mainWindow.webContents.send('fullscreen-exited');
-      }
+    if (input.type !== 'keyDown') return;
+
+    if (input.key === 'Escape' && mainWindow.isFullScreen()) {
+      mainWindow.setFullScreen(false);
+      mainWindow.setMenuBarVisibility(true);
+      mainWindow.webContents.send('fullscreen-exited');
     }
-  });
 
-  // ✅ F11 key to toggle fullscreen
-  mainWindow.webContents.on('before-input-event', (event, input) => {
-    if (input.key === 'F11' && input.type === 'keyDown') {
+    if (input.key === 'F11') {
       const isFullScreen = mainWindow.isFullScreen();
       mainWindow.setFullScreen(!isFullScreen);
-      if (!isFullScreen) {
-        mainWindow.setMenuBarVisibility(false); // ✅ Hide menu bar when entering fullscreen
-      } else {
-        mainWindow.setMenuBarVisibility(true); // ✅ Show menu bar when exiting fullscreen
-      }
+      mainWindow.setMenuBarVisibility(!isFullScreen);
     }
   });
 
-  // ✅ Logout user when window is closed
-  mainWindow.on('close', (event) => {
-    // Send logout message to renderer process before closing
+  mainWindow.on('close', () => {
     try {
       mainWindow.webContents.send('app-closing');
-      // Give a small delay for the logout to complete
-      setTimeout(() => {
-        if (backendProcess) {
-          backendProcess.kill();
-        }
-        mainWindow = null;
-      }, 200);
-    } catch (error) {
-      console.error('Error sending app-closing message:', error);
-      if (backendProcess) {
-        backendProcess.kill();
-      }
-      mainWindow = null;
+    } catch (err) {
+      console.error('Error sending app-closing event:', err);
     }
+    stopBackend();
   });
 
   mainWindow.on('closed', () => {
@@ -119,13 +117,12 @@ function createWindow() {
   }
 }
 
-// ✅ Handle app-closing message from renderer process
-ipcMain.on('app-closing', (event) => {
-  console.log('Received app-closing message from renderer');
-  // Close the app gracefully
-  if (backendProcess) {
-    backendProcess.kill();
-  }
+/**
+ * IPC listener for renderer "app-closing"
+ */
+ipcMain.on('app-closing', () => {
+  console.log('📩 Received app-closing from renderer');
+  stopBackend();
   app.quit();
 });
 
@@ -134,17 +131,7 @@ app.whenReady().then(() => {
   createWindow();
 });
 
-app.on('before-quit', () => {
-  // Force logout before quitting
-  if (mainWindow && mainWindow.webContents) {
-    try {
-      mainWindow.webContents.send('app-closing');
-    } catch (error) {
-      console.error('Error sending logout message:', error);
-    }
-  }
-  if (backendProcess) backendProcess.kill();
-});
+app.on('before-quit', stopBackend);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

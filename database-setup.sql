@@ -1,20 +1,27 @@
 -- ============================================
 -- PickNPay Inventory Management System
--- Complete Initial Setup Script with Batch System and VAT Support
+-- Complete Database Setup Script
 -- 
--- IMPORTANT: Uses VARCHAR columns instead of ENUM types
--- for better Hibernate compatibility and to avoid casting errors
--- Includes all database fixes and VAT functionality
+-- This script creates the complete database schema
+-- for the PickNPay Inventory Management System
 -- ============================================
 
--- Connect to the database (run this first if needed)
--- \c picknpay_inventory;
-
 -- ============================================
--- 1. DROP EXISTING TABLES AND TYPES (if they exist)
+-- 1. CREATE DATABASE (if not exists)
 -- ============================================
 
--- Drop tables in reverse dependency order
+-- Create database if it doesn't exist
+SELECT 'CREATE DATABASE picknpay_inventory'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'picknpay_inventory')\gexec
+
+-- Connect to the database
+\c picknpay_inventory;
+
+-- ============================================
+-- 2. DROP EXISTING TABLES (if they exist)
+-- ============================================
+
+-- Drop tables in reverse dependency order to avoid foreign key constraints
 DROP TABLE IF EXISTS sale_items CASCADE;
 DROP TABLE IF EXISTS sales CASCADE;
 DROP TABLE IF EXISTS batches CASCADE;
@@ -23,101 +30,8 @@ DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS company_settings CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
--- Drop any existing enum types that might cause conflicts
-DROP TYPE IF EXISTS payment_method CASCADE;
-DROP TYPE IF EXISTS user_role CASCADE;
-
 -- ============================================
--- 1.1. MIGRATION SUPPORT (for existing databases)
--- ============================================
-
--- Add missing columns if they don't exist (for existing databases)
--- This section handles migration from older versions
-
--- Add VAT columns to items table if they don't exist
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                   WHERE table_name = 'items' AND column_name = 'vat_rate') THEN
-        ALTER TABLE items ADD COLUMN vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00;
-    END IF;
-END $$;
-
--- Add VAT and item tracking columns to sale_items table if they don't exist
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                   WHERE table_name = 'sale_items' AND column_name = 'item_name') THEN
-        ALTER TABLE sale_items ADD COLUMN item_name VARCHAR(255);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                   WHERE table_name = 'sale_items' AND column_name = 'item_barcode') THEN
-        ALTER TABLE sale_items ADD COLUMN item_barcode VARCHAR(255);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                   WHERE table_name = 'sale_items' AND column_name = 'batch_id') THEN
-        ALTER TABLE sale_items ADD COLUMN batch_id VARCHAR(255);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                   WHERE table_name = 'sale_items' AND column_name = 'vat_rate') THEN
-        ALTER TABLE sale_items ADD COLUMN vat_rate DECIMAL(5,2);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                   WHERE table_name = 'sale_items' AND column_name = 'vat_amount') THEN
-        ALTER TABLE sale_items ADD COLUMN vat_amount DECIMAL(10,2);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                   WHERE table_name = 'sale_items' AND column_name = 'price_excluding_vat') THEN
-        ALTER TABLE sale_items ADD COLUMN price_excluding_vat DECIMAL(10,2);
-    END IF;
-END $$;
-
--- Make category_id nullable in items table (for existing databases)
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.columns 
-               WHERE table_name = 'items' AND column_name = 'category_id' AND is_nullable = 'NO') THEN
-        ALTER TABLE items ALTER COLUMN category_id DROP NOT NULL;
-    END IF;
-END $$;
-
--- Fix existing null values in sale_items (for existing databases)
-UPDATE sale_items
-SET
-    item_name = COALESCE(item_name, 'Quick Sale Item'),
-    item_barcode = COALESCE(item_barcode, 'N/A'),
-    batch_id = COALESCE(batch_id, 'DEFAULT'),
-    vat_rate = COALESCE(vat_rate, 23.00),
-    vat_amount = COALESCE(vat_amount, 0.00),
-    price_excluding_vat = COALESCE(price_excluding_vat, unit_price)
-WHERE
-    item_name IS NULL
-    OR item_barcode IS NULL
-    OR batch_id IS NULL
-    OR vat_rate IS NULL
-    OR vat_amount IS NULL
-    OR price_excluding_vat IS NULL;
-
--- Recalculate VAT amounts for existing sale items
-UPDATE sale_items
-SET
-    price_excluding_vat = ROUND(total_price / (1 + vat_rate/100), 2),
-    vat_amount = ROUND(total_price - (total_price / (1 + vat_rate/100)), 2)
-WHERE
-    vat_rate IS NOT NULL
-    AND total_price IS NOT NULL;
-
--- Add NOT NULL constraint to item_name in sale_items (for existing databases)
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.columns 
-               WHERE table_name = 'sale_items' AND column_name = 'item_name' AND is_nullable = 'YES') THEN
-        ALTER TABLE sale_items ALTER COLUMN item_name SET NOT NULL;
-    END IF;
-END $$;
-
--- ============================================
--- 2. CREATE TABLES
+-- 3. CREATE TABLES
 -- ============================================
 
 -- Create users table
@@ -148,8 +62,9 @@ CREATE TABLE company_settings (
 -- Create categories table
 CREATE TABLE categories (
     id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
+    is_active BOOLEAN DEFAULT true,
     display_on_pos BOOLEAN DEFAULT true,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -172,7 +87,7 @@ CREATE TABLE items (
 -- Create batches table (Inventory Tracking)
 CREATE TABLE batches (
     id BIGSERIAL PRIMARY KEY,
-    product_id BIGINT NOT NULL REFERENCES items(id),
+    product_id BIGINT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
     batch_id VARCHAR(255) NOT NULL,
     expiry_date DATE,
     manufacture_date DATE,
@@ -198,7 +113,7 @@ CREATE TABLE sales (
 -- Create sale_items table
 CREATE TABLE sale_items (
     id BIGSERIAL PRIMARY KEY,
-    sale_id BIGINT NOT NULL REFERENCES sales(id),
+    sale_id BIGINT NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
     item_id BIGINT REFERENCES items(id),
     item_name VARCHAR(255) NOT NULL,
     item_barcode VARCHAR(255),
@@ -213,7 +128,7 @@ CREATE TABLE sale_items (
 );
 
 -- ============================================
--- 3. CREATE INDEXES
+-- 4. CREATE INDEXES FOR PERFORMANCE
 -- ============================================
 
 -- Users indexes
@@ -241,7 +156,7 @@ CREATE INDEX idx_sale_items_sale_id ON sale_items(sale_id);
 CREATE INDEX idx_sale_items_item_id ON sale_items(item_id);
 
 -- ============================================
--- 4. INSERT INITIAL DATA
+-- 5. INSERT INITIAL DATA
 -- ============================================
 
 -- Insert admin user with BCrypt encoded password for "admin123"
@@ -256,67 +171,99 @@ INSERT INTO company_settings (company_name, address, phone, email, tax_number) V
 'info@picknpay.com', 
 'IE123456789');
 
+-- Insert sample categories
+INSERT INTO categories (name, description, is_active, display_on_pos) VALUES
+('Beverages', 'Soft drinks, juices, and other beverages', true, true),
+('Food', 'Food items and snacks', true, true),
+('Dairy', 'Milk, cheese, and dairy products', true, true),
+('Bakery', 'Bread, pastries, and baked goods', true, true);
+
+-- Insert sample items
+INSERT INTO items (name, description, price, stock_quantity, barcode, vat_rate, category_id) VALUES
+('Coca Cola 330ml', 'Refreshing soft drink', 2.50, 100, '1234567890123', 23.00, 1),
+('Bread Loaf', 'Fresh white bread', 3.00, 50, '2345678901234', 0.00, 4),
+('Milk 1L', 'Fresh whole milk', 2.80, 75, '3456789012345', 0.00, 3),
+('Chocolate Bar', 'Milk chocolate bar', 1.50, 200, '4567890123456', 23.00, 2),
+('Apple', 'Fresh red apples', 0.80, 150, '5678901234567', 0.00, 2);
+
 -- ============================================
--- 5. GRANTS AND PERMISSIONS
+-- 6. CREATE TRIGGERS FOR AUTOMATIC TIMESTAMPS
 -- ============================================
 
--- Grant permissions to postgres user (adjust as needed)
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create triggers for all tables with updated_at column
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_company_settings_updated_at BEFORE UPDATE ON company_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON categories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_items_updated_at BEFORE UPDATE ON items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_batches_updated_at BEFORE UPDATE ON batches FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_sales_updated_at BEFORE UPDATE ON sales FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- 7. GRANT PERMISSIONS
+-- ============================================
+
+-- Grant all privileges to postgres user
 GRANT ALL PRIVILEGES ON DATABASE picknpay_inventory TO postgres;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;
 
 -- ============================================
--- 6. VERIFICATION QUERIES
+-- 8. VERIFICATION QUERIES
 -- ============================================
 
 -- Verify tables were created
+SELECT 'Tables created:' as status;
 SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;
 
 -- Verify admin user was created
+SELECT 'Admin user created:' as status;
 SELECT username, email, role, is_active FROM users WHERE role = 'ADMIN';
 
--- Verify table structure
-SELECT table_name, column_name, data_type, is_nullable 
-FROM information_schema.columns 
-WHERE table_name IN ('users', 'items', 'batches', 'categories', 'sales', 'sale_items', 'company_settings') 
-ORDER BY table_name, ordinal_position;
+-- Verify sample data
+SELECT 'Sample categories:' as status;
+SELECT id, name, is_active FROM categories;
+
+SELECT 'Sample items:' as status;
+SELECT id, name, price, vat_rate, stock_quantity FROM items LIMIT 5;
 
 -- ============================================
--- SETUP COMPLETE
+-- 9. SUCCESS MESSAGE
 -- ============================================
 
--- Display success message
 DO $$
 BEGIN
     RAISE NOTICE '============================================';
     RAISE NOTICE 'PickNPay Database Setup Complete!';
     RAISE NOTICE '============================================';
-    RAISE NOTICE 'Admin User Created:';
+    RAISE NOTICE 'Database: picknpay_inventory';
+    RAISE NOTICE 'Admin User:';
     RAISE NOTICE '  Username: admin';
-    RAISE NOTICE '  Password: admin123 (BCrypt encoded)';
+    RAISE NOTICE '  Password: admin123';
     RAISE NOTICE '  Email: admin@picknpay.com';
     RAISE NOTICE '============================================';
-    RAISE NOTICE 'Database Schema Created Successfully';
-    RAISE NOTICE 'Company Settings Configured';
-    RAISE NOTICE 'BCrypt Password Encoding: ENABLED';
-    RAISE NOTICE 'JPA Timestamp Management: ENABLED';
-    RAISE NOTICE 'VARCHAR Enum Columns: ENABLED (Hibernate Compatible)';
-    RAISE NOTICE 'Batch System: ENABLED';
-    RAISE NOTICE 'VAT Functionality: ENABLED (23% default)';
-    RAISE NOTICE 'Migration Support: ENABLED (handles existing databases)';
-    RAISE NOTICE '============================================';
     RAISE NOTICE 'Features Included:';
-    RAISE NOTICE '- VAT calculation and reporting';
+    RAISE NOTICE '- User management (ADMIN/USER roles)';
+    RAISE NOTICE '- Company settings configuration';
+    RAISE NOTICE '- Category management';
+    RAISE NOTICE '- Item management with VAT support';
     RAISE NOTICE '- Batch tracking with expiry dates';
-    RAISE NOTICE '- Quick sales with default VAT';
-    RAISE NOTICE '- Category management (optional)';
-    RAISE NOTICE '- Stock management and tracking';
+    RAISE NOTICE '- Sales tracking with payment methods';
+    RAISE NOTICE '- Sale items with VAT calculations';
     RAISE NOTICE '============================================';
     RAISE NOTICE 'Next Steps:';
-    RAISE NOTICE '1. Start the application';
+    RAISE NOTICE '1. Start the Spring Boot application';
     RAISE NOTICE '2. Login with admin credentials';
-    RAISE NOTICE '3. Create categories and products through the app';
-    RAISE NOTICE '4. Add batches for products with expiry dates';
-    RAISE NOTICE '5. Configure VAT rates for products';
+    RAISE NOTICE '3. Configure company settings';
+    RAISE NOTICE '4. Add more categories and items';
+    RAISE NOTICE '5. Create batches for inventory tracking';
     RAISE NOTICE '============================================';
 END $$;

@@ -16,6 +16,8 @@ const BarcodeScanner = ({ open, onClose, onBarcodeScanned }) => {
   const [error, setError] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const onDetectedRef = useRef(null);
+  const streamRef = useRef(null);
 
   useEffect(() => {
     if (open) {
@@ -32,31 +34,48 @@ const BarcodeScanner = ({ open, onClose, onBarcodeScanned }) => {
   // Cleanup on component unmount
   useEffect(() => {
     return () => {
-      try {
-        if (Quagga && Quagga.stop) {
-          Quagga.stop();
-        }
-      } catch (e) {
-        // Ignore cleanup errors
-      }
+      cleanupScanner();
     };
   }, []);
+
+  const cleanupScanner = () => {
+    try {
+      // Remove event listeners first
+      if (onDetectedRef.current) {
+        Quagga.offDetected(onDetectedRef.current);
+        onDetectedRef.current = null;
+      }
+
+      // Stop Quagga
+      if (Quagga && Quagga.stop) {
+        Quagga.stop();
+      }
+
+      // Stop camera tracks
+      if (streamRef.current) {
+        const tracks = streamRef.current.getTracks();
+        tracks.forEach(track => {
+          track.stop();
+        });
+        streamRef.current = null;
+      }
+
+      setScanning(false);
+      setIsInitialized(false);
+    } catch (e) {
+      console.warn('Error during cleanup:', e);
+    }
+  };
 
   const startScanner = () => {
     if (!scannerRef.current) return;
 
+    // Clean up any existing instance first
+    cleanupScanner();
+
     setScanning(true);
     setError(null);
     setIsInitialized(false);
-
-    // Clean up any existing Quagga instance
-    try {
-      if (Quagga && Quagga.stop) {
-        Quagga.stop();
-      }
-    } catch (e) {
-      // Ignore errors when stopping
-    }
 
     Quagga.init({
       inputStream: {
@@ -94,30 +113,31 @@ const BarcodeScanner = ({ open, onClose, onBarcodeScanned }) => {
         setIsInitialized(false);
         return;
       }
+      
       setIsInitialized(true);
       Quagga.start();
-    });
 
-    Quagga.onDetected((data) => {
-      const code = data.codeResult.code;
-      if (code) {
-        onBarcodeScanned(code);
-        stopScanner();
+      // Store the stream reference for cleanup
+      if (Quagga.getStream) {
+        streamRef.current = Quagga.getStream();
       }
+
+      // Create and store the onDetected handler
+      const onDetectedHandler = (data) => {
+        const code = data.codeResult.code;
+        if (code) {
+          onBarcodeScanned(code);
+          stopScanner();
+        }
+      };
+
+      onDetectedRef.current = onDetectedHandler;
+      Quagga.onDetected(onDetectedHandler);
     });
   };
 
   const stopScanner = () => {
-    try {
-      if (Quagga && Quagga.stop && isInitialized) {
-        Quagga.stop();
-      }
-    } catch (e) {
-      // Ignore errors when stopping
-      console.warn('Error stopping Quagga scanner:', e);
-    }
-    setScanning(false);
-    setIsInitialized(false);
+    cleanupScanner();
   };
 
   const handleClose = () => {

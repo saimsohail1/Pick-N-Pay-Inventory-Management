@@ -52,10 +52,7 @@ const CompanyPage = () => {
       window.dispatchEvent(new CustomEvent('companyNameUpdated', { 
         detail: { companyName: data.companyName } 
       }));
-      // Refresh the page to update the navbar and other components
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // No need to reload - the custom event will update all components
     } catch (err) {
       setError('Failed to update company information. Please try again.');
       addTimeout(() => setError(null), 3000);

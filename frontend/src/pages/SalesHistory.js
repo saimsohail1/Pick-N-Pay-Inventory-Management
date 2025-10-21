@@ -3,6 +3,7 @@ import { Table, Button, Form, Alert, Spinner, Badge, Modal } from 'react-bootstr
 import { format } from 'date-fns';
 import { salesAPI, usersAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { printWithElectron, createReceiptHTML } from '../utils/printUtils';
 
 const SalesHistory = () => {
   const [sales, setSales] = useState([]);
@@ -272,133 +273,23 @@ const SalesHistory = () => {
     return <Badge bg="secondary">{paymentMethod}</Badge>;
   };
 
-  // Optimized non-blocking print function
-  const handlePrintSale = (sale) => {
-    // Use setTimeout to make this non-blocking
-    setTimeout(() => {
-      try {
-        // Create a printable receipt optimized for till paper
-        const printWindow = window.open('', '_blank', 'width=300,height=600');
-        if (!printWindow) {
-          console.error('Failed to open print window');
-          return;
-        }
-
-        // Memoize calculations to avoid repeated reduces
-        const subtotalExcludingVat = sale.saleItems.reduce((sum, item) => 
-          sum + parseFloat(item.priceExcludingVat || 0), 0
-        );
-        const totalVat = sale.saleItems.reduce((sum, item) => 
-          sum + parseFloat(item.vatAmount || 0), 0
-        );
-
-        const receiptContent = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Receipt - Sale #${sale.id}</title>
-            <style>
-              @media print {
-                @page { 
-                  size: 80mm auto; 
-                  margin: 0; 
-                }
-                body { 
-                  margin: 0; 
-                  padding: 5mm; 
-                  font-family: 'Courier New', monospace; 
-                  font-size: 12px; 
-                  line-height: 1.2;
-                  width: 70mm;
-                }
-              }
-              body { 
-                font-family: 'Courier New', monospace; 
-                font-size: 12px; 
-                line-height: 1.2; 
-                margin: 0; 
-                padding: 5mm; 
-                width: 70mm;
-              }
-              .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
-              .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
-              .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: bold; }
-              .vat-info { margin: 5px 0; font-size: 10px; }
-              .footer { text-align: center; margin-top: 15px; font-size: 10px; }
-              .divider { border-top: 1px dashed #000; margin: 5px 0; }
-              .center { text-align: center; }
-              .right { text-align: right; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <div class="center"><strong>PICKNPAY</strong></div>
-              <div class="center">Receipt #${sale.id}</div>
-              <div class="center">${new Date(sale.saleDate).toLocaleString()}</div>
-            </div>
-            
-            <div class="divider"></div>
-            
-            <div class="items">
-              ${sale.saleItems.map(item => `
-                <div class="item">
-                  <span>${item.itemName}</span>
-                  <span>€${parseFloat(item.totalPrice).toFixed(2)}</span>
-                </div>
-                <div class="item" style="font-size: 10px; color: #666;">
-                  <span>${item.quantity} x €${parseFloat(item.unitPrice).toFixed(2)}</span>
-                  <span>${item.vatRate || 23}% VAT</span>
-                </div>
-              `).join('')}
-            </div>
-            
-            <div class="divider"></div>
-            
-            <div class="vat-info">
-              <div class="item">
-                <span>Subtotal (Ex VAT):</span>
-                <span>€${subtotalExcludingVat.toFixed(2)}</span>
-              </div>
-              <div class="item">
-                <span>Total VAT:</span>
-                <span>€${totalVat.toFixed(2)}</span>
-              </div>
-            </div>
-            
-            <div class="total">
-              <div class="item">
-                <span><strong>TOTAL:</strong></span>
-                <span><strong>€${parseFloat(sale.totalAmount).toFixed(2)}</strong></span>
-              </div>
-            </div>
-            
-            <div class="divider"></div>
-            
-            <div class="footer">
-              <div>Payment: ${sale.paymentMethod}</div>
-              <div>Thank you for your business!</div>
-              <div>---</div>
-            </div>
-          </body>
-          </html>
-        `;
-        
-        printWindow.document.write(receiptContent);
-        printWindow.document.close();
-        
-        // Auto-print with longer delay to avoid UI freeze
-        setTimeout(() => {
-          printWindow.print();
-          // Close the window after printing
-          setTimeout(() => {
-            printWindow.close();
-          }, 1000);
-        }, 300); // Increased delay to prevent UI freeze
-        
-      } catch (error) {
-        console.error('Print error:', error);
-      }
-    }, 0); // Non-blocking execution
+  // Optimized print function using new print utilities
+  const handlePrintSale = async (sale) => {
+    try {
+      // Get company name for the receipt
+      const companyName = 'PickNPay'; // You can fetch this from context or API
+      
+      // Create receipt HTML using utility
+      const receiptContent = createReceiptHTML(sale, companyName);
+      
+      // Print using Electron or fallback to iframe
+      await printWithElectron(receiptContent, `Receipt - Sale #${sale.id}`);
+      
+    } catch (error) {
+      console.error('Print error:', error);
+      // Fallback to simple alert if printing fails
+      alert('Printing failed. Please try again.');
+    }
   };
 
   return (

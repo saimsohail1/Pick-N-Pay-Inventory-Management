@@ -3,6 +3,7 @@ import { Container, Table, Button, Form, Row, Col, Alert, Spinner } from 'react-
 import { useNavigate } from 'react-router-dom';
 import { salesAPI, usersAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { printWithElectron, createZReportHTML } from '../utils/printUtils';
 
 const DailyReport = () => {
   const [loading, setLoading] = useState(false);
@@ -138,118 +139,22 @@ const DailyReport = () => {
     }
   };
 
-  const handlePrintReport = () => {
-    // Create a printable Z-report optimized for till paper
-    const printWindow = window.open('', '_blank', 'width=300,height=600');
-    const reportContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Z-Report - ${startDate}</title>
-        <style>
-          @media print {
-            @page { 
-              size: 80mm auto; 
-              margin: 0; 
-            }
-            body { 
-              margin: 0; 
-              padding: 5mm; 
-              font-family: 'Courier New', monospace; 
-              font-size: 12px; 
-              line-height: 1.2;
-              width: 70mm;
-            }
-          }
-          body { 
-            font-family: 'Courier New', monospace; 
-            font-size: 12px; 
-            line-height: 1.2; 
-            margin: 0; 
-            padding: 5mm; 
-            width: 70mm;
-          }
-          .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
-          .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
-          .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: bold; }
-          .section { margin: 10px 0; }
-          .footer { text-align: center; margin-top: 15px; font-size: 10px; }
-          .divider { border-top: 1px dashed #000; margin: 5px 0; }
-          .center { text-align: center; }
-          .right { text-align: right; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="center"><strong>PICKNPAY</strong></div>
-          <div class="center"><strong>Z-REPORT</strong></div>
-          <div class="center">Date: ${startDate}</div>
-          <div class="center">${new Date().toLocaleString()}</div>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="section">
-          <div class="center"><strong>PAYMENT METHODS</strong></div>
-          ${reportData.paymentMethods.map(payment => `
-            <div class="item">
-              <span>${payment.label.toUpperCase()}:</span>
-              <span>€${payment.total.toFixed(2)} (${payment.count})</span>
-            </div>
-          `).join('')}
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="section">
-          <div class="center"><strong>CATEGORIES</strong></div>
-          ${reportData.categories.map(category => `
-            <div class="item">
-              <span>${category.name.toUpperCase()}:</span>
-              <span>€${category.total.toFixed(2)} (${category.count})</span>
-            </div>
-          `).join('')}
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="section">
-          <div class="center"><strong>VAT SUMMARY</strong></div>
-          <div class="item">
-            <span>Subtotal (Ex VAT):</span>
-            <span>€${reportData.vatInfo.totalAmountExcludingVat.toFixed(2)}</span>
-          </div>
-          <div class="item">
-            <span>Total VAT:</span>
-            <span>€${reportData.vatInfo.totalVatAmount.toFixed(2)}</span>
-          </div>
-          <div class="item">
-            <span><strong>Total (Inc VAT):</strong></span>
-            <span><strong>€${reportData.vatInfo.totalAmountIncludingVat.toFixed(2)}</strong></span>
-          </div>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="footer">
-          <div>End of Z-Report</div>
-          <div>---</div>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    printWindow.document.write(reportContent);
-    printWindow.document.close();
-    
-    // Auto-print without dialog - optimized for till paper
-    setTimeout(() => {
-      printWindow.print();
-      // Close the window after printing
-      setTimeout(() => {
-        printWindow.close();
-      }, 1000);
-    }, 100);
+  const handlePrintReport = async () => {
+    try {
+      // Get company name for the report
+      const companyName = 'PickNPay'; // You can fetch this from context or API
+      
+      // Create Z-report HTML using utility
+      const reportContent = createZReportHTML(reportData, companyName, startDate);
+      
+      // Print using Electron or fallback to iframe
+      await printWithElectron(reportContent, `Z-Report - ${startDate}`);
+      
+    } catch (error) {
+      console.error('Print error:', error);
+      // Fallback to simple alert if printing fails
+      alert('Printing failed. Please try again.');
+    }
   };
 
   return (

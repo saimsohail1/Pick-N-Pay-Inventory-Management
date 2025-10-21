@@ -21,17 +21,17 @@ function startBackend() {
   backendProcess = spawn('java', ['-jar', jarPath], {
     cwd: path.dirname(jarPath),
     detached: false,
-    stdio: 'ignore',
+    stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true
   });
 
-  backendProcess.on('error', (err) => {
-    console.error('❌ Failed to start backend:', err);
+  backendProcess.stdout.on('data', (data) => {
+    console.log(`[Backend] ${data}`);
   });
-
-  backendProcess.on('exit', (code) => {
-    console.log(`ℹ️ Backend process exited with code ${code}`);
+  backendProcess.stderr.on('data', (data) => {
+    console.error(`[Backend ERROR] ${data}`);
   });
+  
 }
 
 /**
@@ -70,9 +70,8 @@ function createWindow() {
     show: false
   });
 
-  const startUrl = isDev
-    ? 'http://localhost:3000'
-    : `file://${path.join(__dirname, 'build', 'index.html')}`;
+  const startUrl = 'http://localhost:3000';
+
 
   mainWindow.loadURL(startUrl);
 

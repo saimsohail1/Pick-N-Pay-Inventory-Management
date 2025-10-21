@@ -85,15 +85,19 @@ const SalesHistory = () => {
     };
   }, [saleToDelete]);
 
+  // Initial data fetch - only run once
   useEffect(() => {
+    console.log("🔄 SalesHistory: Initial fetch");
     fetchTodaySales();
-  }, []);
+  }, [fetchSales]); // Add fetchSales as dependency since it's now memoized
 
+  // Fetch users when admin status changes - prevent infinite loops
   useEffect(() => {
+    console.log("🔄 SalesHistory: Admin check", { isAdminUser, user: user?.id });
     if (isAdminUser) {
       fetchUsers();
     }
-  }, [user]);
+  }, [isAdminUser]); // Changed from [user] to [isAdminUser] to prevent loops
 
   const fetchUsers = async () => {
     try {
@@ -109,8 +113,9 @@ const SalesHistory = () => {
     }
   };
 
-  // Optimized unified fetch function
-  const fetchSales = async (date) => {
+  // Memoized fetch function to prevent infinite loops
+  const fetchSales = useCallback(async (date) => {
+    console.log("🔄 SalesHistory: fetchSales called", { date, isAdminUser, selectedUserId, userId: user?.id });
     try {
       setLoading(true);
       setError(null);
@@ -136,11 +141,12 @@ const SalesHistory = () => {
 
       setSales(response?.data || []);
     } catch (err) {
+      console.error("❌ fetchSales failed:", err);
       setError('Failed to load sales');
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdminUser, selectedUserId, user?.id]); // Proper dependencies
 
   // Legacy functions for backward compatibility
   const fetchTodaySales = () => fetchSales(null);

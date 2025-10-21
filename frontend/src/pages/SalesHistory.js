@@ -90,6 +90,7 @@ const SalesHistory = () => {
   }, []);
 
   useEffect(() => {
+    console.log("Fetching users...");
     if (isAdminUser) {
       fetchUsers();
     }

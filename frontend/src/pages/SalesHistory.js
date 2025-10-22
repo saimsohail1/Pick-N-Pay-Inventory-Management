@@ -32,7 +32,7 @@ const SalesHistory = () => {
 
     let isMounted = true;
     try {
-      const data = await salesAPI.getSales(date, userId);
+      const data = await salesAPI.getTodaySales(userId, isAdminUser);
       if (isMounted) {
         setSales(data);
         console.log("[SalesHistory] fetchSales success", data);
@@ -50,7 +50,7 @@ const SalesHistory = () => {
       console.log("[SalesHistory] cleanup fetchSales");
       isMounted = false;
     };
-  }, []);
+  }, [isAdminUser]);
 
   // ✅ Fetch sales when filters change
   useEffect(() => {
@@ -63,7 +63,7 @@ const SalesHistory = () => {
     let isMounted = true;
     if (isAdminUser) {
       usersAPI
-        .getUsers()
+        .getAll()
         .then((data) => {
           if (isMounted) setUsers(data);
         })
@@ -118,7 +118,7 @@ const SalesHistory = () => {
     if (!saleToEdit) return;
     setEditing(true);
     try {
-      await salesAPI.updateSale(saleToEdit.id, saleToEdit);
+      await salesAPI.update(saleToEdit.id, saleToEdit);
       await fetchSales(selectedDate, selectedUserId);
       cancelEditSale();
     } catch (err) {
@@ -133,7 +133,7 @@ const SalesHistory = () => {
     if (!saleToDelete) return;
     setDeleting(true);
     try {
-      await salesAPI.deleteSale(saleToDelete.id);
+      await salesAPI.delete(saleToDelete.id);
       await fetchSales(selectedDate, selectedUserId);
       cancelDeleteSale();
     } catch (err) {

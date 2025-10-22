@@ -164,35 +164,92 @@ const SalesHistory = () => {
 
   const getPaymentMethodBadge = (method) => {
     if (!method) return "-";
-    return <span className="badge bg-info">{method}</span>;
+    const isCash = method === 'CASH';
+    return (
+      <span 
+        className={`badge ${isCash ? 'bg-success' : 'bg-primary'} px-3 py-2 rounded-pill fw-semibold`}
+        style={{ fontSize: '0.85rem' }}
+      >
+        <i className={`bi ${isCash ? 'bi-cash' : 'bi-credit-card'} me-1`}></i>
+        {method}
+      </span>
+    );
   };
 
   return (
-    <div className="p-4">
-      <h2 className="mb-4 fw-bold text-primary">Sales History</h2>
+    <div className="p-4" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+      <div className="d-flex align-items-center mb-4">
+        <div className="bg-primary rounded-circle p-3 me-3">
+          <i className="bi bi-graph-up text-white fs-4"></i>
+        </div>
+        <div>
+          <h2 className="mb-0 fw-bold text-primary">Sales History</h2>
+          <p className="text-muted mb-0">View and manage your sales transactions</p>
+        </div>
+      </div>
 
       {/* Filters */}
-      <div className="d-flex gap-3 align-items-end mb-4">
-        {isAdminUser && (
-          <Form.Select
-            value={selectedUserId}
-            onChange={(e) => handleUserChange(e.target.value)}
-          >
-            {Array.isArray(users) && users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.username}
-              </option>
-            ))}
-          </Form.Select>
-        )}
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-        />
-        <Button onClick={() => fetchSales(selectedDate, selectedUserId)}>
-          Search
-        </Button>
+      <div className="row g-3 mb-4">
+        <div className="col-12">
+          <div className="card shadow-sm border-0">
+            <div className="card-body">
+              <h6 className="card-title text-muted mb-3">
+                <i className="bi bi-funnel me-2"></i>
+                Filter Sales
+              </h6>
+              <div className="row g-3">
+                {isAdminUser && (
+                  <div className="col-md-4">
+                    <label className="form-label fw-semibold text-dark">
+                      <i className="bi bi-person me-1"></i>
+                      Select User
+                    </label>
+                    <Form.Select
+                      value={selectedUserId}
+                      onChange={(e) => handleUserChange(e.target.value)}
+                      className="form-select-lg border-2"
+                      style={{ borderRadius: '10px' }}
+                    >
+                      {Array.isArray(users) && users.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.username}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </div>
+                )}
+                <div className="col-md-4">
+                  <label className="form-label fw-semibold text-dark">
+                    <i className="bi bi-calendar3 me-1"></i>
+                    Select Date
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="form-control form-control-lg border-2"
+                    style={{ borderRadius: '10px' }}
+                  />
+                </div>
+                <div className="col-md-4 d-flex align-items-end">
+                  <Button 
+                    onClick={() => fetchSales(selectedDate, selectedUserId)}
+                    className="btn btn-primary btn-lg w-100"
+                    style={{ 
+                      borderRadius: '10px',
+                      background: 'linear-gradient(45deg, #007bff, #0056b3)',
+                      border: 'none',
+                      boxShadow: '0 4px 15px rgba(0, 123, 255, 0.3)'
+                    }}
+                  >
+                    <i className="bi bi-search me-2"></i>
+                    Search Sales
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Error */}
@@ -202,35 +259,92 @@ const SalesHistory = () => {
       {loading && <Spinner animation="border" />}
 
       {/* Table */}
-      <Table hover>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Hour</th>
-            <th>Payment</th>
-            <th>Total</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Array.isArray(sales) && sales.map((sale, index) => (
-            <tr key={sale.id}>
-              <td>{index + 1}</td>
-              <td>{formatTime(sale.saleDate)}</td>
-              <td>{getPaymentMethodBadge(sale.paymentMethod)}</td>
-              <td>€{sale.totalAmount}</td>
-              <td>
-                <Button size="sm" onClick={() => handleEditSale(sale)}>
-                  Edit
-                </Button>{" "}
-                <Button size="sm" onClick={() => handleDeleteSale(sale)}>
-                  Delete
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      <div className="card shadow-sm border-0">
+        <div className="card-header bg-white border-0 pb-0">
+          <h6 className="card-title text-muted mb-0">
+            <i className="bi bi-list-ul me-2"></i>
+            Sales Transactions
+          </h6>
+        </div>
+        <div className="card-body p-0">
+          <div className="table-responsive">
+            <Table hover className="mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th className="border-0 py-3 px-4 fw-semibold text-dark">#</th>
+                  <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                    <i className="bi bi-clock me-1"></i>
+                    Time
+                  </th>
+                  <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                    <i className="bi bi-credit-card me-1"></i>
+                    Payment
+                  </th>
+                  <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                    <i className="bi bi-currency-euro me-1"></i>
+                    Total
+                  </th>
+                  <th className="border-0 py-3 px-4 fw-semibold text-dark text-center">
+                    <i className="bi bi-gear me-1"></i>
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.isArray(sales) && sales.map((sale, index) => (
+                  <tr key={sale.id} className="border-bottom">
+                    <td className="py-3 px-4">
+                      <span className="badge bg-light text-dark rounded-pill px-3 py-2 fw-semibold">
+                        {index + 1}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="d-flex align-items-center">
+                        <i className="bi bi-clock text-muted me-2"></i>
+                        <span className="fw-medium">{formatTime(sale.saleDate)}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">{getPaymentMethodBadge(sale.paymentMethod)}</td>
+                    <td className="py-3 px-4">
+                      <span className="fw-bold text-success fs-5">€{sale.totalAmount}</span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="btn-group" role="group">
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleEditSale(sale)}
+                          className="btn btn-outline-primary me-2"
+                          style={{ 
+                            borderRadius: '8px',
+                            borderWidth: '2px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          <i className="bi bi-pencil me-1"></i>
+                          Edit
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleDeleteSale(sale)}
+                          className="btn btn-outline-danger"
+                          style={{ 
+                            borderRadius: '8px',
+                            borderWidth: '2px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          <i className="bi bi-trash me-1"></i>
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </div>
+      </div>
 
       {/* Edit Modal */}
       <Modal show={editDialogOpen} onHide={cancelEditSale} size="lg">

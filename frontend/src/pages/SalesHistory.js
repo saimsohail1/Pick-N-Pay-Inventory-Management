@@ -32,10 +32,12 @@ const SalesHistory = () => {
 
     let isMounted = true;
     try {
-      const data = await salesAPI.getTodaySales(userId, isAdminUser);
+      const response = await salesAPI.getTodaySales(userId, isAdminUser);
       if (isMounted) {
-        setSales(data);
-        console.log("[SalesHistory] fetchSales success", data);
+        // Handle both direct array and response.data structure
+        const salesData = Array.isArray(response) ? response : (response.data || []);
+        setSales(salesData);
+        console.log("[SalesHistory] fetchSales success", salesData);
       }
     } catch (err) {
       if (isMounted) {
@@ -64,11 +66,18 @@ const SalesHistory = () => {
     if (isAdminUser) {
       usersAPI
         .getAll()
-        .then((data) => {
-          if (isMounted) setUsers(data);
+        .then((response) => {
+          if (isMounted) {
+            // Handle both direct array and response.data structure
+            const usersData = Array.isArray(response) ? response : (response.data || []);
+            setUsers(usersData);
+          }
         })
         .catch((err) => {
-          if (isMounted) setError("Failed to fetch users");
+          if (isMounted) {
+            console.error("Failed to fetch users:", err);
+            setError("Failed to fetch users");
+          }
         });
     }
     return () => {
@@ -162,7 +171,7 @@ const SalesHistory = () => {
             value={selectedUserId}
             onChange={(e) => handleUserChange(e.target.value)}
           >
-            {users.map((u) => (
+            {Array.isArray(users) && users.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.username}
               </option>
@@ -197,7 +206,7 @@ const SalesHistory = () => {
           </tr>
         </thead>
         <tbody>
-          {sales.map((sale, index) => (
+          {Array.isArray(sales) && sales.map((sale, index) => (
             <tr key={sale.id}>
               <td>{index + 1}</td>
               <td>{formatTime(sale.saleDate)}</td>

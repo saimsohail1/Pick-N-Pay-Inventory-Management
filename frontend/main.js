@@ -2,11 +2,11 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
 const path = require('path');
-const fs = require('fs');
+const kill = require('tree-kill'); // ✅ safer process kill
 
-// 🔹 Only disable hardware acceleration on macOS/Linux, keep it ON for Windows
-if (process.platform !== 'win32') {
-  app.disableHardwareAcceleration();
+// ⚡ Keep GPU acceleration ON but disable sandbox (fixes freezes in Windows builds)
+if (process.platform === 'win32') {
+  app.commandLine.appendSwitch('disable-gpu-sandbox');
 }
 
 let mainWindow;
@@ -21,21 +21,23 @@ function startBackend() {
     : path.join(process.resourcesPath, 'backend', 'inventory-management-0.0.1-SNAPSHOT.jar');
 
   console.log("👉 Launching backend from:", jarPath);
-  console.log("📂 JAR exists?", fs.existsSync(jarPath));
 
-  backendProcess = spawn('java', ['-Xmx512m', '-jar', jarPath], {
+  backendProcess = spawn('java', ['-Xms256m', '-Xmx1024m', '-jar', jarPath], {
     cwd: path.dirname(jarPath),
     detached: false,
-    stdio: ['ignore', 'pipe', 'pipe'], // ✅ capture logs (prevents Windows freeze)
+    stdio: ['pipe', 'pipe', 'pipe'], // ✅ pipe everything
     windowsHide: true
   });
 
+  backendProcess.stdout.setEncoding('utf8');
+  backendProcess.stderr.setEncoding('utf8');
+
   backendProcess.stdout.on('data', (data) => {
-    console.log(`[Backend] ${data.toString().trim()}`);
+    console.log(`[Backend OUT] ${data.toString().trim()}`);
   });
 
   backendProcess.stderr.on('data', (data) => {
-    console.error(`[Backend ERROR] ${data.toString().trim()}`);
+    console.error(`[Backend ERR] ${data.toString().trim()}`);
   });
 
   backendProcess.on('error', (err) => {
@@ -43,7 +45,7 @@ function startBackend() {
   });
 
   backendProcess.on('exit', (code) => {
-    console.log(`ℹ️ Backend process exited with code ${code}`);
+    console.log(`ℹ️ Backend exited with code ${code}`);
   });
 }
 
@@ -53,10 +55,13 @@ function startBackend() {
 function stopBackend() {
   if (backendProcess) {
     try {
-      backendProcess.kill('SIGTERM');
-      console.log('🛑 Backend stopped');
+      console.log('🛑 Stopping backend (tree-kill)...');
+      kill(backendProcess.pid, 'SIGKILL', (err) => {
+        if (err) console.error('❌ Error killing backend:', err);
+        else console.log('✅ Backend killed');
+      });
     } catch (err) {
-      console.error('❌ Error stopping backend:', err);
+      console.error('❌ stopBackend exception:', err);
     }
     backendProcess = null;
   }
@@ -95,7 +100,6 @@ function createWindow() {
     mainWindow.setMenuBarVisibility(false);
   });
 
-  // 🔹 Handle fullscreen toggle
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
 
@@ -116,7 +120,7 @@ function createWindow() {
     try {
       mainWindow.webContents.send('app-closing');
     } catch (err) {
-      console.error('Error sending app-closing event:', err);
+      console.error('Error sending app-closing:', err);
     }
     stopBackend();
   });

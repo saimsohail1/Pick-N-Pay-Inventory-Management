@@ -341,56 +341,62 @@ const SalesHistory = () => {
                         <Button 
                           size="sm" 
                           onClick={() => handleEditSale(sale)}
-                          className="btn btn-outline-primary me-1"
+                          className="btn btn-light me-1"
                           style={{ 
                             borderRadius: '8px',
                             borderWidth: '2px',
+                            borderColor: '#007bff',
                             width: '45px',
                             height: '45px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '0'
+                            padding: '0',
+                            backgroundColor: '#f8f9fa'
                           }}
                           title="Edit Sale"
                         >
-                          <i className="bi bi-pencil" style={{ fontSize: '16px' }}></i>
+                          <i className="bi bi-pencil text-primary" style={{ fontSize: '16px' }}></i>
                         </Button>
                         <Button 
                           size="sm" 
                           onClick={() => handlePrintSale(sale)}
-                          className="btn btn-outline-success me-1"
+                          className="btn btn-light me-1"
                           style={{ 
                             borderRadius: '8px',
                             borderWidth: '2px',
+                            borderColor: '#28a745',
                             width: '45px',
                             height: '45px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '0'
+                            padding: '0',
+                            backgroundColor: '#f8f9fa'
                           }}
                           title="Print Receipt"
                         >
-                          <i className="bi bi-printer" style={{ fontSize: '16px' }}></i>
+                          <i className="bi bi-printer text-success" style={{ fontSize: '16px' }}></i>
                         </Button>
                         <Button 
                           size="sm" 
                           onClick={() => handleDeleteSale(sale)}
-                          className="btn btn-outline-danger"
+                          className="btn btn-light"
                           style={{ 
                             borderRadius: '8px',
                             borderWidth: '2px',
+                            borderColor: '#dc3545',
                             width: '45px',
                             height: '45px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '0'
+                            padding: '0',
+                            backgroundColor: '#f8f9fa'
                           }}
                           title="Delete Sale"
                         >
-                          <i className="bi bi-trash" style={{ fontSize: '16px' }}></i>
+                          <i className="bi bi-trash text-danger" style={{ fontSize: '16px' }}></i>
                         </Button>
                       </div>
                     </td>

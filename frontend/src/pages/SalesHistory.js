@@ -21,8 +21,8 @@ const SalesHistory = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [saleToEdit, setSaleToEdit] = useState(null);
   const [saleToDelete, setSaleToDelete] = useState(null);
-  const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [removingItem, setRemovingItem] = useState(false);
 
   // ✅ Safe fetch with cleanup
   const fetchSales = useCallback(async (date, userId) => {
@@ -117,20 +117,6 @@ const SalesHistory = () => {
     setDeleteDialogOpen(false);
   };
 
-  const confirmEditSale = async () => {
-    if (!saleToEdit) return;
-    setEditing(true);
-    try {
-      await salesAPI.update(saleToEdit.id, saleToEdit);
-      await fetchSales(selectedDate, selectedUserId);
-      cancelEditSale();
-    } catch (err) {
-      console.error("Edit failed", err);
-      setError("Failed to update sale");
-    } finally {
-      setEditing(false);
-    }
-  };
 
   const confirmDeleteSale = async () => {
     if (!saleToDelete) return;
@@ -144,6 +130,33 @@ const SalesHistory = () => {
       setError("Failed to delete sale");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleRemoveItem = async (saleId, itemId) => {
+    if (!saleToEdit || saleToEdit.id !== saleId) return;
+    
+    setRemovingItem(true);
+    try {
+      // Create updated sale with item removed
+      const updatedSale = {
+        ...saleToEdit,
+        saleItems: saleToEdit.saleItems.filter(item => item.id !== itemId),
+        totalAmount: saleToEdit.saleItems
+          .filter(item => item.id !== itemId)
+          .reduce((sum, item) => sum + parseFloat(item.totalPrice), 0)
+      };
+      
+      await salesAPI.update(saleId, updatedSale);
+      await fetchSales(selectedDate, selectedUserId);
+      
+      // Update the sale in edit dialog
+      setSaleToEdit(updatedSale);
+    } catch (err) {
+      console.error("Remove item failed", err);
+      setError("Failed to remove item");
+    } finally {
+      setRemovingItem(false);
     }
   };
 
@@ -220,16 +233,68 @@ const SalesHistory = () => {
       </Table>
 
       {/* Edit Modal */}
-      <Modal show={editDialogOpen} onHide={cancelEditSale}>
-        <Modal.Header closeButton>Edit Sale</Modal.Header>
+      <Modal show={editDialogOpen} onHide={cancelEditSale} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Sale #{saleToEdit?.id}</Modal.Title>
+        </Modal.Header>
         <Modal.Body>
-          {saleToEdit && <div>Editing sale #{saleToEdit.id}</div>}
+          {saleToEdit && (
+            <div>
+              <div className="mb-3">
+                <strong>Sale Date:</strong> {new Date(saleToEdit.saleDate).toLocaleString()}
+              </div>
+              <div className="mb-3">
+                <strong>Payment Method:</strong> {saleToEdit.paymentMethod}
+              </div>
+              <div className="mb-3">
+                <strong>Total Amount:</strong> €{saleToEdit.totalAmount}
+              </div>
+              
+              <h6 className="mb-3">Items in this sale:</h6>
+              <div className="table-responsive">
+                <Table striped hover size="sm">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Quantity</th>
+                      <th>Price</th>
+                      <th>Total</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.isArray(saleToEdit.saleItems) && saleToEdit.saleItems.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.itemName}</td>
+                        <td>{item.quantity}</td>
+                        <td>€{item.unitPrice}</td>
+                        <td>€{item.totalPrice}</td>
+                        <td>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleRemoveItem(saleToEdit.id, item.id)}
+                            disabled={removingItem}
+                          >
+                            {removingItem ? <Spinner size="sm" /> : "Remove"}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+              
+              {Array.isArray(saleToEdit.saleItems) && saleToEdit.saleItems.length === 0 && (
+                <div className="text-center text-muted py-3">
+                  No items in this sale
+                </div>
+              )}
+            </div>
+          )}
         </Modal.Body>
         <Modal.Footer>
-          <Button onClick={cancelEditSale}>Cancel</Button>
-          <Button onClick={confirmEditSale} disabled={editing}>
-            Save
-          </Button>
+          <Button onClick={cancelEditSale}>Close</Button>
         </Modal.Footer>
       </Modal>
 

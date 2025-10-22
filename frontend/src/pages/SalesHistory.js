@@ -3,6 +3,7 @@ import { Table, Button, Form, Alert, Modal, Spinner } from "react-bootstrap";
 import { format } from "date-fns";
 import { salesAPI, usersAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { directPrint, createReceiptHTML } from '../utils/printUtils';
 
 const SalesHistory = () => {
   const { user } = useAuth();
@@ -160,6 +161,33 @@ const SalesHistory = () => {
     }
   };
 
+  const handlePrintSale = async (sale) => {
+    try {
+      const companyName = 'PickNPay';
+      const receiptContent = createReceiptHTML(sale, companyName);
+      try {
+        await directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
+      } catch (printError) {
+        console.log('Direct print failed, trying Safari-compatible method');
+        const printWindow = window.open('', '_blank', 'width=600,height=600');
+        if (printWindow) {
+          printWindow.document.write(receiptContent);
+          printWindow.document.close();
+          printWindow.focus();
+          setTimeout(() => {
+            printWindow.print();
+            setTimeout(() => printWindow.close(), 1000);
+          }, 500);
+        } else {
+          throw new Error('Popup blocked. Please allow popups for this site.');
+        }
+      }
+    } catch (error) {
+      console.error('Print error:', error);
+      alert('Printing failed. Please check your printer connection and allow popups for this site.');
+    }
+  };
+
   const formatTime = (date) => format(new Date(date), "HH:mm");
 
   const getPaymentMethodBadge = (method) => {
@@ -313,15 +341,36 @@ const SalesHistory = () => {
                         <Button 
                           size="sm" 
                           onClick={() => handleEditSale(sale)}
-                          className="btn btn-outline-primary me-2"
+                          className="btn btn-outline-primary me-1"
                           style={{ 
                             borderRadius: '8px',
                             borderWidth: '2px',
-                            fontWeight: '500'
+                            width: '40px',
+                            height: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                           }}
+                          title="Edit Sale"
                         >
-                          <i className="bi bi-pencil me-1"></i>
-                          Edit
+                          <i className="bi bi-pencil"></i>
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handlePrintSale(sale)}
+                          className="btn btn-outline-success me-1"
+                          style={{ 
+                            borderRadius: '8px',
+                            borderWidth: '2px',
+                            width: '40px',
+                            height: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Print Receipt"
+                        >
+                          <i className="bi bi-printer"></i>
                         </Button>
                         <Button 
                           size="sm" 
@@ -330,11 +379,15 @@ const SalesHistory = () => {
                           style={{ 
                             borderRadius: '8px',
                             borderWidth: '2px',
-                            fontWeight: '500'
+                            width: '40px',
+                            height: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                           }}
+                          title="Delete Sale"
                         >
-                          <i className="bi bi-trash me-1"></i>
-                          Delete
+                          <i className="bi bi-trash"></i>
                         </Button>
                       </div>
                     </td>

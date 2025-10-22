@@ -3,7 +3,7 @@ const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
 const path = require('path');
 
-app.disableHardwareAcceleration();
+// app.disableHardwareAcceleration();
 
 let mainWindow;
 let backendProcess;

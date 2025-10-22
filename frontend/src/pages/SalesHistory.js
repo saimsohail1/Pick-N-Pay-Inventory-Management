@@ -345,15 +345,16 @@ const SalesHistory = () => {
                           style={{ 
                             borderRadius: '8px',
                             borderWidth: '2px',
-                            width: '40px',
-                            height: '40px',
+                            width: '45px',
+                            height: '45px',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            padding: '0'
                           }}
                           title="Edit Sale"
                         >
-                          <i className="bi bi-pencil"></i>
+                          <i className="bi bi-pencil" style={{ fontSize: '16px' }}></i>
                         </Button>
                         <Button 
                           size="sm" 
@@ -362,15 +363,16 @@ const SalesHistory = () => {
                           style={{ 
                             borderRadius: '8px',
                             borderWidth: '2px',
-                            width: '40px',
-                            height: '40px',
+                            width: '45px',
+                            height: '45px',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            padding: '0'
                           }}
                           title="Print Receipt"
                         >
-                          <i className="bi bi-printer"></i>
+                          <i className="bi bi-printer" style={{ fontSize: '16px' }}></i>
                         </Button>
                         <Button 
                           size="sm" 
@@ -379,15 +381,16 @@ const SalesHistory = () => {
                           style={{ 
                             borderRadius: '8px',
                             borderWidth: '2px',
-                            width: '40px',
-                            height: '40px',
+                            width: '45px',
+                            height: '45px',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            padding: '0'
                           }}
                           title="Delete Sale"
                         >
-                          <i className="bi bi-trash"></i>
+                          <i className="bi bi-trash" style={{ fontSize: '16px' }}></i>
                         </Button>
                       </div>
                     </td>
@@ -401,49 +404,112 @@ const SalesHistory = () => {
 
       {/* Edit Modal */}
       <Modal show={editDialogOpen} onHide={cancelEditSale} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Edit Sale #{saleToEdit?.id}</Modal.Title>
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title>
+            <i className="bi bi-pencil-square me-2"></i>
+            Edit Sale #{saleToEdit?.id}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {saleToEdit && (
             <div>
-              <div className="mb-3">
-                <strong>Sale Date:</strong> {new Date(saleToEdit.saleDate).toLocaleString()}
-              </div>
-              <div className="mb-3">
-                <strong>Payment Method:</strong> {saleToEdit.paymentMethod}
-              </div>
-              <div className="mb-3">
-                <strong>Total Amount:</strong> €{saleToEdit.totalAmount}
+              <div className="row mb-4">
+                <div className="col-md-4">
+                  <div className="d-flex align-items-center mb-2">
+                    <i className="bi bi-calendar3 text-primary me-2"></i>
+                    <strong>Sale Date:</strong>
+                  </div>
+                  <p className="ms-4 mb-0">{new Date(saleToEdit.saleDate).toLocaleString()}</p>
+                </div>
+                <div className="col-md-4">
+                  <div className="d-flex align-items-center mb-2">
+                    <i className="bi bi-credit-card text-primary me-2"></i>
+                    <strong>Payment Method:</strong>
+                  </div>
+                  <p className="ms-4 mb-0">{saleToEdit.paymentMethod}</p>
+                </div>
+                <div className="col-md-4">
+                  <div className="d-flex align-items-center mb-2">
+                    <i className="bi bi-currency-euro text-primary me-2"></i>
+                    <strong>Total Amount:</strong>
+                  </div>
+                  <p className="ms-4 mb-0 fw-bold text-success fs-5">€{saleToEdit.totalAmount}</p>
+                </div>
               </div>
               
-              <h6 className="mb-3">Items in this sale:</h6>
+              <div className="d-flex align-items-center mb-3">
+                <i className="bi bi-list-ul text-primary me-2"></i>
+                <h6 className="mb-0">Items in this sale:</h6>
+              </div>
               <div className="table-responsive">
                 <Table striped hover size="sm">
-                  <thead>
+                  <thead className="table-light">
                     <tr>
-                      <th>Item</th>
-                      <th>Quantity</th>
-                      <th>Price</th>
-                      <th>Total</th>
-                      <th>Action</th>
+                      <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                        <i className="bi bi-box me-1"></i>
+                        Item
+                      </th>
+                      <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                        <i className="bi bi-hash me-1"></i>
+                        Quantity
+                      </th>
+                      <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                        <i className="bi bi-tag me-1"></i>
+                        Price
+                      </th>
+                      <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                        <i className="bi bi-currency-euro me-1"></i>
+                        Total
+                      </th>
+                      <th className="border-0 py-3 px-4 fw-semibold text-dark text-center">
+                        <i className="bi bi-gear me-1"></i>
+                        Action
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {Array.isArray(saleToEdit.saleItems) && saleToEdit.saleItems.map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.itemName}</td>
-                        <td>{item.quantity}</td>
-                        <td>€{item.unitPrice}</td>
-                        <td>€{item.totalPrice}</td>
-                        <td>
+                      <tr key={item.id} className="border-bottom">
+                        <td className="py-3 px-4">
+                          <div className="d-flex align-items-center">
+                            <i className="bi bi-box text-muted me-2"></i>
+                            <span className="fw-medium">{item.itemName}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="badge bg-light text-dark rounded-pill px-3 py-2 fw-semibold">
+                            {item.quantity}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="fw-medium">€{item.unitPrice}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="fw-bold text-success">€{item.totalPrice}</span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
                           <Button
                             size="sm"
                             variant="danger"
                             onClick={() => handleRemoveItem(saleToEdit.id, item.id)}
                             disabled={removingItem}
+                            style={{ 
+                              borderRadius: '8px',
+                              borderWidth: '2px',
+                              width: '40px',
+                              height: '40px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '0'
+                            }}
+                            title="Remove Item"
                           >
-                            {removingItem ? <Spinner size="sm" /> : "Remove"}
+                            {removingItem ? (
+                              <Spinner size="sm" />
+                            ) : (
+                              <i className="bi bi-trash" style={{ fontSize: '14px' }}></i>
+                            )}
                           </Button>
                         </td>
                       </tr>
@@ -453,15 +519,19 @@ const SalesHistory = () => {
               </div>
               
               {Array.isArray(saleToEdit.saleItems) && saleToEdit.saleItems.length === 0 && (
-                <div className="text-center text-muted py-3">
-                  No items in this sale
+                <div className="text-center text-muted py-4">
+                  <i className="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+                  <p className="mb-0">No items in this sale</p>
                 </div>
               )}
             </div>
           )}
         </Modal.Body>
-        <Modal.Footer>
-          <Button onClick={cancelEditSale}>Close</Button>
+        <Modal.Footer className="bg-light">
+          <Button onClick={cancelEditSale} variant="secondary">
+            <i className="bi bi-x-circle me-1"></i>
+            Close
+          </Button>
         </Modal.Footer>
       </Modal>
 

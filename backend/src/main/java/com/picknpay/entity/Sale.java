@@ -21,6 +21,18 @@ public class Sale {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount;
     
+    @Column(name = "subtotal_amount", precision = 10, scale = 2)
+    private BigDecimal subtotalAmount;
+    
+    @Column(name = "discount_amount", precision = 10, scale = 2)
+    private BigDecimal discountAmount;
+    
+    @Column(name = "discount_type", length = 20)
+    private String discountType;
+    
+    @Column(name = "discount_value", precision = 10, scale = 2)
+    private BigDecimal discountValue;
+    
     @Column(name = "sale_date")
     private LocalDateTime saleDate;
     
@@ -62,6 +74,38 @@ public class Sale {
     
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
+    }
+    
+    public BigDecimal getSubtotalAmount() {
+        return subtotalAmount;
+    }
+    
+    public void setSubtotalAmount(BigDecimal subtotalAmount) {
+        this.subtotalAmount = subtotalAmount;
+    }
+    
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+    
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+    
+    public String getDiscountType() {
+        return discountType;
+    }
+    
+    public void setDiscountType(String discountType) {
+        this.discountType = discountType;
+    }
+    
+    public BigDecimal getDiscountValue() {
+        return discountValue;
+    }
+    
+    public void setDiscountValue(BigDecimal discountValue) {
+        this.discountValue = discountValue;
     }
     
     public LocalDateTime getSaleDate() {

@@ -103,6 +103,10 @@ CREATE TABLE batches (
 CREATE TABLE sales (
     id BIGSERIAL PRIMARY KEY,
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount > 0),
+    subtotal_amount DECIMAL(10,2),
+    discount_amount DECIMAL(10,2) DEFAULT 0,
+    discount_type VARCHAR(20),
+    discount_value DECIMAL(10,2),
     sale_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD')),
     user_id BIGINT REFERENCES users(id),

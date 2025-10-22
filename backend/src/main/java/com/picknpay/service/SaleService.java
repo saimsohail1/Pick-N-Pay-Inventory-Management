@@ -3,6 +3,7 @@ package com.picknpay.service;
 import com.picknpay.dto.SaleDTO;
 import com.picknpay.dto.SaleItemDTO;
 import com.picknpay.dto.DailyReportDTO;
+import com.picknpay.dto.CategorySummaryDTO;
 import com.picknpay.entity.Item;
 import com.picknpay.entity.Sale;
 import com.picknpay.entity.SaleItem;
@@ -22,6 +23,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
 
 @Service
 @Transactional
@@ -264,9 +268,39 @@ public class SaleService {
             }
         }
         
+        // Calculate category summaries for all sales
+        Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
+        
+        for (Sale sale : allSales) {
+            for (SaleItem saleItem : sale.getSaleItems()) {
+                String categoryName;
+                if (saleItem.getItem() != null && saleItem.getItem().getCategory() != null) {
+                    categoryName = saleItem.getItem().getCategory().getName();
+                } else {
+                    categoryName = "Quick Sale"; // For quick sales without category
+                }
+                
+                CategorySummaryDTO categorySummary = categoryMap.getOrDefault(categoryName, 
+                    new CategorySummaryDTO(categoryName, BigDecimal.ZERO, 0L));
+                
+                categorySummary.setTotal(categorySummary.getTotal().add(saleItem.getTotalPrice()));
+                categorySummary.setCount(categorySummary.getCount() + saleItem.getQuantity());
+                
+                categoryMap.put(categoryName, categorySummary);
+            }
+        }
+        
+        // Convert map to list and add total
+        List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
+        categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
+        
+        // Add total row
+        categories.add(new CategorySummaryDTO("Total", totalAmount, totalSales));
+        
         DailyReportDTO report = new DailyReportDTO(date, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
         report.setTotalVatAmount(totalVatAmount);
         report.setTotalAmountExcludingVat(totalAmountExcludingVat);
+        report.setCategories(categories);
         
         return report;
     }
@@ -317,9 +351,39 @@ public class SaleService {
             }
         }
         
+        // Calculate category summaries
+        Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
+        
+        for (Sale sale : userSales) {
+            for (SaleItem saleItem : sale.getSaleItems()) {
+                String categoryName;
+                if (saleItem.getItem() != null && saleItem.getItem().getCategory() != null) {
+                    categoryName = saleItem.getItem().getCategory().getName();
+                } else {
+                    categoryName = "Quick Sale"; // For quick sales without category
+                }
+                
+                CategorySummaryDTO categorySummary = categoryMap.getOrDefault(categoryName, 
+                    new CategorySummaryDTO(categoryName, BigDecimal.ZERO, 0L));
+                
+                categorySummary.setTotal(categorySummary.getTotal().add(saleItem.getTotalPrice()));
+                categorySummary.setCount(categorySummary.getCount() + saleItem.getQuantity());
+                
+                categoryMap.put(categoryName, categorySummary);
+            }
+        }
+        
+        // Convert map to list and add total
+        List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
+        categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
+        
+        // Add total row
+        categories.add(new CategorySummaryDTO("Total", totalAmount, totalSales));
+        
         DailyReportDTO report = new DailyReportDTO(date, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
         report.setTotalVatAmount(totalVatAmount);
         report.setTotalAmountExcludingVat(totalAmountExcludingVat);
+        report.setCategories(categories);
         
         return report;
     }

@@ -47,17 +47,11 @@ const SalesHistory = () => {
     } finally {
       if (isMounted) setLoading(false);
     }
-
-    return () => {
-      console.log("[SalesHistory] cleanup fetchSales");
-      isMounted = false;
-    };
   }, [isAdminUser]);
 
   // ✅ Fetch sales when filters change
   useEffect(() => {
-    const cleanup = fetchSales(selectedDate, selectedUserId);
-    return cleanup; // cancel pending updates if unmounted
+    fetchSales(selectedDate, selectedUserId);
   }, [fetchSales, selectedDate, selectedUserId]);
 
   // ✅ Load users once for admin

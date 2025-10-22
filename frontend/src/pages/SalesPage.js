@@ -63,6 +63,8 @@ const SalesPage = () => {
   const [heldTransactions, setHeldTransactions] = useState([]);
   const [showHeldTransactions, setShowHeldTransactions] = useState(false);
   const [selectedHeldTransaction, setSelectedHeldTransaction] = useState(null);
+  const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
   const lastClickRef = React.useRef({});
   const { addTimeout } = useTimeoutManager();
 
@@ -309,8 +311,44 @@ const SalesPage = () => {
     setTimeout(() => setSuccess(null), 2000);
   };
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     return cart.reduce((sum, item) => sum + item.totalPrice, 0);
+  };
+
+  const calculateDiscountAmount = () => {
+    if (!appliedDiscount) return 0;
+    
+    const subtotal = calculateSubtotal();
+    if (appliedDiscount.type === 'percentage') {
+      return (subtotal * appliedDiscount.value) / 100;
+    } else {
+      return Math.min(appliedDiscount.value, subtotal); // Don't discount more than the total
+    }
+  };
+
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    const discountAmount = calculateDiscountAmount();
+    return Math.max(0, subtotal - discountAmount);
+  };
+
+  const handleDiscountSelect = (discount) => {
+    setAppliedDiscount(discount);
+    setDiscountDialogOpen(false);
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+  };
+
+  const calculateDiscountedItemPrice = (item) => {
+    if (!appliedDiscount) return item.totalPrice;
+    
+    const subtotal = calculateSubtotal();
+    const discountAmount = calculateDiscountAmount();
+    const discountRatio = discountAmount / subtotal;
+    
+    return item.totalPrice * (1 - discountRatio);
   };
 
   const handleCheckout = () => {
@@ -400,11 +438,15 @@ const SalesPage = () => {
         itemId: item.itemId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        totalPrice: item.totalPrice
+        totalPrice: calculateDiscountedItemPrice(item)
       }));
 
       const saleData = {
         totalAmount: calculateTotal(),
+        subtotalAmount: calculateSubtotal(),
+        discountAmount: calculateDiscountAmount(),
+        discountType: appliedDiscount?.type || null,
+        discountValue: appliedDiscount?.value || null,
         paymentMethod: 'CASH',
         saleItems: saleItems,
         userId: user?.id || null,
@@ -419,6 +461,7 @@ const SalesPage = () => {
       setCart([]);
       setCashAmount('');
       setSelectedNotes({});
+      setAppliedDiscount(null); // Clear discount after sale
       setSuccess('Cash payment completed successfully!');
       addTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -446,11 +489,15 @@ const SalesPage = () => {
         itemId: item.itemId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        totalPrice: item.totalPrice
+        totalPrice: calculateDiscountedItemPrice(item)
       }));
 
       const saleData = {
         totalAmount: calculateTotal(),
+        subtotalAmount: calculateSubtotal(),
+        discountAmount: calculateDiscountAmount(),
+        discountType: appliedDiscount?.type || null,
+        discountValue: appliedDiscount?.value || null,
         paymentMethod: 'CARD',
         saleItems: saleItems,
         userId: user?.id || null,
@@ -461,6 +508,7 @@ const SalesPage = () => {
       console.log('Sale created successfully:', response.data);
       
       setCart([]);
+      setAppliedDiscount(null); // Clear discount after sale
       setSuccess('Card payment completed successfully!');
       addTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -631,6 +679,10 @@ const SalesPage = () => {
       id: Date.now(),
       items: [...cart],
       total: calculateTotal(),
+      subtotal: calculateSubtotal(),
+      discountAmount: calculateDiscountAmount(),
+      discountType: appliedDiscount?.type || null,
+      discountValue: appliedDiscount?.value || null,
       timestamp: new Date().toLocaleString(),
       customerName: 'Walk-in Customer'
     };
@@ -643,6 +695,15 @@ const SalesPage = () => {
 
   const handleLoadHeldTransaction = (heldTransaction) => {
     setCart(heldTransaction.items);
+    // Restore discount if it was applied to the held transaction
+    if (heldTransaction.discountType && heldTransaction.discountValue) {
+      setAppliedDiscount({
+        type: heldTransaction.discountType,
+        value: heldTransaction.discountValue
+      });
+    } else {
+      setAppliedDiscount(null);
+    }
     setShowHeldTransactions(false);
     setSuccess('Held transaction loaded!');
     addTimeout(() => setSuccess(null), 3000);
@@ -731,10 +792,6 @@ const SalesPage = () => {
         </div>
           </div>
           <div className="d-flex align-items-center gap-2">
-            <Badge bg="success" className="px-2 py-1">
-              <i className="bi bi-circle-fill me-1" style={{ fontSize: '0.4rem' }}></i>
-              In Progress
-            </Badge>
             <div className="d-flex align-items-center gap-2">
               <Button 
                 variant="outline-light" 
@@ -968,7 +1025,7 @@ const SalesPage = () => {
                     <i className="bi bi-eye me-2"></i>
                   STOCK
                 </Button>
-                  <Button variant="outline-danger" size="lg" onClick={() => setCart([])} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
+                  <Button variant="outline-danger" size="lg" onClick={() => { setCart([]); setAppliedDiscount(null); }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
                     <i className="bi bi-cart-x me-2"></i>
                   CLEAR CART
                 </Button>
@@ -980,8 +1037,15 @@ const SalesPage = () => {
             <div className="bg-primary text-white" style={{ padding: '0.5rem' }}>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
-                  <div className="d-block" style={{ fontSize: '0.9rem' }}>Subtotal: €{calculateTotal().toFixed(2)}</div>
-                  <div className="d-block" style={{ fontSize: '0.9rem' }}>Discount: €0.00</div>
+                  <div className="d-block" style={{ fontSize: '0.9rem' }}>Subtotal: €{calculateSubtotal().toFixed(2)}</div>
+                  {appliedDiscount && (
+                    <div className="d-block" style={{ fontSize: '0.9rem' }}>
+                      Discount: -€{calculateDiscountAmount().toFixed(2)} 
+                      <span className="ms-1" style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                        ({appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`})
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="text-end">
                   <h4 className="mb-0 fw-bold" style={{ fontSize: '1.8rem' }}>Total: €{calculateTotal().toFixed(2)}</h4>
@@ -993,9 +1057,20 @@ const SalesPage = () => {
             <div className="bg-light text-dark" style={{ padding: '0.5rem' }}>
               <div className="d-flex align-items-center justify-content-between">
                   <div className="d-grid gap-2" style={{ width: '30%' }}>
-                  <Button variant="primary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }}>
+                  <Button 
+                    variant={appliedDiscount ? "success" : "primary"} 
+                    size="lg" 
+                    className="fw-bold" 
+                    style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }}
+                    onClick={() => setDiscountDialogOpen(true)}
+                  >
                       <i className="bi bi-percent me-2"></i>
                       Discount
+                      {appliedDiscount && (
+                        <Badge bg="light" text="dark" className="ms-2" style={{ fontSize: '0.7rem' }}>
+                          {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
+                        </Badge>
+                      )}
                     </Button>
                   <Button 
                     variant="secondary" 
@@ -1713,6 +1788,129 @@ const SalesPage = () => {
           </Button>
           </div>
         </Modal.Body>
+      </Modal>
+
+      {/* Discount Selection Modal */}
+      <Modal show={discountDialogOpen} onHide={() => setDiscountDialogOpen(false)} centered>
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title>
+            <i className="bi bi-percent me-2"></i>
+            Apply Discount
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <div className="row g-3">
+            {/* Percentage Discounts */}
+            <div className="col-12">
+              <h6 className="text-muted mb-3">Percentage Discounts</h6>
+              <div className="row g-2">
+                <div className="col-4">
+                  <Button 
+                    variant="outline-primary" 
+                    className="w-100 py-3"
+                    onClick={() => handleDiscountSelect({ type: 'percentage', value: 5 })}
+                  >
+                    5%
+                  </Button>
+                </div>
+                <div className="col-4">
+                  <Button 
+                    variant="outline-primary" 
+                    className="w-100 py-3"
+                    onClick={() => handleDiscountSelect({ type: 'percentage', value: 10 })}
+                  >
+                    10%
+                  </Button>
+                </div>
+                <div className="col-4">
+                  <Button 
+                    variant="outline-primary" 
+                    className="w-100 py-3"
+                    onClick={() => handleDiscountSelect({ type: 'percentage', value: 20 })}
+                  >
+                    20%
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Fixed Amount Discounts */}
+            <div className="col-12">
+              <h6 className="text-muted mb-3">Fixed Amount Discounts</h6>
+              <div className="row g-2">
+                <div className="col-4">
+                  <Button 
+                    variant="outline-success" 
+                    className="w-100 py-3"
+                    onClick={() => handleDiscountSelect({ type: 'fixed', value: 2 })}
+                  >
+                    €2
+                  </Button>
+                </div>
+                <div className="col-4">
+                  <Button 
+                    variant="outline-success" 
+                    className="w-100 py-3"
+                    onClick={() => handleDiscountSelect({ type: 'fixed', value: 5 })}
+                  >
+                    €5
+                  </Button>
+                </div>
+                <div className="col-4">
+                  <Button 
+                    variant="outline-success" 
+                    className="w-100 py-3"
+                    onClick={() => handleDiscountSelect({ type: 'fixed', value: 10 })}
+                  >
+                    €10
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Current Cart Summary */}
+            <div className="col-12">
+              <div className="bg-light p-3 rounded">
+                <h6 className="mb-2">Current Cart Summary</h6>
+                <div className="d-flex justify-content-between">
+                  <span>Subtotal:</span>
+                  <span>€{calculateSubtotal().toFixed(2)}</span>
+                </div>
+                {appliedDiscount && (
+                  <>
+                    <div className="d-flex justify-content-between text-success">
+                      <span>Discount:</span>
+                      <span>-€{calculateDiscountAmount().toFixed(2)}</span>
+                    </div>
+                    <hr className="my-2" />
+                    <div className="d-flex justify-content-between fw-bold">
+                      <span>Total:</span>
+                      <span>€{calculateTotal().toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          {appliedDiscount && (
+            <Button 
+              variant="danger" 
+              onClick={handleRemoveDiscount}
+              className="me-auto"
+            >
+              <i className="bi bi-x-circle me-1"></i>
+              Remove Discount
+            </Button>
+          )}
+          <Button 
+            variant="secondary" 
+            onClick={() => setDiscountDialogOpen(false)}
+          >
+            Cancel
+          </Button>
+        </Modal.Footer>
       </Modal>
       
       {/* Fullscreen indicator */}

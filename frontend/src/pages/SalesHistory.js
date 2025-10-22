@@ -3,7 +3,7 @@ import { Table, Button, Form, Alert, Spinner, Badge, Modal } from 'react-bootstr
 import { format } from 'date-fns';
 import { salesAPI, usersAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { printWithElectron, createReceiptHTML } from '../utils/printUtils';
+import { directPrint, createReceiptHTML } from '../utils/printUtils';
 
 const SalesHistory = () => {
   const [sales, setSales] = useState([]);
@@ -156,6 +156,33 @@ const SalesHistory = () => {
     fetchSales(selectedDate);
   };
 
+  const handlePrintTransaction = async (sale) => {
+    try {
+      const companyName = 'PickNPay';
+      
+      // Create receipt HTML for individual transaction
+      const receiptContent = createReceiptHTML(sale, companyName);
+      
+      // Try direct print, fallback to window.print if needed
+      try {
+        await directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
+      } catch (printError) {
+        console.log('Direct print failed, trying fallback method');
+        // Fallback: open in new window for printing
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(receiptContent);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      }
+      
+    } catch (error) {
+      console.error('Print error:', error);
+      alert('Printing failed. Please check your printer connection.');
+    }
+  };
+
   const handleUserChange = (userId) => {
     setSelectedUserId(userId);
     // Refresh data when user selection changes
@@ -279,7 +306,7 @@ const SalesHistory = () => {
     return <Badge bg="secondary">{paymentMethod}</Badge>;
   };
 
-  // Optimized print function using new print utilities
+  // Optimized print function with Safari fallback
   const handlePrintSale = async (sale) => {
     try {
       // Get company name for the receipt
@@ -288,13 +315,31 @@ const SalesHistory = () => {
       // Create receipt HTML using utility
       const receiptContent = createReceiptHTML(sale, companyName);
       
-      // Print using Electron or fallback to iframe
-      await printWithElectron(receiptContent, `Receipt - Sale #${sale.id}`);
+      // Try direct print first, fallback to window.open for Safari
+      try {
+        await directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
+      } catch (printError) {
+        console.log('Direct print failed, trying Safari-compatible method');
+        // Fallback: open in new window for printing (Safari compatible)
+        const printWindow = window.open('', '_blank', 'width=600,height=600');
+        if (printWindow) {
+          printWindow.document.write(receiptContent);
+          printWindow.document.close();
+          printWindow.focus();
+          // Wait a moment for content to load
+          setTimeout(() => {
+            printWindow.print();
+            // Close window after printing
+            setTimeout(() => printWindow.close(), 1000);
+          }, 500);
+        } else {
+          throw new Error('Popup blocked. Please allow popups for this site.');
+        }
+      }
       
     } catch (error) {
       console.error('Print error:', error);
-      // Fallback to simple alert if printing fails
-      alert('Printing failed. Please try again.');
+      alert('Printing failed. Please check your printer connection and allow popups for this site.');
     }
   };
 

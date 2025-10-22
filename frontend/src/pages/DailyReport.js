@@ -3,7 +3,7 @@ import { Container, Table, Button, Form, Row, Col, Alert, Spinner } from 'react-
 import { useNavigate } from 'react-router-dom';
 import { salesAPI, usersAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { printWithElectron, createZReportHTML } from '../utils/printUtils';
+import { directPrint, createZReportHTML } from '../utils/printUtils';
 
 const DailyReport = () => {
   const [loading, setLoading] = useState(false);
@@ -71,15 +71,21 @@ const DailyReport = () => {
       const totalVatAmount = parseFloat(dailyReport.totalVatAmount || 0);
       const totalAmountExcludingVat = parseFloat(dailyReport.totalAmountExcludingVat || 0);
 
+      // Process categories from API response
+      const categoryData = dailyReport.categories || [];
+      const processedCategories = categoryData.map(cat => ({
+        category: cat.name,
+        count: cat.count,
+        total: parseFloat(cat.total || 0)
+      }));
+
       setReportData({
         paymentMethods: [
           { label: 'cash', count: cashCount, total: cashTotal },
           { label: 'card', count: cardCount, total: cardTotal },
           { label: 'Total', count: totalCount, total: totalAmount }
         ],
-        categories: [
-          { category: 'Total', count: totalCount, total: totalAmount }
-        ],
+        categories: processedCategories,
         vatInfo: {
           totalVatAmount,
           totalAmountExcludingVat,
@@ -99,7 +105,12 @@ const DailyReport = () => {
         ],
         categories: [
           { category: 'Total', count: 0, total: 0 }
-        ]
+        ],
+        vatInfo: {
+          totalVatAmount: 0,
+          totalAmountExcludingVat: 0,
+          totalAmountIncludingVat: 0
+        }
       });
     } finally {
       setLoading(false);
@@ -147,18 +158,36 @@ const DailyReport = () => {
       // Create Z-report HTML using utility
       const reportContent = createZReportHTML(reportData, companyName, startDate);
       
-      // Print using Electron or fallback to iframe
-      await printWithElectron(reportContent, `Z-Report - ${startDate}`);
+      // Try direct print first, fallback to window.open for Safari
+      try {
+        await directPrint(reportContent, `Z-Report - ${startDate}`);
+      } catch (printError) {
+        console.log('Direct print failed, trying Safari-compatible method');
+        // Fallback: open in new window for printing (Safari compatible)
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        if (printWindow) {
+          printWindow.document.write(reportContent);
+          printWindow.document.close();
+          printWindow.focus();
+          // Wait a moment for content to load
+          setTimeout(() => {
+            printWindow.print();
+            // Close window after printing
+            setTimeout(() => printWindow.close(), 1000);
+          }, 500);
+        } else {
+          throw new Error('Popup blocked. Please allow popups for this site.');
+        }
+      }
       
     } catch (error) {
       console.error('Print error:', error);
-      // Fallback to simple alert if printing fails
-      alert('Printing failed. Please try again.');
+      alert('Printing failed. Please check your printer connection and allow popups for this site.');
     }
   };
 
   return (
-    <div className="d-flex flex-column vh-100">
+    <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: '#f8f9fa' }}>
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -171,6 +200,10 @@ const DailyReport = () => {
           padding: 4px 8px;
           border-radius: 4px;
         }
+        .report-container {
+          background-color: #f8f9fa;
+          min-height: 100vh;
+        }
       `}</style>
 
       {/* Print Header */}
@@ -181,7 +214,7 @@ const DailyReport = () => {
       </div>
 
       {/* Main Content - Full Width */}
-      <div className="flex-grow-1 p-4">
+      <div className="flex-grow-1 p-4 report-container">
         {/* Title */}
       <div className="d-flex justify-content-between align-items-center mb-4">
           <h2 className="mb-0 fw-bold text-primary">Daily Report</h2>

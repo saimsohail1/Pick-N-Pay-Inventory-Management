@@ -2,8 +2,12 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
 const path = require('path');
+const fs = require('fs');
 
-// app.disableHardwareAcceleration();
+// 🔹 Only disable hardware acceleration on macOS/Linux, keep it ON for Windows
+if (process.platform !== 'win32') {
+  app.disableHardwareAcceleration();
+}
 
 let mainWindow;
 let backendProcess;
@@ -17,21 +21,30 @@ function startBackend() {
     : path.join(process.resourcesPath, 'backend', 'inventory-management-0.0.1-SNAPSHOT.jar');
 
   console.log("👉 Launching backend from:", jarPath);
+  console.log("📂 JAR exists?", fs.existsSync(jarPath));
 
-  backendProcess = spawn('java', ['-jar', jarPath], {
+  backendProcess = spawn('java', ['-Xmx512m', '-jar', jarPath], {
     cwd: path.dirname(jarPath),
     detached: false,
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['ignore', 'pipe', 'pipe'], // ✅ capture logs (prevents Windows freeze)
     windowsHide: true
   });
 
   backendProcess.stdout.on('data', (data) => {
-    console.log(`[Backend] ${data}`);
+    console.log(`[Backend] ${data.toString().trim()}`);
   });
+
   backendProcess.stderr.on('data', (data) => {
-    console.error(`[Backend ERROR] ${data}`);
+    console.error(`[Backend ERROR] ${data.toString().trim()}`);
   });
-  
+
+  backendProcess.on('error', (err) => {
+    console.error('❌ Failed to start backend:', err);
+  });
+
+  backendProcess.on('exit', (code) => {
+    console.log(`ℹ️ Backend process exited with code ${code}`);
+  });
 }
 
 /**
@@ -40,7 +53,7 @@ function startBackend() {
 function stopBackend() {
   if (backendProcess) {
     try {
-      backendProcess.kill('SIGTERM'); // ✅ explicit signal
+      backendProcess.kill('SIGTERM');
       console.log('🛑 Backend stopped');
     } catch (err) {
       console.error('❌ Error stopping backend:', err);
@@ -58,11 +71,11 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    fullscreen: true,        // ✅ only fullscreen, no maximize
-    frame: false,            // ✅ frameless
-    autoHideMenuBar: true,   // ✅ hide menubar
+    fullscreen: true,
+    frame: false,
+    autoHideMenuBar: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'), // ✅ safer
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true
     },
@@ -82,7 +95,7 @@ function createWindow() {
     mainWindow.setMenuBarVisibility(false);
   });
 
-  // ✅ Single input handler
+  // 🔹 Handle fullscreen toggle
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
 

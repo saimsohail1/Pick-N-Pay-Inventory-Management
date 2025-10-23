@@ -1883,10 +1883,7 @@ const SalesPage = () => {
               <div className="row g-2">
                 <div className="col-8">
                   <Form.Control
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max={calculateSubtotal()}
+                    type="text"
                     placeholder="Enter amount (€)"
                     value={customDiscountAmount}
                     onChange={(e) => setCustomDiscountAmount(e.target.value)}

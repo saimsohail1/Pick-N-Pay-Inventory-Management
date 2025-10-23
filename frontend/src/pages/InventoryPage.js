@@ -205,7 +205,20 @@ const InventoryPage = () => {
             <h5 className="mb-0 fw-bold">Inventory Items</h5>
             <Button 
               variant="light" 
-              onClick={() => setShowAddModal(true)}
+              onClick={() => {
+                setFormData({
+                  name: '',
+                  description: '',
+                  price: '',
+                  stockQuantity: '',
+                  barcode: '',
+                  vatRate: '23.00',
+                  categoryId: '',
+                  batchId: '',
+                  expiryDate: ''
+                });
+                setShowAddModal(true);
+              }}
               className="fw-bold"
             >
               <i className="bi bi-plus-circle me-2"></i>

@@ -33,7 +33,18 @@ const SalesHistory = () => {
 
     let isMounted = true;
     try {
-      const response = await salesAPI.getTodaySales(userId, isAdminUser);
+      let response;
+      if (isAdminUser && userId && userId !== user?.id) {
+        // Admin viewing specific user's sales
+        response = await salesAPI.getSalesByUserId(userId);
+      } else if (isAdminUser && !userId) {
+        // Admin viewing all users' sales
+        response = await salesAPI.getTodaySales(user?.id, isAdminUser);
+      } else {
+        // Regular user or admin viewing their own sales
+        response = await salesAPI.getTodaySales(userId || user?.id, isAdminUser);
+      }
+      
       if (isMounted) {
         // Handle both direct array and response.data structure
         const salesData = Array.isArray(response) ? response : (response.data || []);
@@ -48,7 +59,7 @@ const SalesHistory = () => {
     } finally {
       if (isMounted) setLoading(false);
     }
-  }, [isAdminUser]);
+  }, [isAdminUser, user?.id]);
 
   // ✅ Fetch sales when filters change
   useEffect(() => {
@@ -238,6 +249,7 @@ const SalesHistory = () => {
                       className="form-select-lg border-2"
                       style={{ borderRadius: '10px' }}
                     >
+                      <option value="">All Users</option>
                       {Array.isArray(users) && users.map((u) => (
                         <option key={u.id} value={u.id}>
                           {u.username}
@@ -338,26 +350,28 @@ const SalesHistory = () => {
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="btn-group" role="group">
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleEditSale(sale)}
-                          className="btn btn-light me-1"
-                          style={{ 
-                            borderRadius: '8px',
-                            borderWidth: '2px',
-                            borderColor: '#007bff',
-                            width: '45px',
-                            height: '45px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '0',
-                            backgroundColor: '#f8f9fa'
-                          }}
-                          title="Edit Sale"
-                        >
-                          <i className="bi bi-pencil text-primary" style={{ fontSize: '16px' }}></i>
-                        </Button>
+                        {isAdminUser && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleEditSale(sale)}
+                            className="btn btn-light me-1"
+                            style={{ 
+                              borderRadius: '8px',
+                              borderWidth: '2px',
+                              borderColor: '#007bff',
+                              width: '45px',
+                              height: '45px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '0',
+                              backgroundColor: '#f8f9fa'
+                            }}
+                            title="Edit Sale"
+                          >
+                            <i className="bi bi-pencil text-primary" style={{ fontSize: '16px' }}></i>
+                          </Button>
+                        )}
                         <Button 
                           size="sm" 
                           onClick={() => handlePrintSale(sale)}
@@ -378,26 +392,28 @@ const SalesHistory = () => {
                         >
                           <i className="bi bi-printer text-success" style={{ fontSize: '16px' }}></i>
                         </Button>
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleDeleteSale(sale)}
-                          className="btn btn-light"
-                          style={{ 
-                            borderRadius: '8px',
-                            borderWidth: '2px',
-                            borderColor: '#dc3545',
-                            width: '45px',
-                            height: '45px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '0',
-                            backgroundColor: '#f8f9fa'
-                          }}
-                          title="Delete Sale"
-                        >
-                          <i className="bi bi-trash text-danger" style={{ fontSize: '16px' }}></i>
-                        </Button>
+                        {isAdminUser && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleDeleteSale(sale)}
+                            className="btn btn-light"
+                            style={{ 
+                              borderRadius: '8px',
+                              borderWidth: '2px',
+                              borderColor: '#dc3545',
+                              width: '45px',
+                              height: '45px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '0',
+                              backgroundColor: '#f8f9fa'
+                            }}
+                            title="Delete Sale"
+                          >
+                            <i className="bi bi-trash text-danger" style={{ fontSize: '16px' }}></i>
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

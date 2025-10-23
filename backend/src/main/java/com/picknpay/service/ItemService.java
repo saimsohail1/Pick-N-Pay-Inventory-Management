@@ -79,6 +79,16 @@ public class ItemService {
                     existingItem.setPrice(itemDTO.getPrice());
                     existingItem.setStockQuantity(itemDTO.getStockQuantity());
                     existingItem.setBarcode(itemDTO.getBarcode());
+                    existingItem.setVatRate(itemDTO.getVatRate() != null ? itemDTO.getVatRate() : new BigDecimal("23.00"));
+                    existingItem.setBatchId(itemDTO.getBatchId());
+                    existingItem.setGeneralExpiryDate(itemDTO.getGeneralExpiryDate());
+                    
+                    // Update category if provided
+                    if (itemDTO.getCategoryId() != null) {
+                        Category category = categoryRepository.findById(itemDTO.getCategoryId()).orElse(null);
+                        existingItem.setCategory(category);
+                    }
+                    
                     Item updatedItem = itemRepository.save(existingItem);
                     return convertToDTO(updatedItem);
                 });

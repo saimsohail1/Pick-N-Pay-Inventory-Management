@@ -402,7 +402,7 @@ const InventoryPage = () => {
                 >
                   Name
                   {sortBy === 'name' && (
-                    <i className={`bi bi-arrow-${sortOrder === 'asc' ? 'up' : 'down'} ms-1`}></i>
+                    <i className={`bi bi-${sortOrder === 'asc' ? 'sort-alpha-up' : 'sort-alpha-down'} ms-1`}></i>
                   )}
                 </th>
                 <th>Category</th>
@@ -414,7 +414,7 @@ const InventoryPage = () => {
                 >
                   Price
                   {sortBy === 'price' && (
-                    <i className={`bi bi-arrow-${sortOrder === 'asc' ? 'up' : 'down'} ms-1`}></i>
+                    <i className={`bi bi-${sortOrder === 'asc' ? 'sort-numeric-up' : 'sort-numeric-down'} ms-1`}></i>
                   )}
                 </th>
                 <th 
@@ -424,7 +424,7 @@ const InventoryPage = () => {
                 >
                   Stock
                   {sortBy === 'stockQuantity' && (
-                    <i className={`bi bi-arrow-${sortOrder === 'asc' ? 'up' : 'down'} ms-1`}></i>
+                    <i className={`bi bi-${sortOrder === 'asc' ? 'sort-numeric-up' : 'sort-numeric-down'} ms-1`}></i>
                   )}
                 </th>
                 <th>Barcode</th>
@@ -436,7 +436,7 @@ const InventoryPage = () => {
                 >
                   Expiry Date
                   {sortBy === 'expiryDate' && (
-                    <i className={`bi bi-arrow-${sortOrder === 'asc' ? 'up' : 'down'} ms-1`}></i>
+                    <i className={`bi bi-${sortOrder === 'asc' ? 'sort-up' : 'sort-down'} ms-1`}></i>
                   )}
                 </th>
                 <th className="text-center">Actions</th>

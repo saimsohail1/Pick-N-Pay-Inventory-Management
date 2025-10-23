@@ -65,6 +65,7 @@ const SalesPage = () => {
   const [selectedHeldTransaction, setSelectedHeldTransaction] = useState(null);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [customDiscountAmount, setCustomDiscountAmount] = useState('');
   const [outOfStockDialogOpen, setOutOfStockDialogOpen] = useState(false);
   const [outOfStockItem, setOutOfStockItem] = useState(null);
   const lastClickRef = React.useRef({});
@@ -356,8 +357,18 @@ const SalesPage = () => {
     setDiscountDialogOpen(false);
   };
 
+  const handleCustomDiscountApply = () => {
+    const amount = parseFloat(customDiscountAmount);
+    if (amount > 0 && amount <= calculateSubtotal()) {
+      setAppliedDiscount({ type: 'fixed', value: amount });
+      setCustomDiscountAmount('');
+      setDiscountDialogOpen(false);
+    }
+  };
+
   const handleRemoveDiscount = () => {
     setAppliedDiscount(null);
+    setCustomDiscountAmount('');
   };
 
   const calculateDiscountedItemPrice = (item) => {
@@ -481,6 +492,7 @@ const SalesPage = () => {
       setCashAmount('');
       setSelectedNotes({});
       setAppliedDiscount(null); // Clear discount after sale
+      setCustomDiscountAmount('');
       setSuccess('Cash payment completed successfully!');
       addTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -528,6 +540,7 @@ const SalesPage = () => {
       
       setCart([]);
       setAppliedDiscount(null); // Clear discount after sale
+      setCustomDiscountAmount('');
       setSuccess('Card payment completed successfully!');
       addTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -730,6 +743,7 @@ const SalesPage = () => {
     } else {
       setAppliedDiscount(null);
     }
+    setCustomDiscountAmount(''); // Clear custom discount amount
     setShowHeldTransactions(false);
     setSuccess('Held transaction loaded!');
     addTimeout(() => setSuccess(null), 3000);
@@ -871,7 +885,7 @@ const SalesPage = () => {
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h4 className="mb-0">Held Transactions ({heldTransactions.length})</h4>
                 <Button variant="outline-secondary" onClick={() => setShowHeldTransactions(false)}>
-                  <i className="bi bi-arrow-left me-1"></i>
+                  <i className="bi bi-x-circle me-1"></i>
                   Back to Sales
                 </Button>
               </div>
@@ -1051,7 +1065,7 @@ const SalesPage = () => {
                     <i className="bi bi-eye me-2"></i>
                   STOCK
                 </Button>
-                  <Button variant="outline-danger" size="lg" onClick={() => { setCart([]); setAppliedDiscount(null); }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
+                  <Button variant="outline-danger" size="lg" onClick={() => { setCart([]); setAppliedDiscount(null); setCustomDiscountAmount(''); }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
                     <i className="bi bi-cart-x me-2"></i>
                   CLEAR CART
                 </Button>
@@ -1224,7 +1238,7 @@ const SalesPage = () => {
                       title="Back to Categories"
                       style={{ fontSize: '0.9rem', padding: '0.4rem' }}
                     >
-                      <i className="bi bi-arrow-left me-2"></i>
+                      <i className="bi bi-x-circle me-2"></i>
                       Back
                     </Button>
             </div>
@@ -1254,7 +1268,7 @@ const SalesPage = () => {
                       onClick={handleBackToCategories}
                       title="Back to Categories"
                     >
-                      <i className="bi bi-arrow-left me-1"></i>
+                      <i className="bi bi-x-circle me-1"></i>
                       Back
                     </Button>
             </div>
@@ -1817,7 +1831,10 @@ const SalesPage = () => {
       </Modal>
 
       {/* Discount Selection Modal */}
-      <Modal show={discountDialogOpen} onHide={() => setDiscountDialogOpen(false)} centered>
+      <Modal show={discountDialogOpen} onHide={() => {
+        setDiscountDialogOpen(false);
+        setCustomDiscountAmount('');
+      }} centered>
         <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title>
             <i className="bi bi-percent me-2"></i>
@@ -1860,37 +1877,37 @@ const SalesPage = () => {
               </div>
             </div>
 
-            {/* Fixed Amount Discounts */}
+            {/* Custom Amount Discount */}
             <div className="col-12">
-              <h6 className="text-muted mb-3">Fixed Amount Discounts</h6>
+              <h6 className="text-muted mb-3">Custom Amount Discount</h6>
               <div className="row g-2">
-                <div className="col-4">
-                  <Button 
-                    variant="outline-success" 
-                    className="w-100 py-3"
-                    onClick={() => handleDiscountSelect({ type: 'fixed', value: 2 })}
-                  >
-                    €2
-                  </Button>
+                <div className="col-8">
+                  <Form.Control
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={calculateSubtotal()}
+                    placeholder="Enter amount (€)"
+                    value={customDiscountAmount}
+                    onChange={(e) => setCustomDiscountAmount(e.target.value)}
+                    className="form-control-lg"
+                  />
                 </div>
                 <div className="col-4">
                   <Button 
-                    variant="outline-success" 
+                    variant="success" 
                     className="w-100 py-3"
-                    onClick={() => handleDiscountSelect({ type: 'fixed', value: 5 })}
+                    onClick={handleCustomDiscountApply}
+                    disabled={!customDiscountAmount || parseFloat(customDiscountAmount) <= 0 || parseFloat(customDiscountAmount) > calculateSubtotal()}
                   >
-                    €5
+                    Apply
                   </Button>
                 </div>
-                <div className="col-4">
-                  <Button 
-                    variant="outline-success" 
-                    className="w-100 py-3"
-                    onClick={() => handleDiscountSelect({ type: 'fixed', value: 10 })}
-                  >
-                    €10
-                  </Button>
-                </div>
+              </div>
+              <div className="mt-2">
+                <small className="text-muted">
+                  Maximum: €{calculateSubtotal().toFixed(2)}
+                </small>
               </div>
             </div>
 

@@ -110,7 +110,7 @@ CREATE TABLE sales (
     discount_value DECIMAL(10,2), -- Can be NULL
     sale_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD')),
-    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL, -- FIXED: SET NULL instead of CASCADE
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, -- FIXED: Sales MUST have a user
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -119,16 +119,16 @@ CREATE TABLE sales (
 CREATE TABLE sale_items (
     id BIGSERIAL PRIMARY KEY,
     sale_id BIGINT NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
-    item_id BIGINT REFERENCES items(id) ON DELETE SET NULL, -- FIXED: Can be NULL for quick sales
+    item_id BIGINT REFERENCES items(id) ON DELETE SET NULL, -- Can be NULL for quick sales
     item_name VARCHAR(255) NOT NULL,
     item_barcode VARCHAR(255), -- Can be NULL
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     unit_price DECIMAL(10,2) NOT NULL CHECK (unit_price > 0),
     total_price DECIMAL(10,2) NOT NULL CHECK (total_price > 0),
     batch_id VARCHAR(255), -- Can be NULL
-    vat_rate DECIMAL(5,2), -- Can be NULL
-    vat_amount DECIMAL(10,2), -- Can be NULL
-    price_excluding_vat DECIMAL(10,2), -- Can be NULL
+    vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00, -- FIXED: VAT rate is always calculated, default 23%
+    vat_amount DECIMAL(10,2) NOT NULL DEFAULT 0, -- FIXED: VAT amount is always calculated
+    price_excluding_vat DECIMAL(10,2) NOT NULL DEFAULT 0, -- FIXED: Price excluding VAT is always calculated
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

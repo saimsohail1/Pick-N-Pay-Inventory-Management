@@ -44,7 +44,7 @@ public class Sale {
     private List<SaleItem> saleItems;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = true)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
     
     // Constructors

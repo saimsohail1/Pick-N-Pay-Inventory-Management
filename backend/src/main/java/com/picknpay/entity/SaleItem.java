@@ -48,13 +48,13 @@ public class SaleItem {
     @Column(name = "batch_id")
     private String batchId;
     
-    @Column(name = "vat_rate", precision = 5, scale = 2)
+    @Column(name = "vat_rate", precision = 5, scale = 2, nullable = false)
     private BigDecimal vatRate;
     
-    @Column(name = "vat_amount", precision = 10, scale = 2)
+    @Column(name = "vat_amount", precision = 10, scale = 2, nullable = false)
     private BigDecimal vatAmount;
     
-    @Column(name = "price_excluding_vat", precision = 10, scale = 2)
+    @Column(name = "price_excluding_vat", precision = 10, scale = 2, nullable = false)
     private BigDecimal priceExcludingVat;
     
     // Constructors

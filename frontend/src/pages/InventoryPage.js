@@ -25,6 +25,11 @@ const InventoryPage = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [sortBy, setSortBy] = useState('stockQuantity'); // Default sort by stock quantity
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' for ascending (lowest first)
+  const [filters, setFilters] = useState({
+    stockFilter: 'all', // 'all', 'low', 'out', 'normal'
+    expiryFilter: 'all', // 'all', 'expired', 'expiring', 'valid'
+    categoryFilter: 'all' // 'all' or specific category ID
+  });
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -160,9 +165,46 @@ const InventoryPage = () => {
     }
   };
 
-  // Sort items based on current sort settings
-  const getSortedItems = () => {
-    return [...items].sort((a, b) => {
+  // Filter and sort items based on current settings
+  const getFilteredAndSortedItems = () => {
+    let filteredItems = [...items];
+
+    // Apply stock filters
+    if (filters.stockFilter === 'out') {
+      filteredItems = filteredItems.filter(item => item.stockQuantity <= 0);
+    } else if (filters.stockFilter === 'low') {
+      filteredItems = filteredItems.filter(item => item.stockQuantity > 0 && item.stockQuantity <= 10);
+    } else if (filters.stockFilter === 'normal') {
+      filteredItems = filteredItems.filter(item => item.stockQuantity > 10);
+    }
+
+    // Apply expiry filters
+    if (filters.expiryFilter === 'expired') {
+      filteredItems = filteredItems.filter(item => 
+        item.expiryDate && new Date(item.expiryDate) < new Date()
+      );
+    } else if (filters.expiryFilter === 'expiring') {
+      const oneWeekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      filteredItems = filteredItems.filter(item => 
+        item.expiryDate && 
+        new Date(item.expiryDate) >= new Date() && 
+        new Date(item.expiryDate) <= oneWeekFromNow
+      );
+    } else if (filters.expiryFilter === 'valid') {
+      filteredItems = filteredItems.filter(item => 
+        !item.expiryDate || new Date(item.expiryDate) > new Date()
+      );
+    }
+
+    // Apply category filter
+    if (filters.categoryFilter !== 'all') {
+      filteredItems = filteredItems.filter(item => 
+        item.categoryId === parseInt(filters.categoryFilter)
+      );
+    }
+
+    // Sort filtered items
+    return filteredItems.sort((a, b) => {
       let aValue, bValue;
       
       switch (sortBy) {
@@ -177,6 +219,10 @@ const InventoryPage = () => {
         case 'price':
           aValue = a.price;
           bValue = b.price;
+          break;
+        case 'expiryDate':
+          aValue = a.expiryDate ? new Date(a.expiryDate) : new Date('9999-12-31');
+          bValue = b.expiryDate ? new Date(b.expiryDate) : new Date('9999-12-31');
           break;
         default:
           return 0;
@@ -268,17 +314,82 @@ const InventoryPage = () => {
           </div>
         </Card.Header>
         <Card.Body className="p-0">
-          {/* Sort indicator */}
+          {/* Filters */}
           <div className="p-3 bg-light border-bottom">
-            <div className="d-flex align-items-center justify-content-between">
-              <small className="text-muted">
-                <i className="bi bi-sort-down me-1"></i>
-                Sorted by <strong>{sortBy === 'stockQuantity' ? 'Stock Quantity' : sortBy === 'name' ? 'Name' : 'Price'}</strong> 
-                ({sortOrder === 'asc' ? 'Lowest first' : 'Highest first'})
-              </small>
-              <small className="text-muted">
-                Click column headers to sort
-              </small>
+            <div className="row g-3">
+              <div className="col-md-3">
+                <label className="form-label small fw-bold">Stock Filter</label>
+                <Form.Select 
+                  size="sm" 
+                  value={filters.stockFilter}
+                  onChange={(e) => setFilters(prev => ({ ...prev, stockFilter: e.target.value }))}
+                >
+                  <option value="all">All Items</option>
+                  <option value="out">Out of Stock (0)</option>
+                  <option value="low">Low Stock (1-10)</option>
+                  <option value="normal">Normal Stock (10+)</option>
+                </Form.Select>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small fw-bold">Expiry Filter</label>
+                <Form.Select 
+                  size="sm" 
+                  value={filters.expiryFilter}
+                  onChange={(e) => setFilters(prev => ({ ...prev, expiryFilter: e.target.value }))}
+                >
+                  <option value="all">All Items</option>
+                  <option value="expired">Expired</option>
+                  <option value="expiring">Expiring Soon (7 days)</option>
+                  <option value="valid">Valid/No Expiry</option>
+                </Form.Select>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small fw-bold">Category Filter</label>
+                <Form.Select 
+                  size="sm" 
+                  value={filters.categoryFilter}
+                  onChange={(e) => setFilters(prev => ({ ...prev, categoryFilter: e.target.value }))}
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
+                </Form.Select>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small fw-bold">Sort By</label>
+                <Form.Select 
+                  size="sm" 
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setSortOrder('asc');
+                  }}
+                >
+                  <option value="stockQuantity">Stock Quantity</option>
+                  <option value="name">Name</option>
+                  <option value="price">Price</option>
+                  <option value="expiryDate">Expiry Date</option>
+                </Form.Select>
+              </div>
+            </div>
+            <div className="row mt-2">
+              <div className="col-12">
+                <div className="d-flex align-items-center justify-content-between">
+                  <small className="text-muted">
+                    <i className="bi bi-funnel me-1"></i>
+                    Showing {getFilteredAndSortedItems().length} of {items.length} items
+                    {filters.stockFilter !== 'all' && ` (Stock: ${filters.stockFilter})`}
+                    {filters.expiryFilter !== 'all' && ` (Expiry: ${filters.expiryFilter})`}
+                    {filters.categoryFilter !== 'all' && ` (Category: ${categories.find(c => c.id === parseInt(filters.categoryFilter))?.name})`}
+                  </small>
+                  <small className="text-muted">
+                    <i className="bi bi-sort-down me-1"></i>
+                    Sorted by <strong>{sortBy === 'stockQuantity' ? 'Stock Quantity' : sortBy === 'name' ? 'Name' : sortBy === 'price' ? 'Price' : 'Expiry Date'}</strong> 
+                    ({sortOrder === 'asc' ? 'Ascending' : 'Descending'})
+                  </small>
+                </div>
+              </div>
             </div>
           </div>
           <Table responsive hover className="mb-0">
@@ -318,12 +429,21 @@ const InventoryPage = () => {
                 </th>
                 <th>Barcode</th>
                 <th className="text-center">Batch ID</th>
-                <th className="text-center">Expiry Date</th>
+                <th 
+                  className="text-center cursor-pointer" 
+                  onClick={() => handleSort('expiryDate')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Expiry Date
+                  {sortBy === 'expiryDate' && (
+                    <i className={`bi bi-arrow-${sortOrder === 'asc' ? 'up' : 'down'} ms-1`}></i>
+                  )}
+                </th>
                 <th className="text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {getSortedItems().map((item) => (
+              {getFilteredAndSortedItems().map((item) => (
                 <tr key={item.id}>
                   <td className="fw-bold">{item.name}</td>
                   <td>

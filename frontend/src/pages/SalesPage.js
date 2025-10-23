@@ -1941,7 +1941,7 @@ const SalesPage = () => {
 
       {/* Out of Stock Dialog */}
       <Modal show={outOfStockDialogOpen} onHide={() => setOutOfStockDialogOpen(false)} centered>
-        <Modal.Header closeButton className="bg-danger text-white">
+        <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title>
             <i className="bi bi-exclamation-triangle me-2"></i>
             Out of Stock
@@ -1964,7 +1964,7 @@ const SalesPage = () => {
             >
               <i className="bi bi-check-circle me-1"></i>
               OK
-            </Button>
+          </Button>
           </div>
         </Modal.Body>
       </Modal>

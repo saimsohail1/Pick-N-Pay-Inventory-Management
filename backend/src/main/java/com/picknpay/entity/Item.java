@@ -38,6 +38,12 @@ public class Item {
     @Column(name = "vat_rate", precision = 5, scale = 2, nullable = false)
     private BigDecimal vatRate = new BigDecimal("23.00"); // Default 23% VAT
     
+    @Column(name = "batch_id")
+    private String batchId;
+    
+    @Column(name = "expiry_date")
+    private LocalDate expiryDate;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
@@ -142,6 +148,22 @@ public class Item {
     
     public void setVatRate(BigDecimal vatRate) {
         this.vatRate = vatRate;
+    }
+    
+    public String getBatchId() {
+        return batchId;
+    }
+    
+    public void setBatchId(String batchId) {
+        this.batchId = batchId;
+    }
+    
+    public LocalDate getExpiryDate() {
+        return expiryDate;
+    }
+    
+    public void setExpiryDate(LocalDate expiryDate) {
+        this.expiryDate = expiryDate;
     }
     
     @PreUpdate

@@ -120,6 +120,8 @@ public class ItemService {
             dto.setCategoryName(item.getCategory().getName());
         }
         dto.setVatRate(item.getVatRate());
+        dto.setBatchId(item.getBatchId());
+        dto.setExpiryDate(item.getExpiryDate());
         return dto;
     }
     
@@ -135,6 +137,8 @@ public class ItemService {
             item.setCategory(category);
         }
         item.setVatRate(dto.getVatRate() != null ? dto.getVatRate() : new BigDecimal("23.00"));
+        item.setBatchId(dto.getBatchId());
+        item.setExpiryDate(dto.getExpiryDate());
         return item;
     }
 }

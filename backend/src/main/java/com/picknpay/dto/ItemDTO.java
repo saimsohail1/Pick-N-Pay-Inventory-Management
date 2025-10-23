@@ -32,6 +32,9 @@ public class ItemDTO {
     @DecimalMin(value = "0.0", inclusive = true, message = "VAT rate must be 0 or greater")
     private BigDecimal vatRate = new BigDecimal("23.00"); // Default 23% VAT
     
+    private String batchId;
+    private LocalDate expiryDate;
+    
     // Constructors
     public ItemDTO() {}
     
@@ -114,5 +117,21 @@ public class ItemDTO {
     
     public void setVatRate(BigDecimal vatRate) {
         this.vatRate = vatRate;
+    }
+    
+    public String getBatchId() {
+        return batchId;
+    }
+    
+    public void setBatchId(String batchId) {
+        this.batchId = batchId;
+    }
+    
+    public LocalDate getExpiryDate() {
+        return expiryDate;
+    }
+    
+    public void setExpiryDate(LocalDate expiryDate) {
+        this.expiryDate = expiryDate;
     }
 }

@@ -81,7 +81,7 @@ CREATE TABLE items (
     barcode VARCHAR(255) UNIQUE, -- Can be NULL for items without barcode
     vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00,
     batch_id VARCHAR(255), -- Can be NULL for items without batch tracking
-    expiry_date DATE, -- Can be NULL for non-perishable items
+    general_expiry_date DATE, -- Can be NULL for non-perishable items (general expiry)
     category_id BIGINT REFERENCES categories(id) ON DELETE SET NULL, -- FIXED: SET NULL instead of CASCADE
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

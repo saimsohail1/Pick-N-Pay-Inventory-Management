@@ -41,8 +41,8 @@ public class Item {
     @Column(name = "batch_id")
     private String batchId;
     
-    @Column(name = "expiry_date")
-    private LocalDate expiryDate;
+    @Column(name = "general_expiry_date")
+    private LocalDate generalExpiryDate;
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -158,12 +158,12 @@ public class Item {
         this.batchId = batchId;
     }
     
-    public LocalDate getExpiryDate() {
-        return expiryDate;
+    public LocalDate getGeneralExpiryDate() {
+        return generalExpiryDate;
     }
     
-    public void setExpiryDate(LocalDate expiryDate) {
-        this.expiryDate = expiryDate;
+    public void setGeneralExpiryDate(LocalDate generalExpiryDate) {
+        this.generalExpiryDate = generalExpiryDate;
     }
     
     @PreUpdate

@@ -33,7 +33,7 @@ public class ItemDTO {
     private BigDecimal vatRate = new BigDecimal("23.00"); // Default 23% VAT
     
     private String batchId;
-    private LocalDate expiryDate;
+    private LocalDate generalExpiryDate;
     
     // Constructors
     public ItemDTO() {}
@@ -127,11 +127,11 @@ public class ItemDTO {
         this.batchId = batchId;
     }
     
-    public LocalDate getExpiryDate() {
-        return expiryDate;
+    public LocalDate getGeneralExpiryDate() {
+        return generalExpiryDate;
     }
     
-    public void setExpiryDate(LocalDate expiryDate) {
-        this.expiryDate = expiryDate;
+    public void setGeneralExpiryDate(LocalDate generalExpiryDate) {
+        this.generalExpiryDate = generalExpiryDate;
     }
 }

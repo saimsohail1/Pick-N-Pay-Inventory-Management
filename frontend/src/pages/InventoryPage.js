@@ -39,7 +39,7 @@ const InventoryPage = () => {
     vatRate: '23.00', // Default 23% VAT
     categoryId: '',
     batchId: '',
-    expiryDate: ''
+    generalExpiryDate: ''
   });
 
   useEffect(() => {
@@ -123,7 +123,7 @@ const InventoryPage = () => {
         vatRate: '23.00',
         categoryId: '',
         batchId: '',
-        expiryDate: ''
+        generalExpiryDate: ''
       });
       fetchItems();
     } catch (err) {
@@ -145,7 +145,7 @@ const InventoryPage = () => {
       vatRate: item.vatRate ? item.vatRate.toString() : '23.00',
       categoryId: item.categoryId || '',
       batchId: item.batchId || '',
-      expiryDate: item.expiryDate || ''
+      generalExpiryDate: item.generalExpiryDate || ''
     });
     setShowEditModal(true);
   };
@@ -181,18 +181,18 @@ const InventoryPage = () => {
     // Apply expiry filters
     if (filters.expiryFilter === 'expired') {
       filteredItems = filteredItems.filter(item => 
-        item.expiryDate && new Date(item.expiryDate) < new Date()
+        item.generalExpiryDate && new Date(item.generalExpiryDate) < new Date()
       );
     } else if (filters.expiryFilter === 'expiring') {
       const oneWeekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       filteredItems = filteredItems.filter(item => 
-        item.expiryDate && 
-        new Date(item.expiryDate) >= new Date() && 
-        new Date(item.expiryDate) <= oneWeekFromNow
+        item.generalExpiryDate && 
+        new Date(item.generalExpiryDate) >= new Date() && 
+        new Date(item.generalExpiryDate) <= oneWeekFromNow
       );
     } else if (filters.expiryFilter === 'valid') {
       filteredItems = filteredItems.filter(item => 
-        !item.expiryDate || new Date(item.expiryDate) > new Date()
+        !item.generalExpiryDate || new Date(item.generalExpiryDate) > new Date()
       );
     }
 
@@ -221,8 +221,8 @@ const InventoryPage = () => {
           bValue = b.price;
           break;
         case 'expiryDate':
-          aValue = a.expiryDate ? new Date(a.expiryDate) : new Date('9999-12-31');
-          bValue = b.expiryDate ? new Date(b.expiryDate) : new Date('9999-12-31');
+          aValue = a.generalExpiryDate ? new Date(a.generalExpiryDate) : new Date('9999-12-31');
+          bValue = b.generalExpiryDate ? new Date(b.generalExpiryDate) : new Date('9999-12-31');
           break;
         default:
           return 0;
@@ -468,13 +468,13 @@ const InventoryPage = () => {
                     <code className="text-info">{item.batchId || '-'}</code>
                   </td>
                   <td className="text-center">
-                    {item.expiryDate ? (
+                    {item.generalExpiryDate ? (
                       <Badge 
-                        bg={new Date(item.expiryDate) < new Date() ? 'danger' : 
-                            new Date(item.expiryDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? 'warning' : 'success'}
+                        bg={new Date(item.generalExpiryDate) < new Date() ? 'danger' : 
+                            new Date(item.generalExpiryDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? 'warning' : 'success'}
                         className="fs-6"
                       >
-                        {new Date(item.expiryDate).toLocaleDateString()}
+                        {new Date(item.generalExpiryDate).toLocaleDateString()}
                       </Badge>
                     ) : (
                       <span className="text-muted">-</span>
@@ -627,11 +627,11 @@ const InventoryPage = () => {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Expiry Date</Form.Label>
+                  <Form.Label>General Expiry Date</Form.Label>
                   <Form.Control
                     type="date"
-                    name="expiryDate"
-                    value={formData.expiryDate}
+                    name="generalExpiryDate"
+                    value={formData.generalExpiryDate}
                     onChange={handleInputChange}
                   />
                 </Form.Group>
@@ -779,11 +779,11 @@ const InventoryPage = () => {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Expiry Date</Form.Label>
+                  <Form.Label>General Expiry Date</Form.Label>
                   <Form.Control
                     type="date"
-                    name="expiryDate"
-                    value={formData.expiryDate}
+                    name="generalExpiryDate"
+                    value={formData.generalExpiryDate}
                     onChange={handleInputChange}
                   />
                 </Form.Group>

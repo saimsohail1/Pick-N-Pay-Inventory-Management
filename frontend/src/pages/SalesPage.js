@@ -65,6 +65,8 @@ const SalesPage = () => {
   const [selectedHeldTransaction, setSelectedHeldTransaction] = useState(null);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [outOfStockDialogOpen, setOutOfStockDialogOpen] = useState(false);
+  const [outOfStockItem, setOutOfStockItem] = useState(null);
   const lastClickRef = React.useRef({});
   const { addTimeout } = useTimeoutManager();
 
@@ -222,6 +224,15 @@ const SalesPage = () => {
       const response = await itemsAPI.getByBarcode(barcode);
       const item = response.data;
 
+      // Check if item is out of stock
+      if (item.stockQuantity <= 0) {
+        setOutOfStockItem(item);
+        setOutOfStockDialogOpen(true);
+        setScannerOpen(false);
+        setSimpleScannerOpen(false);
+        return;
+      }
+
         const newCartItem = {
         id: Date.now() + Math.random(),
           itemId: item.id,
@@ -251,6 +262,14 @@ const SalesPage = () => {
     if (!item) {
       setError('Selected item not found.');
       addTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    // Check if item is out of stock
+    if (item.stockQuantity <= 0) {
+      setOutOfStockItem(item);
+      setOutOfStockDialogOpen(true);
+      setAddItemDialogOpen(false);
       return;
     }
 
@@ -580,6 +599,13 @@ const SalesPage = () => {
       return; // Ignore this click
     }
     lastClickRef.current[clickKey] = now;
+
+    // Check if item is out of stock
+    if (item.stockQuantity <= 0) {
+      setOutOfStockItem(item);
+      setOutOfStockDialogOpen(true);
+      return;
+    }
 
     const cartItem = {
       id: Date.now() + Math.random(),
@@ -1911,6 +1937,36 @@ const SalesPage = () => {
             Cancel
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* Out of Stock Dialog */}
+      <Modal show={outOfStockDialogOpen} onHide={() => setOutOfStockDialogOpen(false)} centered>
+        <Modal.Header closeButton className="bg-danger text-white">
+          <Modal.Title>
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            Out of Stock
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center p-4">
+          <div className="mb-4">
+            <i className="bi bi-x-circle text-danger" style={{ fontSize: '4rem' }}></i>
+          </div>
+          <h5 className="mb-3">Item Not Available</h5>
+          <p className="text-muted mb-4">
+            <strong>{outOfStockItem?.name}</strong> is currently out of stock.
+            <br />
+            Please select a different item or contact the manager to restock.
+          </p>
+          <div className="d-flex justify-content-center gap-2">
+            <Button 
+              variant="primary" 
+              onClick={() => setOutOfStockDialogOpen(false)}
+            >
+              <i className="bi bi-check-circle me-1"></i>
+              OK
+            </Button>
+          </div>
+        </Modal.Body>
       </Modal>
       
       {/* Fullscreen indicator */}

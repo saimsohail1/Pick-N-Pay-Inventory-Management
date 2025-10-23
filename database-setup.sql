@@ -71,15 +71,16 @@ CREATE TABLE categories (
 );
 
 -- Create items table (Master Data)
+-- FIXED: category_id can be NULL for items without category
 CREATE TABLE items (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10,2) NOT NULL CHECK (price > 0),
     stock_quantity INTEGER NOT NULL DEFAULT 0,
-    barcode VARCHAR(255) UNIQUE,
+    barcode VARCHAR(255) UNIQUE, -- Can be NULL for items without barcode
     vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00,
-    category_id BIGINT REFERENCES categories(id),
+    category_id BIGINT REFERENCES categories(id) ON DELETE SET NULL, -- FIXED: SET NULL instead of CASCADE
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -89,11 +90,11 @@ CREATE TABLE batches (
     id BIGSERIAL PRIMARY KEY,
     product_id BIGINT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
     batch_id VARCHAR(255) NOT NULL,
-    expiry_date DATE,
-    manufacture_date DATE,
+    expiry_date DATE, -- Can be NULL for non-perishable items
+    manufacture_date DATE, -- Can be NULL
     quantity INTEGER NOT NULL DEFAULT 0,
-    received_date DATE,
-    supplier_id VARCHAR(255),
+    received_date DATE, -- Can be NULL
+    supplier_id VARCHAR(255), -- Can be NULL
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(product_id, batch_id)
@@ -103,13 +104,13 @@ CREATE TABLE batches (
 CREATE TABLE sales (
     id BIGSERIAL PRIMARY KEY,
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount > 0),
-    subtotal_amount DECIMAL(10,2),
+    subtotal_amount DECIMAL(10,2), -- Can be NULL for old sales
     discount_amount DECIMAL(10,2) DEFAULT 0,
-    discount_type VARCHAR(20),
-    discount_value DECIMAL(10,2),
+    discount_type VARCHAR(20), -- Can be NULL
+    discount_value DECIMAL(10,2), -- Can be NULL
     sale_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD')),
-    user_id BIGINT REFERENCES users(id),
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL, -- FIXED: SET NULL instead of CASCADE
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -118,16 +119,16 @@ CREATE TABLE sales (
 CREATE TABLE sale_items (
     id BIGSERIAL PRIMARY KEY,
     sale_id BIGINT NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
-    item_id BIGINT REFERENCES items(id),
+    item_id BIGINT REFERENCES items(id) ON DELETE SET NULL, -- FIXED: Can be NULL for quick sales
     item_name VARCHAR(255) NOT NULL,
-    item_barcode VARCHAR(255),
+    item_barcode VARCHAR(255), -- Can be NULL
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     unit_price DECIMAL(10,2) NOT NULL CHECK (unit_price > 0),
     total_price DECIMAL(10,2) NOT NULL CHECK (total_price > 0),
-    batch_id VARCHAR(255),
-    vat_rate DECIMAL(5,2),
-    vat_amount DECIMAL(10,2),
-    price_excluding_vat DECIMAL(10,2),
+    batch_id VARCHAR(255), -- Can be NULL
+    vat_rate DECIMAL(5,2), -- Can be NULL
+    vat_amount DECIMAL(10,2), -- Can be NULL
+    price_excluding_vat DECIMAL(10,2), -- Can be NULL
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -262,6 +263,7 @@ BEGIN
     RAISE NOTICE '- Batch tracking with expiry dates';
     RAISE NOTICE '- Sales tracking with payment methods';
     RAISE NOTICE '- Sale items with VAT calculations';
+    RAISE NOTICE '- Discount support for sales';
     RAISE NOTICE '============================================';
     RAISE NOTICE 'Next Steps:';
     RAISE NOTICE '1. Start the Spring Boot application';

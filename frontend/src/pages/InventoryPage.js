@@ -23,6 +23,8 @@ const InventoryPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [sortBy, setSortBy] = useState('stockQuantity'); // Default sort by stock quantity
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' for ascending (lowest first)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -158,6 +160,45 @@ const InventoryPage = () => {
     }
   };
 
+  // Sort items based on current sort settings
+  const getSortedItems = () => {
+    return [...items].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'stockQuantity':
+          aValue = a.stockQuantity;
+          bValue = b.stockQuantity;
+          break;
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'price':
+          aValue = a.price;
+          bValue = b.price;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+  };
+
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
+
 
   if (loading && items.length === 0) {
     return (
@@ -227,14 +268,54 @@ const InventoryPage = () => {
           </div>
         </Card.Header>
         <Card.Body className="p-0">
+          {/* Sort indicator */}
+          <div className="p-3 bg-light border-bottom">
+            <div className="d-flex align-items-center justify-content-between">
+              <small className="text-muted">
+                <i className="bi bi-sort-down me-1"></i>
+                Sorted by <strong>{sortBy === 'stockQuantity' ? 'Stock Quantity' : sortBy === 'name' ? 'Name' : 'Price'}</strong> 
+                ({sortOrder === 'asc' ? 'Lowest first' : 'Highest first'})
+              </small>
+              <small className="text-muted">
+                Click column headers to sort
+              </small>
+            </div>
+          </div>
           <Table responsive hover className="mb-0">
             <thead className="table-light">
               <tr>
-                <th>Name</th>
+                <th 
+                  className="cursor-pointer" 
+                  onClick={() => handleSort('name')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Name
+                  {sortBy === 'name' && (
+                    <i className={`bi bi-arrow-${sortOrder === 'asc' ? 'up' : 'down'} ms-1`}></i>
+                  )}
+                </th>
                 <th>Category</th>
                 <th>Description</th>
-                <th className="text-end">Price</th>
-                <th className="text-center">Stock</th>
+                <th 
+                  className="text-end cursor-pointer" 
+                  onClick={() => handleSort('price')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Price
+                  {sortBy === 'price' && (
+                    <i className={`bi bi-arrow-${sortOrder === 'asc' ? 'up' : 'down'} ms-1`}></i>
+                  )}
+                </th>
+                <th 
+                  className="text-center cursor-pointer" 
+                  onClick={() => handleSort('stockQuantity')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Stock
+                  {sortBy === 'stockQuantity' && (
+                    <i className={`bi bi-arrow-${sortOrder === 'asc' ? 'up' : 'down'} ms-1`}></i>
+                  )}
+                </th>
                 <th>Barcode</th>
                 <th className="text-center">Batch ID</th>
                 <th className="text-center">Expiry Date</th>
@@ -242,7 +323,7 @@ const InventoryPage = () => {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {getSortedItems().map((item) => (
                 <tr key={item.id}>
                   <td className="fw-bold">{item.name}</td>
                   <td>

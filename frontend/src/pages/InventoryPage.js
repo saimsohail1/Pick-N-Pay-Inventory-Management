@@ -627,7 +627,7 @@ const InventoryPage = () => {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>General Expiry Date</Form.Label>
+                  <Form.Label>Expiry Date</Form.Label>
                   <Form.Control
                     type="date"
                     name="generalExpiryDate"
@@ -779,7 +779,7 @@ const InventoryPage = () => {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>General Expiry Date</Form.Label>
+                  <Form.Label>Expiry Date</Form.Label>
                   <Form.Control
                     type="date"
                     name="generalExpiryDate"

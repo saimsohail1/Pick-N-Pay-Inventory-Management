@@ -840,10 +840,20 @@ const SalesPage = () => {
         .numeric-keypad .btn {
           min-height: 40px;
           font-size: 1.1rem;
+          transition: all 0.2s ease;
+        }
+        .numeric-keypad .btn:hover {
+          transform: scale(1.05);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .category-btn {
           min-height: 35px;
           font-size: 0.85rem;
+          transition: all 0.2s ease;
+        }
+        .category-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         .quick-sale-btn {
           min-height: 40px;
@@ -1014,7 +1024,7 @@ const SalesPage = () => {
             {/* Sales Cart Table with Control Buttons */}
             <div className="d-flex">
               {/* Cart Table */}
-              <div className="bg-white flex-grow-1" style={{ height: '350px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#ffffff', border: '1px solid #dee2e6', borderRadius: '8px' }}>
+              <div className="bg-white flex-grow-1" style={{ height: '450px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#ffffff', border: '1px solid #dee2e6', borderRadius: '8px' }}>
               {cart.length === 0 ? (
                   <div className="text-center py-2">
                     <i className="bi bi-cart fs-3 text-muted"></i>
@@ -1148,87 +1158,92 @@ const SalesPage = () => {
             </div>
 
             {/* Bottom Control Panel */}
-            <div className="bg-light text-dark" style={{ padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem' }}>
-              <div className="d-flex align-items-center justify-content-between">
-                  <div className="d-grid gap-2" style={{ width: '30%' }}>
-                  <Button 
-                    variant={appliedDiscount ? "success" : "primary"} 
-                    size="lg" 
-                    className="fw-bold" 
-                    style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }}
-                    onClick={() => setDiscountDialogOpen(true)}
-                  >
-                      <i className="bi bi-percent me-2"></i>
-                      Discount
-                      {appliedDiscount && (
-                        <Badge bg="light" text="dark" className="ms-2" style={{ fontSize: '0.7rem' }}>
-                          {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
-                        </Badge>
-                      )}
-                    </Button>
-                  <Button 
-                    variant="secondary" 
-                    size="lg" 
-                    className="fw-bold" 
-                    style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }}
-                    onClick={() => {
-                      console.log('Exit button clicked');
-                      // Check if running in Electron
-                      if (window && window.require) {
-                        console.log('Running in Electron, sending app-closing message');
-                        try {
-                          const { ipcRenderer } = window.require('electron');
-                          ipcRenderer.send('app-closing');
-                          console.log('app-closing message sent successfully');
-                        } catch (error) {
-                          console.error('Error closing app:', error);
-                        }
-                      } else {
-                        console.log('Not in Electron, logging out and navigating to login');
-                        // If not in Electron, just logout
-                        logout();
-                        navigate('/login');
-                      }
-                    }}
-                  >
-                      <i className="bi bi-power me-2"></i>
-                      Exit
-                    </Button>
-                  </div>
-                <div className="d-grid gap-2 numeric-keypad" style={{ gridTemplateColumns: 'repeat(3, 1fr)', width: '40%', maxWidth: '280px' }}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                    <Button key={num} variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.2rem', minHeight: '50px' }} onClick={() => setBarcodeInput(prev => prev + num.toString())}>
-                        {num}
+            <div className="bg-light text-dark" style={{ padding: '0.8rem', borderRadius: '8px', marginTop: '0.5rem' }}>
+              <div className="d-flex align-items-center justify-content-between gap-3">
+                  {/* Discount and Exit Buttons - Moved up and made more prominent */}
+                  <div className="d-flex flex-column gap-2" style={{ width: '25%' }}>
+                    <Button 
+                      variant={appliedDiscount ? "success" : "primary"} 
+                      size="lg" 
+                      className="fw-bold" 
+                      style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px' }}
+                      onClick={() => setDiscountDialogOpen(true)}
+                    >
+                        <i className="bi bi-percent me-2"></i>
+                        Discount
+                        {appliedDiscount && (
+                          <Badge bg="light" text="dark" className="ms-2" style={{ fontSize: '0.8rem' }}>
+                            {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
+                          </Badge>
+                        )}
                       </Button>
-                    ))}
-                  <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.2rem', minHeight: '50px' }} onClick={() => setBarcodeInput('')}>C</Button>
-                  <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.2rem', minHeight: '50px' }} onClick={() => setBarcodeInput(prev => prev + '0')}>0</Button>
-                  <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.2rem', minHeight: '50px' }} onClick={() => setBarcodeInput(prev => prev.slice(0, -1))}>
-                      <i className="bi bi-backspace"></i>
-                    </Button>
-                  </div>
-                <div className="d-grid gap-2" style={{ width: '30%' }}>
-                  <Button variant="success" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px' }} onClick={handleCheckout} disabled={loading}>
-                      {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
-                      Checkout
-                    </Button>
-                  <Button variant="warning" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px' }} onClick={handleHoldTransaction}>
-                      <i className="bi bi-pause-circle me-2"></i>
-                      On Hold
-                    </Button>
-                  <Button variant="info" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px' }}>
-                      <i className="bi bi-cash-stack me-2"></i>
-                      Open Till
-                    </Button>
-                  </div>
-            </div>
+                    <Button 
+                      variant="danger" 
+                      size="lg" 
+                      className="fw-bold" 
+                      style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px' }}
+                      onClick={() => {
+                        console.log('Exit button clicked');
+                        // Check if running in Electron
+                        if (window && window.require) {
+                          console.log('Running in Electron, sending app-closing message');
+                          try {
+                            const { ipcRenderer } = window.require('electron');
+                            ipcRenderer.send('app-closing');
+                            console.log('app-closing message sent successfully');
+                          } catch (error) {
+                            console.error('Error closing app:', error);
+                          }
+                        } else {
+                          console.log('Not in Electron, logging out and navigating to login');
+                          // If not in Electron, just logout
+                          logout();
+                          navigate('/login');
+                        }
+                      }}
+                    >
+                        <i className="bi bi-power me-2"></i>
+                        Exit
+                      </Button>
+                    </div>
+                  
+                  {/* Numeric Keypad - Centered and optimized */}
+                  <div className="d-grid gap-2 numeric-keypad" style={{ gridTemplateColumns: 'repeat(3, 1fr)', width: '35%', maxWidth: '300px' }}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                      <Button key={num} variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev + num.toString())}>
+                          {num}
+                        </Button>
+                      ))}
+                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput('')}>C</Button>
+                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev + '0')}>0</Button>
+                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev.slice(0, -1))}>
+                        <i className="bi bi-backspace"></i>
+                      </Button>
+                    </div>
+                  
+                  {/* Action Buttons - Right side, optimized */}
+                  <div className="d-flex flex-column gap-2" style={{ width: '40%' }}>
+                    <Button variant="success" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }} onClick={handleCheckout} disabled={loading}>
+                        {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
+                        Checkout
+                      </Button>
+                    <Button variant="warning" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }} onClick={handleHoldTransaction}>
+                        <i className="bi bi-pause-circle me-2"></i>
+                        On Hold
+                      </Button>
+                    <Button variant="info" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }}>
+                        <i className="bi bi-cash-stack me-2"></i>
+                        Open Till
+                      </Button>
+                    </div>
+              </div>
             </div>
             </>
           )}
         </div>
 
           {/* Right Sidebar */}
-        <div className="bg-white d-flex flex-column" style={{ width: '35%', padding: 0, borderRadius: '8px', border: '1px solid #dee2e6' }}>
+        <div className="d-flex flex-column" style={{ width: '35%', padding: 0, borderRadius: '8px', border: '1px solid #dee2e6', backgroundColor: '#f8f9fa' }}>
             {/* Selected Item Display */}
             {selectedCartItem && (
               <div className="mb-1 p-1 bg-light rounded border">
@@ -1240,10 +1255,10 @@ const SalesPage = () => {
 
             {/* Barcode Input */}
             <div className="mb-2" style={{ padding: '0.5rem' }}>
-              <h5 className="fw-bold mb-2">Barcode Read</h5>
+              <h5 className="fw-bold mb-2 text-center">Barcode Read</h5>
               <InputGroup size="lg">
-                <InputGroup.Text>
-                  <i className="bi bi-upc-scan fs-5"></i>
+                <InputGroup.Text style={{ backgroundColor: '#e9ecef', borderColor: '#dee2e6' }}>
+                  <i className="bi bi-upc-scan fs-5 text-primary"></i>
                 </InputGroup.Text>
                 <Form.Control
                   type="text"
@@ -1256,7 +1271,7 @@ const SalesPage = () => {
                       setBarcodeInput('');
                     }
                   }}
-                  style={{ fontSize: '1rem' }}
+                  style={{ fontSize: '1rem', borderColor: '#dee2e6' }}
                 />
               </InputGroup>
             </div>
@@ -1265,16 +1280,26 @@ const SalesPage = () => {
             <div className="mb-1 flex-grow-1" style={{ padding: '0.5rem' }}>
               {currentView === 'categories' ? (
                 <>
-                  <h5 className="fw-bold mb-3 text-center">Categories</h5>
+                  {/* Categories Header with Red Background */}
+                  <div className="bg-danger text-white text-center py-2 mb-3 rounded" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
+                    Categories
+                  </div>
                   <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                 {categories.map((category) => (
                   <Button 
                     key={category.id} 
-                    variant={category.name === 'Quick Sale' ? 'primary' : 'outline-primary'} 
+                    variant={category.name === 'Quick Sale' ? 'dark' : 'outline-primary'} 
                     size="lg"
                     className="fw-bold category-btn"
                         onClick={() => handleCategoryClick(category)}
-                        style={{ padding: '1rem', fontSize: '1.1rem', minHeight: '60px' }}
+                        style={{ 
+                          padding: '1rem', 
+                          fontSize: '1.1rem', 
+                          minHeight: '60px',
+                          backgroundColor: category.name === 'Quick Sale' ? '#000' : '#fff',
+                          color: category.name === 'Quick Sale' ? '#fff' : '#0d6efd',
+                          borderColor: category.name === 'Quick Sale' ? '#000' : '#0d6efd'
+                        }}
                   >
                     {category.name}
                   </Button>

@@ -495,6 +495,7 @@ const SalesPage = () => {
       setCashAmount('');
       setSelectedNotes({});
       setAppliedDiscount(null); // Clear discount after sale
+      setSelectedCartItem(null); // Clear selected item after sale
       setCustomDiscountAmount('');
       setSuccess('Cash payment completed successfully!');
       addTimeout(() => setSuccess(null), 3000);
@@ -544,6 +545,7 @@ const SalesPage = () => {
       setCart([]);
       setAppliedDiscount(null); // Clear discount after sale
       setCustomDiscountAmount('');
+      setSelectedCartItem(null); // Clear selected item after sale
       setSuccess('Card payment completed successfully!');
       addTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -781,6 +783,7 @@ const SalesPage = () => {
 
     setHeldTransactions(prev => [...prev, heldTransaction]);
     setCart([]);
+    setSelectedCartItem(null); // Clear selected item when holding transaction
     setSuccess('Transaction held successfully!');
     addTimeout(() => setSuccess(null), 3000);
   };
@@ -1129,7 +1132,7 @@ const SalesPage = () => {
                     <i className="bi bi-eye me-2"></i>
                   STOCK
                 </Button>
-                  <Button variant="outline-danger" size="lg" onClick={() => { setCart([]); setAppliedDiscount(null); setCustomDiscountAmount(''); }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
+                  <Button variant="outline-danger" size="lg" onClick={() => { setCart([]); setAppliedDiscount(null); setCustomDiscountAmount(''); setSelectedCartItem(null); }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
                     <i className="bi bi-cart-x me-2"></i>
                   CLEAR CART
                 </Button>

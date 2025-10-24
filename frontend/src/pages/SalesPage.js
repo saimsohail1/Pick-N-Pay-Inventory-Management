@@ -1158,15 +1158,15 @@ const SalesPage = () => {
             </div>
 
             {/* Bottom Control Panel */}
-            <div className="bg-light text-dark" style={{ padding: '0.8rem', borderRadius: '8px', marginTop: '0.2rem' }}>
+            <div className="bg-light text-dark" style={{ padding: '0.8rem', borderRadius: '8px', marginTop: '0.5rem' }}>
               <div className="d-flex align-items-center justify-content-between gap-3">
                   {/* Discount and Exit Buttons - Moved up and made more prominent */}
-                  <div className="d-flex flex-column gap-1" style={{ width: '25%' }}>
+                  <div className="d-flex flex-column gap-3" style={{ width: '25%' }}>
                     <Button 
                       variant={appliedDiscount ? "success" : "primary"} 
                       size="lg" 
                       className="fw-bold" 
-                      style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px' }}
+                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', marginTop: '-0.5rem' }}
                       onClick={() => setDiscountDialogOpen(true)}
                     >
                         <i className="bi bi-percent me-2"></i>
@@ -1181,7 +1181,7 @@ const SalesPage = () => {
                       variant="danger" 
                       size="lg" 
                       className="fw-bold" 
-                      style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px' }}
+                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px' }}
                       onClick={() => {
                         console.log('Exit button clicked');
                         // Check if running in Electron

@@ -282,41 +282,49 @@ const DailyReport = () => {
             <div className="d-flex gap-3 align-items-end">
               {isAdmin() && (
                 <div>
-                  <Form.Label className="small fw-bold">User</Form.Label>
-                  <div className="d-flex align-items-center">
-                    <i className="bi bi-person me-2 text-primary"></i>
-                    <Form.Select
-                      value={selectedUserId}
-                      onChange={(e) => handleUserChange(e.target.value)}
-                      style={{ width: '150px' }}
-                    >
-                      {users.map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.username}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </div>
+                  <label className="form-label fw-semibold text-dark">
+                    <i className="bi bi-person me-1"></i>
+                    Select User
+                  </label>
+                  <Form.Select
+                    value={selectedUserId}
+                    onChange={(e) => handleUserChange(e.target.value)}
+                    className="form-select-lg border-2"
+                    style={{ borderRadius: '10px', width: '200px' }}
+                  >
+                    <option value="">All Users</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.username}
+                      </option>
+                    ))}
+                  </Form.Select>
                 </div>
               )}
               <div>
-                <Form.Label className="small fw-bold">Period Start</Form.Label>
+                <label className="form-label fw-semibold text-dark">
+                  <i className="bi bi-calendar3 me-1"></i>
+                  Period Start
+                </label>
                 <input
                   type="date"
-                  className="date-input"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  style={{ width: '180px' }}
+                  className="form-control form-control-lg border-2"
+                  style={{ borderRadius: '10px', width: '200px' }}
                 />
               </div>
               <div>
-                <Form.Label className="small fw-bold">Period End</Form.Label>
+                <label className="form-label fw-semibold text-dark">
+                  <i className="bi bi-calendar3 me-1"></i>
+                  Period End
+                </label>
                 <input
                   type="date"
-                  className="date-input"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  style={{ width: '180px' }}
+                  className="form-control form-control-lg border-2"
+                  style={{ borderRadius: '10px', width: '200px' }}
                 />
               </div>
             </div>

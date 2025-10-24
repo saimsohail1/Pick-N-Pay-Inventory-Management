@@ -1296,9 +1296,9 @@ const SalesPage = () => {
                           padding: '1rem', 
                           fontSize: '1.1rem', 
                           minHeight: '60px',
-                          backgroundColor: category.name === 'Quick Sale' ? '#000' : '#fff',
-                          color: category.name === 'Quick Sale' ? '#fff' : '#0d6efd',
-                          borderColor: category.name === 'Quick Sale' ? '#000' : '#0d6efd'
+                          backgroundColor: category.name === 'Quick Sale' ? '#000' : '#f8f9fa',
+                          color: category.name === 'Quick Sale' ? '#fff' : '#495057',
+                          borderColor: category.name === 'Quick Sale' ? '#000' : '#dee2e6'
                         }}
                   >
                     {category.name}

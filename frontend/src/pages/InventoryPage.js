@@ -262,7 +262,7 @@ const InventoryPage = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="mb-0 fw-bold">
           <i className="bi bi-box-seam me-2"></i>
-          Inventory Management
+          Inventory
         </h1>
         <div className="d-flex align-items-center">
           <span className="badge bg-primary me-2 fs-6">

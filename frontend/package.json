@@ -1,7 +1,7 @@
 {
   "name": "InventoryManagementSystem-frontend",
   "version": "1.0.0",
-  "description": "PickNPay Inventory Management System Frontend",
+  "description": "PickNPay Point of Sale System Frontend",
   "author": "Saim <saimmsohail@gmail.com>",
   "main": "main.js",
   "homepage": "./",

@@ -96,7 +96,7 @@ const Dashboard = () => {
                 <i className="bi bi-speedometer2 me-3"></i>
                 Welcome to {companyName}
               </h1>
-              <p className="page-subtitle">Modern Inventory Management System</p>
+              <p className="page-subtitle">Modern Point of Sale System</p>
             </div>
           </div>
         </div>

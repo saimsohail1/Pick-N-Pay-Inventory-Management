@@ -88,7 +88,6 @@ const Layout = ({ children }) => {
           >
             <i className="bi bi-shop me-3" style={{ fontSize: '1.75rem' }}></i>
             <span className="text-white">{companyName}</span>
-            <span className="text-white ms-2">Inventory Management</span>
               </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
               <Navbar.Collapse id="basic-navbar-nav">

@@ -1165,7 +1165,7 @@ const SalesPage = () => {
                     onClick={handleIncrementSelectedItem}
                     disabled={!selectedCartItem}
                     className="flex-fill"
-                    style={{ fontSize: '1.6rem', padding: '1.2rem', width: '100%', minHeight: '110px' }}
+                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px' }}
                     title="Increase quantity"
                   >
                     <i className="bi bi-plus"></i>
@@ -1176,7 +1176,7 @@ const SalesPage = () => {
                     onClick={handleDecrementSelectedItem}
                     disabled={!selectedCartItem}
                     className="flex-fill"
-                    style={{ fontSize: '1.6rem', padding: '1.2rem', width: '100%', minHeight: '110px' }}
+                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px' }}
                     title="Decrease quantity"
                               >
                                 <i className="bi bi-dash"></i>
@@ -1187,7 +1187,7 @@ const SalesPage = () => {
                     onClick={handleEditSelectedItem}
                     disabled={!selectedCartItem}
                     className="flex-fill"
-                    style={{ fontSize: '1.6rem', padding: '1.2rem', width: '100%', minHeight: '110px' }}
+                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px' }}
                     title="Edit item"
                   >
                     <i className="bi bi-pencil"></i>
@@ -1198,7 +1198,7 @@ const SalesPage = () => {
                     onClick={handleDiscountSelectedItem}
                     disabled={!selectedCartItem}
                     className="flex-fill"
-                    style={{ fontSize: '1.6rem', padding: '1.2rem', width: '100%', minHeight: '110px' }}
+                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px' }}
                     title="Apply discount to item"
                   >
                     <i className="bi bi-percent"></i>

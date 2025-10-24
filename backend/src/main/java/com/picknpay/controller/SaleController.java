@@ -83,6 +83,23 @@ public class SaleController {
         return ResponseEntity.ok(report);
     }
     
+    @GetMapping("/daily-report/user/date-range")
+    public ResponseEntity<DailyReportDTO> getDailyReportByUserAndDateRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam Long userId) {
+        DailyReportDTO report = saleService.getDailyReportByUserAndDateRange(startDate, endDate, userId);
+        return ResponseEntity.ok(report);
+    }
+    
+    @GetMapping("/daily-report/admin/date-range")
+    public ResponseEntity<DailyReportDTO> getDailyReportByDateRangeForAdmin(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        DailyReportDTO report = saleService.getDailyReportByDateRangeForAdmin(startDate, endDate);
+        return ResponseEntity.ok(report);
+    }
+    
     @GetMapping("/total")
     public ResponseEntity<Double> getTotalSalesByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,

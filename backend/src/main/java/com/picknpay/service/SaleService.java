@@ -388,6 +388,172 @@ public class SaleService {
         return report;
     }
     
+    public DailyReportDTO getDailyReportByUserAndDateRange(LocalDate startDate, LocalDate endDate, Long userId) {
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
+        // Get user-specific sales for the date range
+        List<Sale> userSales = saleRepository.findSalesByUserIdAndDateRange(userId, startDateTime, endDateTime);
+        
+        // Calculate totals
+        Long totalSales = (long) userSales.size();
+        BigDecimal totalAmount = userSales.stream()
+                .map(Sale::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate cash sales
+        Long cashSales = userSales.stream()
+                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CASH)
+                .count();
+        BigDecimal cashAmount = userSales.stream()
+                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CASH)
+                .map(Sale::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate card sales
+        Long cardSales = userSales.stream()
+                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
+                .count();
+        BigDecimal cardAmount = userSales.stream()
+                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
+                .map(Sale::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate VAT totals for user sales
+        BigDecimal totalVatAmount = BigDecimal.ZERO;
+        BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
+        
+        for (Sale sale : userSales) {
+            for (SaleItem item : sale.getSaleItems()) {
+                if (item.getVatAmount() != null) {
+                    totalVatAmount = totalVatAmount.add(item.getVatAmount());
+                }
+                if (item.getPriceExcludingVat() != null) {
+                    totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
+                }
+            }
+        }
+        
+        // Calculate category summaries
+        Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
+        
+        for (Sale sale : userSales) {
+            for (SaleItem saleItem : sale.getSaleItems()) {
+                String categoryName;
+                if (saleItem.getItem() != null && saleItem.getItem().getCategory() != null) {
+                    categoryName = saleItem.getItem().getCategory().getName();
+                } else {
+                    categoryName = "Quick Sale"; // For quick sales without category
+                }
+                
+                CategorySummaryDTO categorySummary = categoryMap.getOrDefault(categoryName, 
+                    new CategorySummaryDTO(categoryName, BigDecimal.ZERO, 0L));
+                
+                categorySummary.setTotal(categorySummary.getTotal().add(saleItem.getTotalPrice()));
+                categorySummary.setCount(categorySummary.getCount() + saleItem.getQuantity());
+                
+                categoryMap.put(categoryName, categorySummary);
+            }
+        }
+        
+        // Convert map to list and add total
+        List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
+        categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
+        
+        // Add total row
+        categories.add(new CategorySummaryDTO("Total", totalAmount, totalSales));
+        
+        DailyReportDTO report = new DailyReportDTO(startDate, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
+        report.setTotalVatAmount(totalVatAmount);
+        report.setTotalAmountExcludingVat(totalAmountExcludingVat);
+        report.setCategories(categories);
+        
+        return report;
+    }
+    
+    public DailyReportDTO getDailyReportByDateRangeForAdmin(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
+        // Get all sales for the date range (admin view)
+        List<Sale> allSales = saleRepository.findSalesByDateRange(startDateTime, endDateTime);
+        
+        // Calculate totals
+        Long totalSales = (long) allSales.size();
+        BigDecimal totalAmount = allSales.stream()
+                .map(Sale::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate cash sales
+        Long cashSales = allSales.stream()
+                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CASH)
+                .count();
+        BigDecimal cashAmount = allSales.stream()
+                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CASH)
+                .map(Sale::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate card sales
+        Long cardSales = allSales.stream()
+                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
+                .count();
+        BigDecimal cardAmount = allSales.stream()
+                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
+                .map(Sale::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate VAT totals for all sales
+        BigDecimal totalVatAmount = BigDecimal.ZERO;
+        BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
+        
+        for (Sale sale : allSales) {
+            for (SaleItem item : sale.getSaleItems()) {
+                if (item.getVatAmount() != null) {
+                    totalVatAmount = totalVatAmount.add(item.getVatAmount());
+                }
+                if (item.getPriceExcludingVat() != null) {
+                    totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
+                }
+            }
+        }
+        
+        // Calculate category summaries
+        Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
+        
+        for (Sale sale : allSales) {
+            for (SaleItem saleItem : sale.getSaleItems()) {
+                String categoryName;
+                if (saleItem.getItem() != null && saleItem.getItem().getCategory() != null) {
+                    categoryName = saleItem.getItem().getCategory().getName();
+                } else {
+                    categoryName = "Quick Sale"; // For quick sales without category
+                }
+                
+                CategorySummaryDTO categorySummary = categoryMap.getOrDefault(categoryName, 
+                    new CategorySummaryDTO(categoryName, BigDecimal.ZERO, 0L));
+                
+                categorySummary.setTotal(categorySummary.getTotal().add(saleItem.getTotalPrice()));
+                categorySummary.setCount(categorySummary.getCount() + saleItem.getQuantity());
+                
+                categoryMap.put(categoryName, categorySummary);
+            }
+        }
+        
+        // Convert map to list and add total
+        List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
+        categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
+        
+        // Add total row
+        categories.add(new CategorySummaryDTO("Total", totalAmount, totalSales));
+        
+        DailyReportDTO report = new DailyReportDTO(startDate, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
+        report.setTotalVatAmount(totalVatAmount);
+        report.setTotalAmountExcludingVat(totalAmountExcludingVat);
+        report.setCategories(categories);
+        
+        return report;
+    }
+    
     public SaleDTO updateSale(Long id, SaleDTO saleDTO) {
         Sale existingSale = saleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sale not found with id: " + id));

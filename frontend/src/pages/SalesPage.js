@@ -1089,10 +1089,6 @@ const SalesPage = () => {
             <div className="bg-white" style={{ padding: '0.4rem' }}>
               <div className="d-flex gap-2 justify-content-between">
               <div className="d-flex gap-2">
-                  <Button variant="outline-primary" size="lg" style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
-                    <i className="bi bi-pencil me-2"></i>
-                  EDIT
-                </Button>
                   <Button 
                     variant="outline-primary" 
                     size="lg" 

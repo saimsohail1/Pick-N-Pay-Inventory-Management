@@ -150,22 +150,9 @@ const Layout = ({ children }) => {
                       </div>
                     </Dropdown.Header>
                     <Dropdown.Divider />
-                    <Dropdown.Item onClick={() => {
-                      // Check if running in Electron
-                      if (window && window.require) {
-                        try {
-                          const { ipcRenderer } = window.require('electron');
-                          ipcRenderer.send('app-closing');
-                        } catch (error) {
-                          console.error('Error closing app:', error);
-                        }
-                      } else {
-                        // If not in Electron, just logout
-                        handleLogout();
-                      }
-                    }}>
-                      <i className="bi bi-power me-2"></i>
-                      Close App
+                    <Dropdown.Item onClick={handleLogout}>
+                      <i className="bi bi-box-arrow-right me-2"></i>
+                      Logout
                     </Dropdown.Item>
                   </Dropdown.Menu>
                 </Dropdown>

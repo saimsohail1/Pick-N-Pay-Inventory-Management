@@ -28,8 +28,8 @@ const SalesHistory = () => {
   // ✅ Safe fetch with cleanup - now properly filters by date and user
   const fetchSales = useCallback(async (date, userId) => {
     console.log("[SalesHistory] fetchSales start", { date, userId, isAdminUser });
-    setLoading(true);
-    setError(null);
+      setLoading(true);
+      setError(null);
 
     let isMounted = true;
     try {
@@ -324,49 +324,6 @@ const SalesHistory = () => {
       {/* Loading */}
       {loading && <Spinner animation="border" />}
 
-      {/* Sales Summary */}
-      {!loading && sales.length > 0 && (
-        <div className="card shadow-sm border-0 mb-4">
-          <div className="card-body">
-            <div className="row text-center">
-              <div className="col-md-3">
-                <div className="d-flex flex-column align-items-center">
-                  <i className="bi bi-receipt text-primary fs-2 mb-2"></i>
-                  <h5 className="mb-1 fw-bold">{sales.length}</h5>
-                  <small className="text-muted">Total Transactions</small>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="d-flex flex-column align-items-center">
-                  <i className="bi bi-currency-euro text-success fs-2 mb-2"></i>
-                  <h5 className="mb-1 fw-bold text-success">
-                    €{sales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount || 0), 0).toFixed(2)}
-                  </h5>
-                  <small className="text-muted">Total Amount</small>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="d-flex flex-column align-items-center">
-                  <i className="bi bi-cash text-info fs-2 mb-2"></i>
-                  <h5 className="mb-1 fw-bold text-info">
-                    {sales.filter(sale => sale.paymentMethod === 'CASH').length}
-                  </h5>
-                  <small className="text-muted">Cash Payments</small>
-                </div>
-              </div>
-              <div className="col-md-3">
-                <div className="d-flex flex-column align-items-center">
-                  <i className="bi bi-credit-card text-warning fs-2 mb-2"></i>
-                  <h5 className="mb-1 fw-bold text-warning">
-                    {sales.filter(sale => sale.paymentMethod === 'CARD').length}
-                  </h5>
-                  <small className="text-muted">Card Payments</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* No Sales Message */}
       {!loading && sales.length === 0 && (

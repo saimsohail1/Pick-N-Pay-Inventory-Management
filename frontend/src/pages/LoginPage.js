@@ -20,13 +20,12 @@ const LoginPage = () => {
     }
   });
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated - always go to dashboard
   useEffect(() => {
     if (isAuthenticated()) {
-      const from = location.state?.from?.pathname || '/dashboard';
-      navigate(from, { replace: true });
+      navigate('/dashboard', { replace: true });
     }
-  }, [isAuthenticated, navigate, location.state]);
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (data) => {
     setLoading(true);
@@ -36,9 +35,8 @@ const LoginPage = () => {
       const result = await login(data.username, data.password);
       
       if (result.success) {
-        // Redirect to intended page or dashboard
-        const from = location.state?.from?.pathname || '/dashboard';
-        navigate(from, { replace: true });
+        // Always redirect to dashboard after successful login
+        navigate('/dashboard', { replace: true });
       } else {
         setError(result.message);
         setTimeout(() => setError(null), 5000);

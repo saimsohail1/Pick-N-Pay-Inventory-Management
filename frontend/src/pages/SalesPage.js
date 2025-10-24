@@ -795,7 +795,7 @@ const SalesPage = () => {
   };
 
   return (
-    <div className="sales-page-container d-flex flex-column vh-100" style={{ backgroundColor: '#f5f5f5', margin: 0, padding: 0 }}>
+    <div className="sales-page-container d-flex flex-column vh-100" style={{ backgroundColor: '#e9ecef', margin: 0, padding: 0 }}>
       <style>{`
         .sales-page-container {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -993,7 +993,7 @@ const SalesPage = () => {
             {/* Sales Cart Table with Control Buttons */}
             <div className="d-flex">
               {/* Cart Table */}
-              <div className="bg-white flex-grow-1" style={{ height: '350px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#ffffff' }}>
+              <div className="bg-white flex-grow-1" style={{ height: '350px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#ffffff', border: '1px solid #dee2e6', borderRadius: '8px' }}>
               {cart.length === 0 ? (
                   <div className="text-center py-2">
                     <i className="bi bi-cart fs-3 text-muted"></i>
@@ -1046,7 +1046,7 @@ const SalesPage = () => {
               </div>
               
               {/* Fixed Control Buttons */}
-              <div className="bg-white d-flex flex-column" style={{ width: '90px', padding: '0.3rem', borderLeft: '1px solid #dee2e6', backgroundColor: '#ffffff' }}>
+              <div className="bg-white d-flex flex-column" style={{ width: '90px', padding: '0.3rem', borderLeft: '1px solid #dee2e6', backgroundColor: '#ffffff', borderRadius: '0 8px 8px 0' }}>
                 <div className="d-flex flex-column h-100">
                               <Button
                     variant={selectedCartItem ? "success" : "outline-secondary"}
@@ -1086,7 +1086,7 @@ const SalesPage = () => {
             </div>
 
             {/* Action Buttons Row */}
-            <div className="bg-white" style={{ padding: '0.4rem' }}>
+            <div className="bg-white" style={{ padding: '0.4rem', border: '1px solid #dee2e6', borderRadius: '8px', marginTop: '0.5rem' }}>
               <div className="d-flex gap-2 justify-content-between">
               <div className="d-flex gap-2">
                   <Button 
@@ -1107,7 +1107,7 @@ const SalesPage = () => {
             </div>
 
             {/* Sales Summary */}
-            <div className="bg-primary text-white" style={{ padding: '0.5rem' }}>
+            <div className="bg-secondary text-white" style={{ padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem' }}>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <div className="d-block" style={{ fontSize: '0.9rem' }}>Subtotal: €{calculateSubtotal().toFixed(2)}</div>
@@ -1127,7 +1127,7 @@ const SalesPage = () => {
             </div>
 
             {/* Bottom Control Panel */}
-            <div className="bg-light text-dark" style={{ padding: '0.5rem' }}>
+            <div className="bg-light text-dark" style={{ padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem' }}>
               <div className="d-flex align-items-center justify-content-between">
                   <div className="d-grid gap-2" style={{ width: '30%' }}>
                   <Button 
@@ -1207,7 +1207,7 @@ const SalesPage = () => {
         </div>
 
           {/* Right Sidebar */}
-        <div className="bg-white d-flex flex-column" style={{ width: '35%', padding: 0 }}>
+        <div className="bg-white d-flex flex-column" style={{ width: '35%', padding: 0, borderRadius: '8px', border: '1px solid #dee2e6' }}>
             {/* Selected Item Display */}
             {selectedCartItem && (
               <div className="mb-1 p-1 bg-light rounded border">
@@ -1244,7 +1244,7 @@ const SalesPage = () => {
             <div className="mb-1 flex-grow-1" style={{ padding: '0.5rem' }}>
               {currentView === 'categories' ? (
                 <>
-                  <h5 className="fw-bold mb-3">Categories</h5>
+                  <h5 className="fw-bold mb-3 text-center">Categories</h5>
                   <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                 {categories.map((category) => (
                   <Button 

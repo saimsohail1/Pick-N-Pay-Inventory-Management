@@ -1330,7 +1330,14 @@ const SalesPage = () => {
                     onClick={(e) => handleQuickPriceSale(price, e)}
                         className="fw-bold quick-sale-btn"
                     size="lg"
-                    style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '65px' }}
+                    style={{ 
+                      padding: '1rem', 
+                      fontSize: '1.2rem', 
+                      minHeight: '65px',
+                      backgroundColor: '#f8f9fa',
+                      color: '#495057',
+                      borderColor: '#dee2e6'
+                    }}
                   >
                     €{price.toFixed(2)}
                   </Button>

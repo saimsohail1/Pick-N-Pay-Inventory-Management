@@ -66,6 +66,10 @@ export const salesAPI = {
     api.get(`/sales/total?startDate=${startDate}&endDate=${endDate}`),
   getDailyReport: (date) => api.get(`/sales/daily-report?date=${date}`),
   getDailyReportByUser: (date, userId) => api.get(`/sales/daily-report/user?date=${date}&userId=${userId}`),
+  getDailyReportByUserAndDateRange: (startDate, endDate, userId) => 
+    api.get(`/sales/daily-report/user/date-range?startDate=${startDate}&endDate=${endDate}&userId=${userId}`),
+  getDailyReportByDateRangeForAdmin: (startDate, endDate) => 
+    api.get(`/sales/daily-report/admin/date-range?startDate=${startDate}&endDate=${endDate}`),
   
   // New role-based endpoints
   getTodaySales: (userId, isAdmin) => 

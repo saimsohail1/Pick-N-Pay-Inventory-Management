@@ -28,14 +28,33 @@ const DailyReport = () => {
     setLoading(true);
     setError(null);
     try {
-      console.log('Fetching daily report for date:', startDate);
+      console.log('Fetching daily report for date range:', startDate, 'to', endDate);
       let response;
+      
+      // Check if it's a date range (different start and end dates)
+      const isDateRange = startDate !== endDate;
+      
       if (isAdmin() && selectedUserId) {
         // Admin viewing specific user's report
-        response = await salesAPI.getDailyReportByUser(startDate, selectedUserId);
+        if (isDateRange) {
+          response = await salesAPI.getDailyReportByUserAndDateRange(startDate, endDate, selectedUserId);
+        } else {
+          response = await salesAPI.getDailyReportByUser(startDate, selectedUserId);
+        }
+      } else if (isAdmin() && !selectedUserId) {
+        // Admin viewing all users' report
+        if (isDateRange) {
+          response = await salesAPI.getDailyReportByDateRangeForAdmin(startDate, endDate);
+        } else {
+          response = await salesAPI.getDailyReport(startDate);
+        }
       } else {
         // Regular user sees only their sales
-        response = await salesAPI.getDailyReportByUser(startDate, user?.id);
+        if (isDateRange) {
+          response = await salesAPI.getDailyReportByUserAndDateRange(startDate, endDate, user?.id);
+        } else {
+          response = await salesAPI.getDailyReportByUser(startDate, user?.id);
+        }
       }
       console.log('API response:', response);
       const dailyReport = response.data;
@@ -156,11 +175,12 @@ const DailyReport = () => {
       const companyName = 'PickNPay'; // You can fetch this from context or API
       
       // Create Z-report HTML using utility
-      const reportContent = createZReportHTML(reportData, companyName, startDate);
+      const dateRangeText = startDate === endDate ? startDate : `${startDate} to ${endDate}`;
+      const reportContent = createZReportHTML(reportData, companyName, dateRangeText);
       
       // Try direct print first, fallback to window.open for Safari
       try {
-        await directPrint(reportContent, `Z-Report - ${startDate}`);
+        await directPrint(reportContent, `Z-Report - ${dateRangeText}`);
       } catch (printError) {
         console.log('Direct print failed, trying Safari-compatible method');
         // Fallback: open in new window for printing (Safari compatible)
@@ -209,7 +229,7 @@ const DailyReport = () => {
       {/* Print Header */}
       <div className="print-header text-center py-3">
         <h2>PickNPay Daily Report</h2>
-        <p>Period: {startDate} to {endDate}</p>
+        <p>Period: {startDate === endDate ? startDate : `${startDate} to ${endDate}`}</p>
         <p>Generated: {new Date().toLocaleString()}</p>
       </div>
 
@@ -217,7 +237,9 @@ const DailyReport = () => {
       <div className="flex-grow-1 p-4 report-container">
         {/* Title */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="mb-0 fw-bold text-primary">Daily Report</h2>
+          <h2 className="mb-0 fw-bold text-primary">
+            {startDate === endDate ? 'Daily Report' : 'Date Range Report'}
+          </h2>
           <Button
             variant="primary" 
             onClick={handlePrintReport}

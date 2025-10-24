@@ -1366,7 +1366,13 @@ const SalesPage = () => {
                           onClick={() => handleCategoryItemClick(item)}
                           className="py-2 fw-bold category-item-btn"
                           size="lg"
-                          style={{ minHeight: '70px', fontSize: '1.1rem' }}
+                          style={{ 
+                            minHeight: '70px', 
+                            fontSize: '1.1rem',
+                            backgroundColor: '#f8f9fa',
+                            color: '#495057',
+                            borderColor: '#dee2e6'
+                          }}
                         >
                           <div className="text-start">
                             <div className="fw-bold">{item.name}</div>

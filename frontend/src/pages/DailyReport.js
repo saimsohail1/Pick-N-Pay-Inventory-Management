@@ -34,14 +34,14 @@ const DailyReport = () => {
       // Check if it's a date range (different start and end dates)
       const isDateRange = startDate !== endDate;
       
-      if (isAdmin() && selectedUserId) {
+      if (isAdmin() && selectedUserId && selectedUserId !== '') {
         // Admin viewing specific user's report
         if (isDateRange) {
           response = await salesAPI.getDailyReportByUserAndDateRange(startDate, endDate, selectedUserId);
         } else {
           response = await salesAPI.getDailyReportByUser(startDate, selectedUserId);
         }
-      } else if (isAdmin() && !selectedUserId) {
+      } else if (isAdmin() && (!selectedUserId || selectedUserId === '')) {
         // Admin viewing all users' report
         if (isDateRange) {
           response = await salesAPI.getDailyReportByDateRangeForAdmin(startDate, endDate);
@@ -114,7 +114,17 @@ const DailyReport = () => {
 
     } catch (err) {
       console.error('Failed to generate report:', err);
-      setError('Failed to generate report. Please try again.');
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        startDate,
+        endDate,
+        selectedUserId,
+        isAdmin: isAdmin(),
+        user: user?.id
+      });
+      setError(`Failed to generate report: ${err.message || 'Please try again.'}`);
       // Show empty report with 0 values on error too
       setReportData({
         paymentMethods: [

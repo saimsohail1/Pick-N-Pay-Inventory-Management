@@ -701,10 +701,16 @@ const SalesPage = () => {
       if (item.id === itemToEdit.id) {
         const updatedItem = {
           ...item,
-          itemName: formData.name,
+          itemName: formData.name || item.itemName,
           unitPrice: parseFloat(formData.price),
           quantity: parseInt(formData.quantity),
-          totalPrice: parseFloat(formData.price) * parseInt(formData.quantity)
+          totalPrice: parseFloat(formData.price) * parseInt(formData.quantity),
+          itemBarcode: formData.barcode || item.itemBarcode,
+          description: formData.description || item.description,
+          categoryId: formData.categoryId || item.categoryId,
+          vatRate: parseFloat(formData.vatRate) || item.vatRate,
+          batchId: formData.batchId || item.batchId,
+          generalExpiryDate: formData.generalExpiryDate || item.generalExpiryDate
         };
         return updatedItem;
       }
@@ -714,7 +720,7 @@ const SalesPage = () => {
     setCart(updatedCart);
     setEditItemDialogOpen(false);
     setItemToEdit(null);
-    setSuccess(`Updated ${formData.name} in cart.`);
+    setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart.`);
     addTimeout(() => setSuccess(null), 3000);
   };
 
@@ -2027,6 +2033,52 @@ const SalesPage = () => {
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label className="fw-semibold">
+                      <i className="bi bi-upc me-1"></i>
+                      Barcode
+                    </Form.Label>
+                    <Controller
+                      name="barcode"
+                      control={control}
+                      defaultValue={itemToEdit.itemBarcode || ''}
+                      render={({ field }) => (
+                        <Form.Control
+                          {...field}
+                          type="text"
+                          placeholder="Enter barcode"
+                        />
+                      )}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold">
+                      <i className="bi bi-tags me-1"></i>
+                      Category
+                    </Form.Label>
+                    <Controller
+                      name="categoryId"
+                      control={control}
+                      defaultValue={itemToEdit.categoryId || ''}
+                      render={({ field }) => (
+                        <Form.Select {...field}>
+                          <option value="">Select Category</option>
+                          {categories.map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.name}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      )}
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row className="mb-3">
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold">
                       <i className="bi bi-tag me-1"></i>
                       Item Name
                     </Form.Label>
@@ -2049,11 +2101,38 @@ const SalesPage = () => {
                     )}
                   </Form.Group>
                 </Col>
+              </Row>
+
+              <Row className="mb-3">
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold">
+                      <i className="bi bi-card-text me-1"></i>
+                      Description
+                    </Form.Label>
+                    <Controller
+                      name="description"
+                      control={control}
+                      defaultValue={itemToEdit.description || ''}
+                      render={({ field }) => (
+                        <Form.Control
+                          {...field}
+                          as="textarea"
+                          rows={3}
+                          placeholder="Enter item description"
+                        />
+                      )}
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row className="mb-3">
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label className="fw-semibold">
                       <i className="bi bi-currency-euro me-1"></i>
-                      Unit Price
+                      Price (€) *
                     </Form.Label>
                     <Controller
                       name="price"
@@ -2079,14 +2158,11 @@ const SalesPage = () => {
                     )}
                   </Form.Group>
                 </Col>
-              </Row>
-              
-              <Row className="mb-3">
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label className="fw-semibold">
                       <i className="bi bi-hash me-1"></i>
-                      Quantity
+                      Stock Quantity *
                     </Form.Label>
                     <Controller
                       name="quantity"
@@ -2111,6 +2187,39 @@ const SalesPage = () => {
                     )}
                   </Form.Group>
                 </Col>
+              </Row>
+
+              <Row className="mb-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold">
+                      <i className="bi bi-percent me-1"></i>
+                      VAT Rate (%) *
+                    </Form.Label>
+                    <Controller
+                      name="vatRate"
+                      control={control}
+                      defaultValue={itemToEdit.vatRate ? itemToEdit.vatRate.toString() : '23.00'}
+                      rules={{ 
+                        required: 'VAT rate is required',
+                        min: { value: 0, message: 'VAT rate must be 0 or greater' }
+                      }}
+                      render={({ field }) => (
+                        <Form.Control
+                          {...field}
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="23.00"
+                          className={errors.vatRate ? 'is-invalid' : ''}
+                        />
+                      )}
+                    />
+                    {errors.vatRate && (
+                      <div className="invalid-feedback">{errors.vatRate.message}</div>
+                    )}
+                  </Form.Group>
+                </Col>
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label className="fw-semibold">
@@ -2122,6 +2231,49 @@ const SalesPage = () => {
                       value={`€${(parseFloat(watch('price') || 0) * parseInt(watch('quantity') || 0)).toFixed(2)}`}
                       readOnly
                       className="bg-light"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row className="mb-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold">
+                      <i className="bi bi-box me-1"></i>
+                      Batch ID
+                    </Form.Label>
+                    <Controller
+                      name="batchId"
+                      control={control}
+                      defaultValue={itemToEdit.batchId || ''}
+                      render={({ field }) => (
+                        <Form.Control
+                          {...field}
+                          type="text"
+                          placeholder="Enter batch ID (optional)"
+                        />
+                      )}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold">
+                      <i className="bi bi-calendar3 me-1"></i>
+                      General Expiry Date
+                    </Form.Label>
+                    <Controller
+                      name="generalExpiryDate"
+                      control={control}
+                      defaultValue={itemToEdit.generalExpiryDate || ''}
+                      render={({ field }) => (
+                        <Form.Control
+                          {...field}
+                          type="date"
+                          placeholder="Select expiry date"
+                        />
+                      )}
                     />
                   </Form.Group>
                 </Col>
@@ -2143,7 +2295,7 @@ const SalesPage = () => {
                   type="submit"
                 >
                   <i className="bi bi-check-circle me-1"></i>
-                  Save Changes
+                  Update Item
                 </Button>
               </div>
             </Form>

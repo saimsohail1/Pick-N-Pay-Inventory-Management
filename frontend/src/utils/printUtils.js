@@ -246,14 +246,14 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         @media print {
           @page { 
             size: A4; 
-            margin: 8mm; 
+            margin: 6mm; 
           }
           body { 
             margin: 0; 
             padding: 0; 
             font-family: 'Arial', sans-serif; 
-            font-size: 14px; 
-            line-height: 1.5;
+            font-size: 18px; 
+            line-height: 1.6;
             color: #000;
             background: white;
           }
@@ -264,10 +264,10 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         
         body { 
           font-family: 'Arial', sans-serif; 
-          font-size: 14px; 
-          line-height: 1.5; 
+          font-size: 18px; 
+          line-height: 1.6; 
           margin: 0; 
-          padding: 8mm; 
+          padding: 6mm; 
           color: #000;
           background: white;
         }
@@ -280,20 +280,20 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         }
         
         .header h1 {
-          margin: 0 0 8px 0;
-          font-size: 24px;
+          margin: 0 0 10px 0;
+          font-size: 32px;
           font-weight: bold;
         }
         
         .header .subtitle {
-          margin: 8px 0;
-          font-size: 18px;
+          margin: 10px 0;
+          font-size: 24px;
           font-weight: bold;
         }
         
         .header .date-info {
-          margin: 8px 0;
-          font-size: 14px;
+          margin: 10px 0;
+          font-size: 18px;
         }
         
         .section { 
@@ -303,10 +303,10 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         
         .section-title { 
           font-weight: bold; 
-          font-size: 16px; 
-          margin-bottom: 15px; 
-          border-bottom: 2px solid #333; 
-          padding-bottom: 8px;
+          font-size: 20px; 
+          margin-bottom: 18px; 
+          border-bottom: 3px solid #333; 
+          padding-bottom: 10px;
           text-transform: uppercase;
         }
         
@@ -318,21 +318,21 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         }
         
         th, td { 
-          padding: 12px 15px; 
+          padding: 16px 20px; 
           text-align: left; 
-          border: 1px solid #000;
+          border: 2px solid #000;
           vertical-align: top;
         }
         
         th { 
           background-color: #f0f0f0; 
           font-weight: bold; 
-          font-size: 14px;
+          font-size: 18px;
           text-transform: uppercase;
         }
         
         td { 
-          font-size: 14px;
+          font-size: 18px;
         }
         
         .total-row { 
@@ -344,9 +344,9 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         .footer { 
           text-align: center; 
           margin-top: 30px; 
-          font-size: 12px; 
-          border-top: 2px solid #000;
-          padding-top: 15px;
+          font-size: 16px; 
+          border-top: 3px solid #000;
+          padding-top: 18px;
         }
         
         .right { text-align: right; }
@@ -354,26 +354,26 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         .bold { font-weight: bold; }
         
         .summary-box {
-          border: 3px solid #000;
-          padding: 20px;
-          margin: 25px 0;
+          border: 4px solid #000;
+          padding: 25px;
+          margin: 30px 0;
           background-color: #f9f9f9;
         }
         
         .summary-row {
           display: flex;
           justify-content: space-between;
-          margin: 8px 0;
-          padding: 5px 0;
-          font-size: 14px;
+          margin: 12px 0;
+          padding: 8px 0;
+          font-size: 18px;
         }
         
         .summary-total {
-          border-top: 2px solid #000;
-          padding-top: 8px;
-          margin-top: 15px;
+          border-top: 3px solid #000;
+          padding-top: 12px;
+          margin-top: 20px;
           font-weight: bold;
-          font-size: 16px;
+          font-size: 20px;
         }
       </style>
     </head>

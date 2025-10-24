@@ -442,7 +442,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           <div class="summary-row summary-total">
             <span>TOTAL AMOUNT INCLUDING VAT:</span>
             <span class="right bold">€${parseFloat(reportData.vatInfo?.totalAmountIncludingVat || 0).toFixed(2)}</span>
-          </div>
+        </div>
         </div>
       </div>
       
@@ -653,8 +653,8 @@ export const createSalesHistoryHTML = (sales, companyName = 'PickNPay', dateRang
                     <strong>${item.itemName || 'Unknown Item'}</strong> 
                     (${item.quantity || 0}x) 
                     <span class="right">€${parseFloat(item.totalPrice || 0).toFixed(2)}</span>
-                  </div>
-                `).join('')}
+          </div>
+        `).join('')}
               </td>
               <td class="right total-amount">€${parseFloat(sale.totalAmount || 0).toFixed(2)}</td>
             </tr>

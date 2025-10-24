@@ -135,8 +135,15 @@ function createWindow() {
  */
 ipcMain.on('app-closing', () => {
   console.log('📩 Received app-closing from renderer');
+  
+  // Stop backend gracefully
   stopBackend();
-  app.quit();
+  
+  // Give a moment for cleanup, then quit
+  setTimeout(() => {
+    console.log('🔄 Quitting application...');
+    app.quit();
+  }, 100);
 });
 
 app.whenReady().then(() => {

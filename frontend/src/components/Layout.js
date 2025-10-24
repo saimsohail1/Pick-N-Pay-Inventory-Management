@@ -162,17 +162,29 @@ const Layout = ({ children }) => {
               <button
                 className="btn btn-outline-light d-flex align-items-center hover-lift ms-3"
                 onClick={() => {
+                  console.log('Power button clicked - attempting to close app');
+                  
                   // Check if running in Electron
                   if (window && window.require) {
                     try {
                       const { ipcRenderer } = window.require('electron');
+                      console.log('Sending app-closing signal to main process');
                       ipcRenderer.send('app-closing');
+                      
+                      // Add a small delay to ensure the message is sent
+                      setTimeout(() => {
+                        console.log('Force closing app if still running');
+                        window.close();
+                      }, 100);
                     } catch (error) {
                       console.error('Error closing app:', error);
+                      // Fallback: try to close the window
+                      window.close();
                     }
                   } else {
-                    // If not in Electron, just logout
-                    handleLogout();
+                    console.log('Not in Electron environment, closing window');
+                    // If not in Electron, close the window
+                    window.close();
                   }
                 }}
                 style={{

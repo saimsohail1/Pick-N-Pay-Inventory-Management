@@ -248,18 +248,7 @@ const EditItemDialog = ({
               </Form.Group>
             </Col>
             <Col md={6}>
-              <Form.Group>
-                <Form.Label className="fw-semibold">
-                  <i className="bi bi-calculator me-1"></i>
-                  Total Price
-                </Form.Label>
-                <Form.Control
-                  type="text"
-                  value={`€${(parseFloat(watch('price') || 0) * parseInt(watch('stockQuantity') || 0)).toFixed(2)}`}
-                  readOnly
-                  className="bg-light"
-                />
-              </Form.Group>
+              {/* Empty column for spacing */}
             </Col>
           </Row>
 

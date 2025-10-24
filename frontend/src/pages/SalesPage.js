@@ -68,6 +68,8 @@ const SalesPage = () => {
   const [customDiscountAmount, setCustomDiscountAmount] = useState('');
   const [outOfStockDialogOpen, setOutOfStockDialogOpen] = useState(false);
   const [outOfStockItem, setOutOfStockItem] = useState(null);
+  const [editItemDialogOpen, setEditItemDialogOpen] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState(null);
   const lastClickRef = React.useRef({});
   const { addTimeout } = useTimeoutManager();
 
@@ -687,8 +689,32 @@ const SalesPage = () => {
       addTimeout(() => setError(null), 3000);
       return;
     }
-    // For now, just show a message - we'll implement the edit page later
-    setSuccess(`Edit functionality for ${selectedCartItem.itemName} will be implemented soon.`);
+    setItemToEdit(selectedCartItem);
+    setEditItemDialogOpen(true);
+  };
+
+  const handleSaveEditedItem = (formData) => {
+    if (!itemToEdit) return;
+
+    // Update the item in the cart
+    const updatedCart = cart.map(item => {
+      if (item.id === itemToEdit.id) {
+        const updatedItem = {
+          ...item,
+          itemName: formData.name,
+          unitPrice: parseFloat(formData.price),
+          quantity: parseInt(formData.quantity),
+          totalPrice: parseFloat(formData.price) * parseInt(formData.quantity)
+        };
+        return updatedItem;
+      }
+      return item;
+    });
+
+    setCart(updatedCart);
+    setEditItemDialogOpen(false);
+    setItemToEdit(null);
+    setSuccess(`Updated ${formData.name} in cart.`);
     addTimeout(() => setSuccess(null), 3000);
   };
 
@@ -1980,6 +2006,148 @@ const SalesPage = () => {
               OK
           </Button>
           </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Edit Item Dialog */}
+      <Modal show={editItemDialogOpen} onHide={() => {
+        setEditItemDialogOpen(false);
+        setItemToEdit(null);
+      }} centered size="lg">
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title>
+            <i className="bi bi-pencil-square me-2"></i>
+            Edit Item
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          {itemToEdit && (
+            <Form onSubmit={handleSubmit(handleSaveEditedItem)}>
+              <Row className="mb-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold">
+                      <i className="bi bi-tag me-1"></i>
+                      Item Name
+                    </Form.Label>
+                    <Controller
+                      name="name"
+                      control={control}
+                      defaultValue={itemToEdit.itemName}
+                      rules={{ required: 'Item name is required' }}
+                      render={({ field }) => (
+                        <Form.Control
+                          {...field}
+                          type="text"
+                          placeholder="Enter item name"
+                          className={errors.name ? 'is-invalid' : ''}
+                        />
+                      )}
+                    />
+                    {errors.name && (
+                      <div className="invalid-feedback">{errors.name.message}</div>
+                    )}
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold">
+                      <i className="bi bi-currency-euro me-1"></i>
+                      Unit Price
+                    </Form.Label>
+                    <Controller
+                      name="price"
+                      control={control}
+                      defaultValue={itemToEdit.unitPrice.toString()}
+                      rules={{ 
+                        required: 'Price is required',
+                        min: { value: 0.01, message: 'Price must be greater than 0' }
+                      }}
+                      render={({ field }) => (
+                        <Form.Control
+                          {...field}
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          placeholder="0.00"
+                          className={errors.price ? 'is-invalid' : ''}
+                        />
+                      )}
+                    />
+                    {errors.price && (
+                      <div className="invalid-feedback">{errors.price.message}</div>
+                    )}
+                  </Form.Group>
+                </Col>
+              </Row>
+              
+              <Row className="mb-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold">
+                      <i className="bi bi-hash me-1"></i>
+                      Quantity
+                    </Form.Label>
+                    <Controller
+                      name="quantity"
+                      control={control}
+                      defaultValue={itemToEdit.quantity.toString()}
+                      rules={{ 
+                        required: 'Quantity is required',
+                        min: { value: 1, message: 'Quantity must be at least 1' }
+                      }}
+                      render={({ field }) => (
+                        <Form.Control
+                          {...field}
+                          type="number"
+                          min="1"
+                          placeholder="1"
+                          className={errors.quantity ? 'is-invalid' : ''}
+                        />
+                      )}
+                    />
+                    {errors.quantity && (
+                      <div className="invalid-feedback">{errors.quantity.message}</div>
+                    )}
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold">
+                      <i className="bi bi-calculator me-1"></i>
+                      Total Price
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={`€${(parseFloat(watch('price') || 0) * parseInt(watch('quantity') || 0)).toFixed(2)}`}
+                      readOnly
+                      className="bg-light"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <div className="d-flex justify-content-end gap-2 mt-4">
+                <Button 
+                  variant="secondary" 
+                  onClick={() => {
+                    setEditItemDialogOpen(false);
+                    setItemToEdit(null);
+                  }}
+                >
+                  <i className="bi bi-x-circle me-1"></i>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="primary" 
+                  type="submit"
+                >
+                  <i className="bi bi-check-circle me-1"></i>
+                  Save Changes
+                </Button>
+              </div>
+            </Form>
+          )}
         </Modal.Body>
       </Modal>
       

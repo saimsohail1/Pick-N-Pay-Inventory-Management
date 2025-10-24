@@ -1280,8 +1280,8 @@ const SalesPage = () => {
             <div className="mb-1 flex-grow-1" style={{ padding: '0.5rem' }}>
               {currentView === 'categories' ? (
                 <>
-                  {/* Categories Header with Red Background */}
-                  <div className="bg-danger text-white text-center py-2 mb-3 rounded" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
+                  {/* Categories Header with Blue Background */}
+                  <div className="bg-primary text-white text-center py-2 mb-3 rounded" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
                     Categories
                   </div>
                   <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>

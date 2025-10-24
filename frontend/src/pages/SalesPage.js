@@ -694,35 +694,55 @@ const SalesPage = () => {
     setEditItemDialogOpen(true);
   };
 
-  const handleSaveEditedItem = (formData) => {
+  const handleSaveEditedItem = async (formData) => {
     if (!itemToEdit) return;
 
-    // Update the item in the cart
-    const updatedCart = cart.map(item => {
-      if (item.id === itemToEdit.id) {
-        const updatedItem = {
-          ...item,
-          itemName: formData.name || item.itemName,
-          unitPrice: parseFloat(formData.price),
-          quantity: parseInt(formData.stockQuantity),
-          totalPrice: parseFloat(formData.price) * parseInt(formData.stockQuantity),
-          itemBarcode: formData.barcode || item.itemBarcode,
-          description: formData.description || item.description,
-          categoryId: formData.categoryId || item.categoryId,
-          vatRate: parseFloat(formData.vatRate) || item.vatRate,
-          batchId: formData.batchId || item.batchId,
-          generalExpiryDate: formData.generalExpiryDate || item.generalExpiryDate
-        };
-        return updatedItem;
-      }
-      return item;
-    });
+    setLoading(true);
+    try {
+      // Prepare item data for database update
+      const itemData = {
+        ...formData,
+        price: parseFloat(formData.price),
+        stockQuantity: parseInt(formData.stockQuantity),
+        vatRate: parseFloat(formData.vatRate)
+      };
 
-    setCart(updatedCart);
-    setEditItemDialogOpen(false);
-    setItemToEdit(null);
-    setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart.`);
-    addTimeout(() => setSuccess(null), 3000);
+      // Update the item in the database
+      await itemsAPI.update(itemToEdit.itemId, itemData);
+
+      // Update the item in the cart
+      const updatedCart = cart.map(item => {
+        if (item.id === itemToEdit.id) {
+          const updatedItem = {
+            ...item,
+            itemName: formData.name || item.itemName,
+            unitPrice: parseFloat(formData.price),
+            quantity: parseInt(formData.stockQuantity),
+            totalPrice: parseFloat(formData.price) * parseInt(formData.stockQuantity),
+            itemBarcode: formData.barcode || item.itemBarcode,
+            description: formData.description || item.description,
+            categoryId: formData.categoryId || item.categoryId,
+            vatRate: parseFloat(formData.vatRate) || item.vatRate,
+            batchId: formData.batchId || item.batchId,
+            generalExpiryDate: formData.generalExpiryDate || item.generalExpiryDate
+          };
+          return updatedItem;
+        }
+        return item;
+      });
+
+      setCart(updatedCart);
+      setEditItemDialogOpen(false);
+      setItemToEdit(null);
+      setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart and database.`);
+      addTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error('Failed to update item:', err);
+      setError('Failed to update item. Please try again.');
+      addTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirmDelete = () => {

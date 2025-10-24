@@ -795,7 +795,7 @@ const SalesPage = () => {
   };
 
   return (
-    <div className="sales-page-container d-flex flex-column vh-100" style={{ backgroundColor: '#f8f9fa', margin: 0, padding: 0 }}>
+    <div className="sales-page-container d-flex flex-column vh-100" style={{ backgroundColor: '#f5f5f5', margin: 0, padding: 0 }}>
       <style>{`
         .sales-page-container {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -993,7 +993,7 @@ const SalesPage = () => {
             {/* Sales Cart Table with Control Buttons */}
             <div className="d-flex">
               {/* Cart Table */}
-              <div className="bg-white flex-grow-1" style={{ height: '350px', overflowY: 'auto', padding: '0.5rem' }}>
+              <div className="bg-white flex-grow-1" style={{ height: '350px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#ffffff' }}>
               {cart.length === 0 ? (
                   <div className="text-center py-2">
                     <i className="bi bi-cart fs-3 text-muted"></i>
@@ -1046,7 +1046,7 @@ const SalesPage = () => {
               </div>
               
               {/* Fixed Control Buttons */}
-              <div className="bg-light d-flex flex-column" style={{ width: '90px', padding: '0.3rem', borderLeft: '1px solid #dee2e6' }}>
+              <div className="bg-white d-flex flex-column" style={{ width: '90px', padding: '0.3rem', borderLeft: '1px solid #dee2e6', backgroundColor: '#ffffff' }}>
                 <div className="d-flex flex-column h-100">
                               <Button
                     variant={selectedCartItem ? "success" : "outline-secondary"}

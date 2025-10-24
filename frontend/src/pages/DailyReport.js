@@ -164,14 +164,9 @@ const DailyReport = () => {
   };
 
 
-  const handleSearch = () => {
-    generateReport();
-  };
 
   const handleUserChange = (userId) => {
     setSelectedUserId(userId);
-    // Refresh report when user selection changes
-    generateReport();
   };
 
   // Auto-load report on page load
@@ -181,6 +176,11 @@ const DailyReport = () => {
       fetchUsers();
     }
   }, []);
+
+  // Auto-generate report when date or user selection changes
+  useEffect(() => {
+    generateReport();
+  }, [startDate, endDate, selectedUserId]);
 
   const fetchUsers = async () => {
     try {
@@ -324,15 +324,6 @@ const DailyReport = () => {
                 </div>
               </div>
             </div>
-            <Button 
-              variant="primary" 
-              onClick={handleSearch}
-              disabled={loading}
-              className="no-print"
-            >
-              {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-search me-2"></i>}
-              SEARCH
-            </Button>
       </div>
 
       {error && (

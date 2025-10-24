@@ -297,21 +297,6 @@ const SalesHistory = () => {
                     style={{ borderRadius: '10px' }}
                   />
                 </div>
-                <div className="col-md-4 d-flex align-items-end">
-                  <Button 
-                    onClick={() => fetchSales(selectedDate, selectedUserId)}
-                    className="btn btn-primary btn-lg w-100"
-                    style={{ 
-                      borderRadius: '10px',
-                      background: 'linear-gradient(45deg, #007bff, #0056b3)',
-                      border: 'none',
-                      boxShadow: '0 4px 15px rgba(0, 123, 255, 0.3)'
-                    }}
-                  >
-                    <i className="bi bi-search me-2"></i>
-                    Search Sales
-                  </Button>
-                </div>
               </div>
             </div>
           </div>

@@ -1137,54 +1137,6 @@ const SalesPage = () => {
               </div>
             </div>
 
-            {/* Discount and Exit Buttons - Moved up near cart */}
-            <div className="bg-white" style={{ padding: '0.5rem', border: '1px solid #dee2e6', borderRadius: '8px', marginTop: '0.5rem' }}>
-              <div className="d-flex gap-3 justify-content-center">
-                <Button 
-                  variant={appliedDiscount ? "success" : "primary"} 
-                  size="lg" 
-                  className="fw-bold" 
-                  style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', width: '200px' }}
-                  onClick={() => setDiscountDialogOpen(true)}
-                >
-                    <i className="bi bi-percent me-2"></i>
-                    Discount
-                    {appliedDiscount && (
-                      <Badge bg="light" text="dark" className="ms-2" style={{ fontSize: '0.8rem' }}>
-                        {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
-                      </Badge>
-                    )}
-                  </Button>
-                <Button 
-                  variant="danger" 
-                  size="lg" 
-                  className="fw-bold" 
-                  style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', width: '200px' }}
-                  onClick={() => {
-                    console.log('Exit button clicked');
-                    // Check if running in Electron
-                    if (window && window.require) {
-                      console.log('Running in Electron, sending app-closing message');
-                      try {
-                        const { ipcRenderer } = window.require('electron');
-                        ipcRenderer.send('app-closing');
-                        console.log('app-closing message sent successfully');
-                      } catch (error) {
-                        console.error('Error closing app:', error);
-                      }
-                    } else {
-                      console.log('Not in Electron, logging out and navigating to login');
-                      // If not in Electron, just logout
-                      logout();
-                      navigate('/login');
-                    }
-                  }}
-                >
-                    <i className="bi bi-power me-2"></i>
-                    Exit
-                  </Button>
-              </div>
-            </div>
 
             {/* Sales Summary */}
             <div className="bg-secondary text-white" style={{ padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem' }}>
@@ -1208,9 +1160,56 @@ const SalesPage = () => {
 
             {/* Bottom Control Panel */}
             <div className="bg-light text-dark" style={{ padding: '0.8rem', borderRadius: '8px', marginTop: '0.5rem' }}>
-              <div className="d-flex align-items-center justify-content-center gap-3">
-                  {/* Numeric Keypad - Centered */}
-                  <div className="d-grid gap-2 numeric-keypad" style={{ gridTemplateColumns: 'repeat(3, 1fr)', width: '50%', maxWidth: '400px' }}>
+              <div className="d-flex align-items-center justify-content-between gap-3">
+                  {/* Discount and Exit Buttons - Moved up and made more prominent */}
+                  <div className="d-flex flex-column gap-3" style={{ width: '25%' }}>
+                    <Button 
+                      variant={appliedDiscount ? "success" : "primary"} 
+                      size="lg" 
+                      className="fw-bold" 
+                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', marginTop: '-0.5rem' }}
+                      onClick={() => setDiscountDialogOpen(true)}
+                    >
+                        <i className="bi bi-percent me-2"></i>
+                        Discount
+                        {appliedDiscount && (
+                          <Badge bg="light" text="dark" className="ms-2" style={{ fontSize: '0.8rem' }}>
+                            {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
+                          </Badge>
+                        )}
+                      </Button>
+                    <Button 
+                      variant="danger" 
+                      size="lg" 
+                      className="fw-bold" 
+                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px' }}
+                      onClick={() => {
+                        console.log('Exit button clicked');
+                        // Check if running in Electron
+                        if (window && window.require) {
+                          console.log('Running in Electron, sending app-closing message');
+                          try {
+                            const { ipcRenderer } = window.require('electron');
+                            ipcRenderer.send('app-closing');
+                            console.log('app-closing message sent successfully');
+                          } catch (error) {
+                            console.error('Error closing app:', error);
+                          }
+                        } else {
+                          console.log('Not in Electron, logging out and navigating to login');
+                          // If not in Electron, just logout
+                          logout();
+                          navigate('/login');
+                        }
+                      }}
+                    >
+                        <i className="bi bi-power me-2"></i>
+                        Exit
+                      </Button>
+                    </div>
+                  
+                  {/* Numeric Keypad - Centered and optimized */}
+                  <div className="d-grid gap-2 numeric-keypad" style={{ gridTemplateColumns: 'repeat(3, 1fr)', width: '35%', maxWidth: '300px' }}>
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                       <Button key={num} variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev + num.toString())}>
                           {num}
@@ -1224,7 +1223,7 @@ const SalesPage = () => {
                     </div>
                   
                   {/* Action Buttons - Right side, optimized */}
-                  <div className="d-flex flex-column gap-2" style={{ width: '50%' }}>
+                  <div className="d-flex flex-column gap-2" style={{ width: '40%' }}>
                     <Button variant="success" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }} onClick={handleCheckout} disabled={loading}>
                         {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
                         Checkout

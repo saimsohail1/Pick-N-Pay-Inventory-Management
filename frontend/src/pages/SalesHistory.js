@@ -15,7 +15,7 @@ const SalesHistory = () => {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
-  const [selectedUserId, setSelectedUserId] = useState(user?.id || "");
+  const [selectedUserId, setSelectedUserId] = useState("");
   const isAdminUser = user?.role === "ADMIN";
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -25,24 +25,35 @@ const SalesHistory = () => {
   const [deleting, setDeleting] = useState(false);
   const [removingItem, setRemovingItem] = useState(false);
 
-  // ✅ Safe fetch with cleanup
+  // ✅ Safe fetch with cleanup - now properly filters by date and user
   const fetchSales = useCallback(async (date, userId) => {
-    console.log("[SalesHistory] fetchSales start", { date, userId });
+    console.log("[SalesHistory] fetchSales start", { date, userId, isAdminUser });
     setLoading(true);
     setError(null);
 
     let isMounted = true;
     try {
       let response;
-      if (isAdminUser && userId && userId !== user?.id) {
-        // Admin viewing specific user's sales
-        response = await salesAPI.getSalesByUserId(userId);
-      } else if (isAdminUser && !userId) {
-        // Admin viewing all users' sales
-        response = await salesAPI.getTodaySales(user?.id, isAdminUser);
+      
+      // Create date range for the selected date (start and end of day)
+      const selectedDate = new Date(date);
+      const startDate = new Date(selectedDate);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(selectedDate);
+      endDate.setHours(23, 59, 59, 999);
+      
+      const startDateISO = startDate.toISOString();
+      const endDateISO = endDate.toISOString();
+      
+      if (isAdminUser && userId && userId !== "") {
+        // Admin viewing specific user's sales for selected date
+        response = await salesAPI.getSalesByUserIdAndDateRange(userId, startDateISO, endDateISO);
+      } else if (isAdminUser && (!userId || userId === "")) {
+        // Admin viewing all users' sales for selected date
+        response = await salesAPI.getSalesByDateRangeForAdmin(startDateISO, endDateISO);
       } else {
-        // Regular user or admin viewing their own sales
-        response = await salesAPI.getTodaySales(userId || user?.id, isAdminUser);
+        // Regular user viewing their own sales for selected date
+        response = await salesAPI.getSalesByUserIdAndDateRange(user?.id, startDateISO, endDateISO);
       }
       
       if (isMounted) {
@@ -258,6 +269,21 @@ const SalesHistory = () => {
                     </Form.Select>
                   </div>
                 )}
+                {!isAdminUser && (
+                  <div className="col-md-4">
+                    <label className="form-label fw-semibold text-dark">
+                      <i className="bi bi-person me-1"></i>
+                      User
+                    </label>
+                    <Form.Control
+                      type="text"
+                      value={user?.username || "Current User"}
+                      className="form-control-lg border-2"
+                      style={{ borderRadius: '10px' }}
+                      disabled
+                    />
+                  </div>
+                )}
                 <div className="col-md-4">
                   <label className="form-label fw-semibold text-dark">
                     <i className="bi bi-calendar3 me-1"></i>
@@ -298,13 +324,95 @@ const SalesHistory = () => {
       {/* Loading */}
       {loading && <Spinner animation="border" />}
 
+      {/* Sales Summary */}
+      {!loading && sales.length > 0 && (
+        <div className="card shadow-sm border-0 mb-4">
+          <div className="card-body">
+            <div className="row text-center">
+              <div className="col-md-3">
+                <div className="d-flex flex-column align-items-center">
+                  <i className="bi bi-receipt text-primary fs-2 mb-2"></i>
+                  <h5 className="mb-1 fw-bold">{sales.length}</h5>
+                  <small className="text-muted">Total Transactions</small>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="d-flex flex-column align-items-center">
+                  <i className="bi bi-currency-euro text-success fs-2 mb-2"></i>
+                  <h5 className="mb-1 fw-bold text-success">
+                    €{sales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount || 0), 0).toFixed(2)}
+                  </h5>
+                  <small className="text-muted">Total Amount</small>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="d-flex flex-column align-items-center">
+                  <i className="bi bi-cash text-info fs-2 mb-2"></i>
+                  <h5 className="mb-1 fw-bold text-info">
+                    {sales.filter(sale => sale.paymentMethod === 'CASH').length}
+                  </h5>
+                  <small className="text-muted">Cash Payments</small>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="d-flex flex-column align-items-center">
+                  <i className="bi bi-credit-card text-warning fs-2 mb-2"></i>
+                  <h5 className="mb-1 fw-bold text-warning">
+                    {sales.filter(sale => sale.paymentMethod === 'CARD').length}
+                  </h5>
+                  <small className="text-muted">Card Payments</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No Sales Message */}
+      {!loading && sales.length === 0 && (
+        <div className="card shadow-sm border-0">
+          <div className="card-body text-center py-5">
+            <i className="bi bi-inbox text-muted" style={{ fontSize: '4rem' }}></i>
+            <h5 className="text-muted mt-3 mb-2">No Sales Found</h5>
+            <p className="text-muted mb-0">
+              No sales transactions found for the selected date and user.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="card shadow-sm border-0">
         <div className="card-header bg-white border-0 pb-0">
-          <h6 className="card-title text-muted mb-0">
-            <i className="bi bi-list-ul me-2"></i>
-            Sales Transactions
-          </h6>
+          <div className="d-flex justify-content-between align-items-center">
+            <h6 className="card-title text-muted mb-0">
+              <i className="bi bi-list-ul me-2"></i>
+              Sales Transactions
+            </h6>
+            <div className="text-end">
+              <small className="text-muted">
+                <i className="bi bi-calendar3 me-1"></i>
+                {new Date(selectedDate).toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+                {isAdminUser && selectedUserId && (
+                  <span className="ms-2">
+                    <i className="bi bi-person me-1"></i>
+                    {users.find(u => u.id == selectedUserId)?.username || 'Selected User'}
+                  </span>
+                )}
+                {isAdminUser && !selectedUserId && (
+                  <span className="ms-2">
+                    <i className="bi bi-people me-1"></i>
+                    All Users
+                  </span>
+                )}
+              </small>
+            </div>
+          </div>
         </div>
         <div className="card-body p-0">
           <div className="table-responsive">

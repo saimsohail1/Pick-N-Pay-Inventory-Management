@@ -735,7 +735,7 @@ const SalesPage = () => {
       setEditItemDialogOpen(false);
       setItemToEdit(null);
       setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart and database.`);
-      addTimeout(() => setSuccess(null), 3000);
+    addTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Failed to update item:', err);
       setError('Failed to update item. Please try again.');
@@ -838,8 +838,8 @@ const SalesPage = () => {
           border-color: #0d6efd;
         }
         .numeric-keypad .btn {
-          min-height: 40px;
-          font-size: 1.1rem;
+          min-height: 35px;
+          font-size: 1rem;
           transition: all 0.2s ease;
         }
         .numeric-keypad .btn:hover {
@@ -847,8 +847,8 @@ const SalesPage = () => {
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .category-btn {
-          min-height: 35px;
-          font-size: 0.85rem;
+          min-height: 30px;
+          font-size: 0.8rem;
           transition: all 0.2s ease;
         }
         .category-btn:hover {
@@ -856,8 +856,8 @@ const SalesPage = () => {
           box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         .quick-sale-btn {
-          min-height: 40px;
-          font-size: 0.9rem;
+          min-height: 35px;
+          font-size: 0.85rem;
         }
         .cart-item-selected {
           background-color: #b8dacc !important;
@@ -1127,8 +1127,8 @@ const SalesPage = () => {
                     style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}
                   >
                     <i className="bi bi-eye me-2"></i>
-                    STOCK
-                  </Button>
+                  STOCK
+                </Button>
                   <Button variant="outline-danger" size="lg" onClick={() => { setCart([]); setAppliedDiscount(null); setCustomDiscountAmount(''); }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
                     <i className="bi bi-cart-x me-2"></i>
                   CLEAR CART
@@ -1167,77 +1167,77 @@ const SalesPage = () => {
                       variant={appliedDiscount ? "success" : "primary"} 
                       size="lg" 
                       className="fw-bold" 
-                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', marginTop: '-0.5rem' }}
+                      style={{ padding: '1rem', fontSize: '1.1rem', minHeight: '60px', marginTop: '-0.5rem' }}
                       onClick={() => setDiscountDialogOpen(true)}
                     >
-                        <i className="bi bi-percent me-2"></i>
-                        Discount
+                      <i className="bi bi-percent me-2"></i>
+                      Discount
                         {appliedDiscount && (
                           <Badge bg="light" text="dark" className="ms-2" style={{ fontSize: '0.8rem' }}>
                             {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
                           </Badge>
                         )}
-                      </Button>
-                    <Button 
+                    </Button>
+                  <Button 
                       variant="danger" 
-                      size="lg" 
-                      className="fw-bold" 
-                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px' }}
-                      onClick={() => {
-                        console.log('Exit button clicked');
-                        // Check if running in Electron
-                        if (window && window.require) {
-                          console.log('Running in Electron, sending app-closing message');
-                          try {
-                            const { ipcRenderer } = window.require('electron');
-                            ipcRenderer.send('app-closing');
-                            console.log('app-closing message sent successfully');
-                          } catch (error) {
-                            console.error('Error closing app:', error);
-                          }
-                        } else {
-                          console.log('Not in Electron, logging out and navigating to login');
-                          // If not in Electron, just logout
-                          logout();
-                          navigate('/login');
+                    size="lg" 
+                    className="fw-bold" 
+                      style={{ padding: '1rem', fontSize: '1.1rem', minHeight: '60px' }}
+                    onClick={() => {
+                      console.log('Exit button clicked');
+                      // Check if running in Electron
+                      if (window && window.require) {
+                        console.log('Running in Electron, sending app-closing message');
+                        try {
+                          const { ipcRenderer } = window.require('electron');
+                          ipcRenderer.send('app-closing');
+                          console.log('app-closing message sent successfully');
+                        } catch (error) {
+                          console.error('Error closing app:', error);
                         }
-                      }}
-                    >
-                        <i className="bi bi-power me-2"></i>
-                        Exit
-                      </Button>
-                    </div>
+                      } else {
+                        console.log('Not in Electron, logging out and navigating to login');
+                        // If not in Electron, just logout
+                        logout();
+                        navigate('/login');
+                      }
+                    }}
+                  >
+                      <i className="bi bi-power me-2"></i>
+                      Exit
+                    </Button>
+                  </div>
                   
                   {/* Numeric Keypad - Centered and optimized */}
                   <div className="d-grid gap-2 numeric-keypad" style={{ gridTemplateColumns: 'repeat(3, 1fr)', width: '35%', maxWidth: '300px' }}>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                      <Button key={num} variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev + num.toString())}>
-                          {num}
-                        </Button>
-                      ))}
-                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput('')}>C</Button>
-                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev + '0')}>0</Button>
-                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev.slice(0, -1))}>
-                        <i className="bi bi-backspace"></i>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                      <Button key={num} variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }} onClick={() => setBarcodeInput(prev => prev + num.toString())}>
+                        {num}
                       </Button>
-                    </div>
+                    ))}
+                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }} onClick={() => setBarcodeInput('')}>C</Button>
+                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }} onClick={() => setBarcodeInput(prev => prev + '0')}>0</Button>
+                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }} onClick={() => setBarcodeInput(prev => prev.slice(0, -1))}>
+                      <i className="bi bi-backspace"></i>
+                    </Button>
+                  </div>
                   
                   {/* Action Buttons - Right side, optimized */}
                   <div className="d-flex flex-column gap-2" style={{ width: '40%' }}>
-                    <Button variant="success" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }} onClick={handleCheckout} disabled={loading}>
+                    <Button variant="success" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px' }} onClick={handleCheckout} disabled={loading}>
                         {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
                         Checkout
                       </Button>
-                    <Button variant="warning" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }} onClick={handleHoldTransaction}>
+                    <Button variant="warning" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px' }} onClick={handleHoldTransaction}>
                         <i className="bi bi-pause-circle me-2"></i>
                         On Hold
                       </Button>
-                    <Button variant="info" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }}>
-                        <i className="bi bi-cash-stack me-2"></i>
-                        Open Till
-                      </Button>
-                    </div>
-              </div>
+                    <Button variant="info" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px' }}>
+                      <i className="bi bi-cash-stack me-2"></i>
+                      Open Till
+                    </Button>
+                  </div>
+            </div>
             </div>
             </>
           )}
@@ -1294,9 +1294,9 @@ const SalesPage = () => {
                     className="fw-bold category-btn"
                         onClick={() => handleCategoryClick(category)}
                         style={{ 
-                          padding: '1rem', 
-                          fontSize: '1.1rem', 
-                          minHeight: '60px',
+                          padding: '0.8rem', 
+                          fontSize: '0.9rem', 
+                          minHeight: '50px',
                           backgroundColor: '#f8f9fa',
                           color: '#495057',
                           borderColor: '#dee2e6'
@@ -1331,9 +1331,9 @@ const SalesPage = () => {
                         className="fw-bold quick-sale-btn"
                     size="lg"
                     style={{ 
-                      padding: '1rem', 
-                      fontSize: '1.2rem', 
-                      minHeight: '65px',
+                      padding: '0.8rem', 
+                      fontSize: '1rem', 
+                      minHeight: '55px',
                       backgroundColor: '#f8f9fa',
                       color: '#495057',
                       borderColor: '#dee2e6'
@@ -1374,8 +1374,8 @@ const SalesPage = () => {
                           className="py-2 fw-bold category-item-btn"
                           size="lg"
                           style={{ 
-                            minHeight: '70px', 
-                            fontSize: '1.1rem',
+                            minHeight: '60px', 
+                            fontSize: '1rem',
                             backgroundColor: '#f8f9fa',
                             color: '#495057',
                             borderColor: '#dee2e6'

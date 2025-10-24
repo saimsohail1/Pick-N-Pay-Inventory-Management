@@ -1158,10 +1158,10 @@ const SalesPage = () => {
             </div>
 
             {/* Bottom Control Panel */}
-            <div className="bg-light text-dark" style={{ padding: '0.8rem', borderRadius: '8px', marginTop: '0.5rem' }}>
+            <div className="bg-light text-dark" style={{ padding: '0.8rem', borderRadius: '8px', marginTop: '0.2rem' }}>
               <div className="d-flex align-items-center justify-content-between gap-3">
                   {/* Discount and Exit Buttons - Moved up and made more prominent */}
-                  <div className="d-flex flex-column gap-2" style={{ width: '25%' }}>
+                  <div className="d-flex flex-column gap-1" style={{ width: '25%' }}>
                     <Button 
                       variant={appliedDiscount ? "success" : "primary"} 
                       size="lg" 

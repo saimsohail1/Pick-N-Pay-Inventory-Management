@@ -1093,10 +1093,15 @@ const SalesPage = () => {
                     <i className="bi bi-pencil me-2"></i>
                   EDIT
                 </Button>
-                  <Button variant="outline-primary" size="lg" style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
+                  <Button 
+                    variant="outline-primary" 
+                    size="lg" 
+                    onClick={() => navigate('/inventory')}
+                    style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}
+                  >
                     <i className="bi bi-eye me-2"></i>
-                  STOCK
-                </Button>
+                    STOCK
+                  </Button>
                   <Button variant="outline-danger" size="lg" onClick={() => { setCart([]); setAppliedDiscount(null); setCustomDiscountAmount(''); }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
                     <i className="bi bi-cart-x me-2"></i>
                   CLEAR CART

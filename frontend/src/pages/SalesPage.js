@@ -71,10 +71,6 @@ const SalesPage = () => {
   const [outOfStockItem, setOutOfStockItem] = useState(null);
   const [editItemDialogOpen, setEditItemDialogOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState(null);
-  const [itemDiscountDialogOpen, setItemDiscountDialogOpen] = useState(false);
-  const [itemToDiscount, setItemToDiscount] = useState(null);
-  const [itemDiscountType, setItemDiscountType] = useState('percentage');
-  const [itemDiscountValue, setItemDiscountValue] = useState('');
   const lastClickRef = React.useRef({});
   const { addTimeout } = useTimeoutManager();
 
@@ -700,59 +696,29 @@ const SalesPage = () => {
     setEditItemDialogOpen(true);
   };
 
-  const handleDiscountSelectedItem = () => {
-    if (!selectedCartItem) {
-      setError('Please select an item from the cart first.');
-      addTimeout(() => setError(null), 3000);
-      return;
-    }
-    setItemToDiscount(selectedCartItem);
-    setItemDiscountDialogOpen(true);
-  };
 
-  const handleApplyItemDiscount = () => {
-    if (!itemToDiscount || !itemDiscountValue) {
-      setError('Please enter a discount value.');
-      addTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    const discountAmount = itemDiscountType === 'percentage' 
-      ? (itemToDiscount.unitPrice * parseFloat(itemDiscountValue)) / 100
-      : parseFloat(itemDiscountValue);
-
-    if (discountAmount >= itemToDiscount.unitPrice) {
-      setError('Discount cannot be greater than or equal to the item price.');
-      addTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    const discountedPrice = itemToDiscount.unitPrice - discountAmount;
-    const newTotalPrice = discountedPrice * itemToDiscount.quantity;
-
-    // Update the cart item with discounted price
+  const handleItemDiscountChange = (itemId, discountValue) => {
+    const discountAmount = parseFloat(discountValue) || 0;
+    
     setCart(prevCart => 
-      prevCart.map(item => 
-        item.id === itemToDiscount.id 
-          ? { 
-              ...item, 
-              unitPrice: discountedPrice,
-              totalPrice: newTotalPrice,
-              originalPrice: itemToDiscount.unitPrice, // Store original price
-              discountApplied: true,
-              discountAmount: discountAmount,
-              discountType: itemDiscountType,
-              discountValue: itemDiscountValue
-            }
-          : item
-      )
+      prevCart.map(item => {
+        if (item.id === itemId) {
+          const originalPrice = item.originalPrice || item.unitPrice;
+          const newUnitPrice = Math.max(0, originalPrice - discountAmount);
+          const newTotalPrice = newUnitPrice * item.quantity;
+          
+          return {
+            ...item,
+            unitPrice: newUnitPrice,
+            totalPrice: newTotalPrice,
+            originalPrice: originalPrice,
+            discountAmount: discountAmount,
+            discountApplied: discountAmount > 0
+          };
+        }
+        return item;
+      })
     );
-
-    setItemDiscountDialogOpen(false);
-    setItemToDiscount(null);
-    setItemDiscountValue('');
-    setSuccess(`Applied ${itemDiscountType === 'percentage' ? itemDiscountValue + '%' : '€' + itemDiscountValue} discount to ${itemToDiscount.itemName}`);
-    addTimeout(() => setSuccess(null), 3000);
   };
 
   const handleSaveEditedItem = async (formData) => {
@@ -1146,7 +1112,17 @@ const SalesPage = () => {
                             <td className="text-center" style={{ fontSize: '1rem', padding: '0.6rem' }}>
                               <span className="fw-bold">{item.quantity}</span>
                             </td>
-                            <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>€0.00</td>
+                            <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                              <Form.Control
+                                type="text"
+                                size="sm"
+                                placeholder="€0.00"
+                                value={item.discountAmount || ''}
+                                onChange={(e) => handleItemDiscountChange(item.id, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ width: '60px', fontSize: '0.9rem' }}
+                              />
+                            </td>
                             <td className="text-end fw-bold" style={{ fontSize: '1rem', padding: '0.6rem' }}>€{item.totalPrice.toFixed(2)}</td>
                           </tr>
                         ))}
@@ -1191,17 +1167,6 @@ const SalesPage = () => {
                     title="Edit item"
                   >
                     <i className="bi bi-pencil"></i>
-                              </Button>
-                              <Button
-                    variant={selectedCartItem ? "secondary" : "outline-secondary"}
-                    size="lg"
-                    onClick={handleDiscountSelectedItem}
-                    disabled={!selectedCartItem}
-                    className="flex-fill"
-                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px' }}
-                    title="Apply discount to item"
-                  >
-                    <i className="bi bi-percent"></i>
                               </Button>
                             </div>
                 </div>
@@ -2181,84 +2146,6 @@ const SalesPage = () => {
         isEditMode={true}
       />
 
-      {/* Item Discount Dialog */}
-      <Modal show={itemDiscountDialogOpen} onHide={() => setItemDiscountDialogOpen(false)} size="md" centered>
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className="bi bi-percent me-2"></i>
-            Apply Discount to Item
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {itemToDiscount && (
-            <div className="mb-3">
-              <h6 className="text-primary">Item: {itemToDiscount.itemName}</h6>
-              <p className="text-muted mb-0">Current Price: €{itemToDiscount.unitPrice.toFixed(2)}</p>
-              <p className="text-muted">Quantity: {itemToDiscount.quantity}</p>
-            </div>
-          )}
-          
-          <div className="mb-3">
-            <label className="form-label fw-bold">Discount Type</label>
-            <div className="d-flex gap-2 mb-3">
-              <Button 
-                variant="outline-primary" 
-                size="sm"
-                onClick={() => setItemDiscountType('percentage')}
-                className={itemDiscountType === 'percentage' ? 'active' : ''}
-              >
-                Percentage
-              </Button>
-              <Button 
-                variant="outline-primary" 
-                size="sm"
-                onClick={() => setItemDiscountType('fixed')}
-                className={itemDiscountType === 'fixed' ? 'active' : ''}
-              >
-                Fixed Amount
-              </Button>
-            </div>
-          </div>
-
-          {itemDiscountType === 'percentage' ? (
-            <div className="mb-3">
-              <label className="form-label fw-bold">Discount Percentage</label>
-              <div className="d-flex gap-2 flex-wrap">
-                {[5, 10, 15, 20, 25].map(percent => (
-                  <Button
-                    key={percent}
-                    variant="outline-secondary"
-                    size="sm"
-                    onClick={() => setItemDiscountValue(percent)}
-                    className={itemDiscountValue === percent ? 'active' : ''}
-                  >
-                    {percent}%
-                  </Button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="mb-3">
-              <label className="form-label fw-bold">Discount Amount (€)</label>
-              <Form.Control
-                type="text"
-                value={itemDiscountValue}
-                onChange={(e) => setItemDiscountValue(e.target.value)}
-                placeholder="Enter amount"
-                style={{ fontSize: '1.1rem' }}
-              />
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer className="bg-light">
-          <Button variant="secondary" onClick={() => setItemDiscountDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleApplyItemDiscount}>
-            Apply Discount
-          </Button>
-        </Modal.Footer>
-      </Modal>
       
       {/* Fullscreen indicator */}
       <FullscreenIndicator />

@@ -237,103 +237,169 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
     <html>
     <head>
       <title>Z-Report - ${startDate}</title>
+      <meta charset="UTF-8">
       <style>
+        * {
+          box-sizing: border-box;
+        }
+        
         @media print {
           @page { 
             size: A4; 
-            margin: 15mm; 
+            margin: 10mm; 
           }
           body { 
             margin: 0; 
             padding: 0; 
-            font-family: Arial, sans-serif; 
-            font-size: 10px; 
-            line-height: 1.3;
+            font-family: 'Arial', sans-serif; 
+            font-size: 11px; 
+            line-height: 1.4;
             color: #000;
+            background: white;
+          }
+          .no-print {
+            display: none !important;
           }
         }
+        
         body { 
-          font-family: Arial, sans-serif; 
-          font-size: 10px; 
-          line-height: 1.3; 
+          font-family: 'Arial', sans-serif; 
+          font-size: 11px; 
+          line-height: 1.4; 
           margin: 0; 
-          padding: 15mm; 
+          padding: 10mm; 
           color: #000;
+          background: white;
         }
+        
         .header { 
           text-align: center; 
           border-bottom: 2px solid #000; 
-          padding-bottom: 10px; 
-          margin-bottom: 15px; 
+          padding-bottom: 15px; 
+          margin-bottom: 20px; 
         }
+        
+        .header h1 {
+          margin: 0 0 5px 0;
+          font-size: 18px;
+          font-weight: bold;
+        }
+        
+        .header .subtitle {
+          margin: 5px 0;
+          font-size: 14px;
+          font-weight: bold;
+        }
+        
+        .header .date-info {
+          margin: 5px 0;
+          font-size: 12px;
+        }
+        
         .section { 
-          margin: 15px 0; 
+          margin: 20px 0; 
           page-break-inside: avoid;
         }
+        
         .section-title { 
           font-weight: bold; 
-          font-size: 12px; 
-          margin-bottom: 8px; 
-          border-bottom: 1px solid #ccc; 
-          padding-bottom: 3px;
+          font-size: 14px; 
+          margin-bottom: 10px; 
+          border-bottom: 2px solid #333; 
+          padding-bottom: 5px;
+          text-transform: uppercase;
         }
+        
         table { 
           width: 100%; 
           border-collapse: collapse; 
-          margin: 8px 0;
+          margin: 10px 0;
+          border: 1px solid #000;
         }
+        
         th, td { 
-          padding: 4px 6px; 
+          padding: 8px 10px; 
           text-align: left; 
-          border-bottom: 1px solid #ddd;
+          border: 1px solid #000;
+          vertical-align: top;
         }
+        
         th { 
-          background-color: #f5f5f5; 
+          background-color: #f0f0f0; 
           font-weight: bold; 
-          font-size: 9px;
+          font-size: 11px;
+          text-transform: uppercase;
         }
+        
         td { 
-          font-size: 9px;
+          font-size: 11px;
         }
+        
         .total-row { 
           font-weight: bold; 
-          background-color: #f0f0f0; 
+          background-color: #e0e0e0; 
+          border-top: 2px solid #000;
         }
+        
         .footer { 
           text-align: center; 
-          margin-top: 20px; 
-          font-size: 9px; 
-          border-top: 1px solid #ccc;
+          margin-top: 30px; 
+          font-size: 10px; 
+          border-top: 1px solid #000;
           padding-top: 10px;
         }
+        
         .right { text-align: right; }
         .center { text-align: center; }
+        .bold { font-weight: bold; }
+        
+        .summary-box {
+          border: 2px solid #000;
+          padding: 15px;
+          margin: 20px 0;
+          background-color: #f9f9f9;
+        }
+        
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          margin: 5px 0;
+          padding: 3px 0;
+        }
+        
+        .summary-total {
+          border-top: 1px solid #000;
+          padding-top: 5px;
+          margin-top: 10px;
+          font-weight: bold;
+          font-size: 12px;
+        }
       </style>
     </head>
     <body>
       <div class="header">
-        <div class="center"><strong>${companyName.toUpperCase()}</strong></div>
-        <div class="center"><strong>Z-REPORT</strong></div>
-        <div class="center">Date: ${startDate}</div>
-        <div class="center">Generated: ${new Date().toLocaleString()}</div>
+        <h1>${companyName.toUpperCase()}</h1>
+        <div class="subtitle">Z-REPORT</div>
+        <div class="date-info">Date: ${startDate}</div>
+        <div class="date-info">Generated: ${new Date().toLocaleString()}</div>
       </div>
       
       <div class="section">
-        <div class="section-title">PAYMENT METHODS</div>
+        <div class="section-title">Payment Methods Summary</div>
         <table>
           <thead>
             <tr>
-              <th>Method</th>
-              <th class="right">Count</th>
-              <th class="right">Total</th>
+              <th>Payment Method</th>
+              <th class="right">Transactions</th>
+              <th class="right">Total Amount</th>
             </tr>
           </thead>
           <tbody>
             ${(reportData.paymentMethods || []).map(payment => `
               <tr class="${payment.label === 'Total' ? 'total-row' : ''}">
-                <td>${payment.label.toUpperCase()}</td>
-                <td class="right">${payment.count}</td>
-                <td class="right">€${parseFloat(payment.total || 0).toFixed(2)}</td>
+                <td class="bold">${payment.label.toUpperCase()}</td>
+                <td class="right">${payment.count || 0}</td>
+                <td class="right bold">€${parseFloat(payment.total || 0).toFixed(2)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -341,21 +407,21 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
       </div>
       
       <div class="section">
-        <div class="section-title">CATEGORY SALES</div>
+        <div class="section-title">Category Sales Summary</div>
         <table>
           <thead>
             <tr>
               <th>Category</th>
-              <th class="right">Count</th>
-              <th class="right">Total</th>
+              <th class="right">Items Sold</th>
+              <th class="right">Total Amount</th>
             </tr>
           </thead>
           <tbody>
             ${(reportData.categories || []).map(category => `
               <tr class="${category.category === 'Total' ? 'total-row' : ''}">
-                <td>${category.category}</td>
-                <td class="right">${category.count}</td>
-                <td class="right">€${parseFloat(category.total || 0).toFixed(2)}</td>
+                <td class="bold">${category.category}</td>
+                <td class="right">${category.count || 0}</td>
+                <td class="right bold">€${parseFloat(category.total || 0).toFixed(2)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -363,28 +429,26 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
       </div>
       
       <div class="section">
-        <div class="section-title">VAT SUMMARY</div>
-        <table>
-          <tbody>
-            <tr>
-              <td>Amount Excluding VAT:</td>
-              <td class="right">€${parseFloat(reportData.vatInfo?.totalAmountExcludingVat || 0).toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td>Total VAT Amount:</td>
-              <td class="right">€${parseFloat(reportData.vatInfo?.totalVatAmount || 0).toFixed(2)}</td>
-            </tr>
-            <tr class="total-row">
-              <td><strong>Total Amount Including VAT:</strong></td>
-              <td class="right"><strong>€${parseFloat(reportData.vatInfo?.totalAmountIncludingVat || 0).toFixed(2)}</strong></td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="section-title">VAT Summary</div>
+        <div class="summary-box">
+          <div class="summary-row">
+            <span>Amount Excluding VAT:</span>
+            <span class="right bold">€${parseFloat(reportData.vatInfo?.totalAmountExcludingVat || 0).toFixed(2)}</span>
+          </div>
+          <div class="summary-row">
+            <span>Total VAT Amount (23%):</span>
+            <span class="right bold">€${parseFloat(reportData.vatInfo?.totalVatAmount || 0).toFixed(2)}</span>
+          </div>
+          <div class="summary-row summary-total">
+            <span>TOTAL AMOUNT INCLUDING VAT:</span>
+            <span class="right bold">€${parseFloat(reportData.vatInfo?.totalAmountIncludingVat || 0).toFixed(2)}</span>
+          </div>
+        </div>
       </div>
       
       <div class="footer">
-        <div>End of Z-Report</div>
-        <div>${companyName} - ${new Date().toLocaleString()}</div>
+        <div class="bold">End of Z-Report</div>
+        <div>${companyName} - Generated on ${new Date().toLocaleString()}</div>
       </div>
     </body>
     </html>
@@ -399,113 +463,219 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
  * @returns {string} HTML content
  */
 export const createSalesHistoryHTML = (sales, companyName = 'PickNPay', dateRange = '') => {
+  const totalAmount = sales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount || 0), 0);
+  
   return `
     <!DOCTYPE html>
     <html>
     <head>
       <title>Sales History - ${dateRange}</title>
+      <meta charset="UTF-8">
       <style>
+        * {
+          box-sizing: border-box;
+        }
+        
         @media print {
           @page { 
             size: A4; 
-            margin: 15mm; 
+            margin: 10mm; 
           }
           body { 
             margin: 0; 
             padding: 0; 
-            font-family: Arial, sans-serif; 
-            font-size: 10px; 
-            line-height: 1.3;
+            font-family: 'Arial', sans-serif; 
+            font-size: 11px; 
+            line-height: 1.4;
             color: #000;
+            background: white;
+          }
+          .no-print {
+            display: none !important;
           }
         }
+        
         body { 
-          font-family: Arial, sans-serif; 
-          font-size: 10px; 
-          line-height: 1.3; 
+          font-family: 'Arial', sans-serif; 
+          font-size: 11px; 
+          line-height: 1.4; 
           margin: 0; 
-          padding: 15mm; 
+          padding: 10mm; 
           color: #000;
+          background: white;
         }
+        
         .header { 
           text-align: center; 
           border-bottom: 2px solid #000; 
-          padding-bottom: 10px; 
-          margin-bottom: 15px; 
+          padding-bottom: 15px; 
+          margin-bottom: 20px; 
         }
+        
+        .header h1 {
+          margin: 0 0 5px 0;
+          font-size: 18px;
+          font-weight: bold;
+        }
+        
+        .header .subtitle {
+          margin: 5px 0;
+          font-size: 14px;
+          font-weight: bold;
+        }
+        
+        .header .date-info {
+          margin: 5px 0;
+          font-size: 12px;
+        }
+        
         table { 
           width: 100%; 
           border-collapse: collapse; 
-          margin: 8px 0;
+          margin: 15px 0;
+          border: 1px solid #000;
         }
+        
         th, td { 
-          padding: 4px 6px; 
+          padding: 8px 10px; 
           text-align: left; 
-          border-bottom: 1px solid #ddd;
+          border: 1px solid #000;
+          vertical-align: top;
         }
+        
         th { 
-          background-color: #f5f5f5; 
+          background-color: #f0f0f0; 
           font-weight: bold; 
-          font-size: 9px;
+          font-size: 11px;
+          text-transform: uppercase;
         }
+        
         td { 
-          font-size: 9px;
+          font-size: 11px;
         }
+        
         .footer { 
           text-align: center; 
-          margin-top: 20px; 
-          font-size: 9px; 
-          border-top: 1px solid #ccc;
+          margin-top: 30px; 
+          font-size: 10px; 
+          border-top: 1px solid #000;
           padding-top: 10px;
         }
+        
         .right { text-align: right; }
         .center { text-align: center; }
+        .bold { font-weight: bold; }
+        
         .sale-item {
-          font-size: 8px;
-          color: #666;
-          margin-left: 10px;
+          font-size: 10px;
+          margin: 2px 0;
+          padding: 2px 0;
+          border-bottom: 1px dotted #ccc;
+        }
+        
+        .sale-item:last-child {
+          border-bottom: none;
+        }
+        
+        .sale-number {
+          font-weight: bold;
+          color: #333;
+        }
+        
+        .payment-method {
+          font-weight: bold;
+          text-transform: uppercase;
+        }
+        
+        .payment-cash {
+          color: #28a745;
+        }
+        
+        .payment-card {
+          color: #007bff;
+        }
+        
+        .total-amount {
+          font-weight: bold;
+          font-size: 12px;
+        }
+        
+        .summary-box {
+          border: 2px solid #000;
+          padding: 15px;
+          margin: 20px 0;
+          background-color: #f9f9f9;
+        }
+        
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          margin: 5px 0;
+          padding: 3px 0;
+        }
+        
+        .summary-total {
+          border-top: 1px solid #000;
+          padding-top: 5px;
+          margin-top: 10px;
+          font-weight: bold;
+          font-size: 12px;
         }
       </style>
     </head>
     <body>
       <div class="header">
-        <div class="center"><strong>${companyName.toUpperCase()}</strong></div>
-        <div class="center"><strong>SALES HISTORY</strong></div>
-        <div class="center">${dateRange}</div>
-        <div class="center">Generated: ${new Date().toLocaleString()}</div>
+        <h1>${companyName.toUpperCase()}</h1>
+        <div class="subtitle">SALES HISTORY</div>
+        <div class="date-info">${dateRange}</div>
+        <div class="date-info">Generated: ${new Date().toLocaleString()}</div>
       </div>
       
       <table>
         <thead>
           <tr>
-            <th>#</th>
-            <th>Date/Time</th>
-            <th>Payment</th>
-            <th>Items</th>
-            <th class="right">Total</th>
+            <th style="width: 5%;">#</th>
+            <th style="width: 20%;">Date/Time</th>
+            <th style="width: 15%;">Payment</th>
+            <th style="width: 45%;">Items</th>
+            <th style="width: 15%;" class="right">Total</th>
           </tr>
         </thead>
         <tbody>
           ${sales.map((sale, index) => `
             <tr>
-              <td>${index + 1}</td>
+              <td class="sale-number">${index + 1}</td>
               <td>${new Date(sale.saleDate).toLocaleString()}</td>
-              <td>${sale.paymentMethod}</td>
+              <td class="payment-method ${sale.paymentMethod === 'CASH' ? 'payment-cash' : 'payment-card'}">${sale.paymentMethod}</td>
               <td>
-                ${sale.saleItems.map(item => `
-                  <div class="sale-item">${item.itemName} (${item.quantity}x)</div>
+                ${(sale.saleItems || []).map(item => `
+                  <div class="sale-item">
+                    <strong>${item.itemName || 'Unknown Item'}</strong> 
+                    (${item.quantity || 0}x) 
+                    <span class="right">€${parseFloat(item.totalPrice || 0).toFixed(2)}</span>
+                  </div>
                 `).join('')}
               </td>
-              <td class="right">€${parseFloat(sale.totalAmount).toFixed(2)}</td>
+              <td class="right total-amount">€${parseFloat(sale.totalAmount || 0).toFixed(2)}</td>
             </tr>
           `).join('')}
         </tbody>
       </table>
       
+      <div class="summary-box">
+        <div class="summary-row">
+          <span>Total Transactions:</span>
+          <span class="right bold">${sales.length}</span>
+        </div>
+        <div class="summary-row summary-total">
+          <span>TOTAL AMOUNT:</span>
+          <span class="right bold">€${totalAmount.toFixed(2)}</span>
+        </div>
+      </div>
+      
       <div class="footer">
-        <div>Total Sales: ${sales.length} transactions</div>
-        <div>Total Amount: €${sales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount), 0).toFixed(2)}</div>
-        <div>${companyName} - ${new Date().toLocaleString()}</div>
+        <div class="bold">End of Sales History</div>
+        <div>${companyName} - Generated on ${new Date().toLocaleString()}</div>
       </div>
     </body>
     </html>

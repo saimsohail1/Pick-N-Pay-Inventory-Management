@@ -3,7 +3,7 @@ import { Table, Button, Form, Alert, Modal, Spinner } from "react-bootstrap";
 import { format } from "date-fns";
 import { salesAPI, usersAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
-import { directPrint, createReceiptHTML } from '../utils/printUtils';
+import { directPrint, createReceiptHTML, createSalesHistoryHTML } from '../utils/printUtils';
 
 const SalesHistory = () => {
   const { user } = useAuth();
@@ -210,6 +210,35 @@ const SalesHistory = () => {
     }
   };
 
+  const handlePrintAllSales = async () => {
+    try {
+      const companyName = 'PickNPay';
+      const dateRange = selectedDate ? `Date: ${selectedDate}` : 'All Sales';
+      const salesHistoryContent = createSalesHistoryHTML(sales, companyName, dateRange);
+      
+      try {
+        await directPrint(salesHistoryContent, `Sales History - ${dateRange}`);
+      } catch (printError) {
+        console.log('Direct print failed, trying Safari-compatible method');
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        if (printWindow) {
+          printWindow.document.write(salesHistoryContent);
+          printWindow.document.close();
+          printWindow.focus();
+          setTimeout(() => {
+            printWindow.print();
+            setTimeout(() => printWindow.close(), 1000);
+          }, 500);
+        } else {
+          throw new Error('Popup blocked. Please allow popups for this site.');
+        }
+      }
+    } catch (error) {
+      console.error('Print all sales error:', error);
+      alert('Printing failed. Please check your printer connection and allow popups for this site.');
+    }
+  };
+
   const formatTime = (date) => format(new Date(date), "HH:mm");
 
   const getPaymentMethodBadge = (method) => {
@@ -331,28 +360,39 @@ const SalesHistory = () => {
               <i className="bi bi-list-ul me-2"></i>
               Sales Transactions
             </h6>
-            <div className="text-end">
-              <small className="text-muted">
-                <i className="bi bi-calendar3 me-1"></i>
-                {new Date(selectedDate).toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-                {isAdminUser && selectedUserId && (
-                  <span className="ms-2">
-                    <i className="bi bi-person me-1"></i>
-                    {users.find(u => u.id == selectedUserId)?.username || 'Selected User'}
-                  </span>
-                )}
-                {isAdminUser && !selectedUserId && (
-                  <span className="ms-2">
-                    <i className="bi bi-people me-1"></i>
-                    All Users
-                  </span>
-                )}
-              </small>
+            <div className="d-flex align-items-center gap-3">
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={handlePrintAllSales}
+                className="no-print"
+              >
+                <i className="bi bi-printer me-1"></i>
+                Print All
+              </Button>
+              <div className="text-end">
+                <small className="text-muted">
+                  <i className="bi bi-calendar3 me-1"></i>
+                  {new Date(selectedDate).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                  {isAdminUser && selectedUserId && (
+                    <span className="ms-2">
+                      <i className="bi bi-person me-1"></i>
+                      {users.find(u => u.id == selectedUserId)?.username || 'Selected User'}
+                    </span>
+                  )}
+                  {isAdminUser && !selectedUserId && (
+                    <span className="ms-2">
+                      <i className="bi bi-people me-1"></i>
+                      All Users
+                    </span>
+                  )}
+                </small>
+              </div>
             </div>
           </div>
         </div>

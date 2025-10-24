@@ -838,8 +838,8 @@ const SalesPage = () => {
           border-color: #0d6efd;
         }
         .numeric-keypad .btn {
-          min-height: 35px;
-          font-size: 1rem;
+          min-height: 40px;
+          font-size: 1.1rem;
           transition: all 0.2s ease;
         }
         .numeric-keypad .btn:hover {
@@ -847,8 +847,8 @@ const SalesPage = () => {
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .category-btn {
-          min-height: 30px;
-          font-size: 0.8rem;
+          min-height: 35px;
+          font-size: 0.85rem;
           transition: all 0.2s ease;
         }
         .category-btn:hover {
@@ -856,8 +856,8 @@ const SalesPage = () => {
           box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         .quick-sale-btn {
-          min-height: 35px;
-          font-size: 0.85rem;
+          min-height: 40px;
+          font-size: 0.9rem;
         }
         .cart-item-selected {
           background-color: #b8dacc !important;
@@ -1024,7 +1024,7 @@ const SalesPage = () => {
             {/* Sales Cart Table with Control Buttons */}
             <div className="d-flex">
               {/* Cart Table */}
-              <div className="bg-white flex-grow-1" style={{ height: '450px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#ffffff', border: '1px solid #dee2e6', borderRadius: '8px' }}>
+              <div className="bg-white flex-grow-1" style={{ height: '350px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#ffffff', border: '1px solid #dee2e6', borderRadius: '8px' }}>
               {cart.length === 0 ? (
                   <div className="text-center py-2">
                     <i className="bi bi-cart fs-3 text-muted"></i>
@@ -1167,7 +1167,7 @@ const SalesPage = () => {
                       variant={appliedDiscount ? "success" : "primary"} 
                       size="lg" 
                       className="fw-bold" 
-                      style={{ padding: '1rem', fontSize: '1.1rem', minHeight: '60px', marginTop: '-0.5rem' }}
+                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', marginTop: '-1rem' }}
                       onClick={() => setDiscountDialogOpen(true)}
                     >
                       <i className="bi bi-percent me-2"></i>
@@ -1182,7 +1182,7 @@ const SalesPage = () => {
                       variant="danger" 
                     size="lg" 
                     className="fw-bold" 
-                      style={{ padding: '1rem', fontSize: '1.1rem', minHeight: '60px' }}
+                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px' }}
                     onClick={() => {
                       console.log('Exit button clicked');
                       // Check if running in Electron
@@ -1211,28 +1211,28 @@ const SalesPage = () => {
                   {/* Numeric Keypad - Centered and optimized */}
                   <div className="d-grid gap-2 numeric-keypad" style={{ gridTemplateColumns: 'repeat(3, 1fr)', width: '35%', maxWidth: '300px' }}>
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                      <Button key={num} variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }} onClick={() => setBarcodeInput(prev => prev + num.toString())}>
+                      <Button key={num} variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev + num.toString())}>
                         {num}
                       </Button>
                     ))}
-                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }} onClick={() => setBarcodeInput('')}>C</Button>
-                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }} onClick={() => setBarcodeInput(prev => prev + '0')}>0</Button>
-                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '0.8rem', fontSize: '1.1rem', minHeight: '50px' }} onClick={() => setBarcodeInput(prev => prev.slice(0, -1))}>
+                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput('')}>C</Button>
+                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev + '0')}>0</Button>
+                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev.slice(0, -1))}>
                       <i className="bi bi-backspace"></i>
                     </Button>
                   </div>
                   
                   {/* Action Buttons - Right side, optimized */}
                   <div className="d-flex flex-column gap-2" style={{ width: '40%' }}>
-                    <Button variant="success" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px' }} onClick={handleCheckout} disabled={loading}>
+                    <Button variant="success" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }} onClick={handleCheckout} disabled={loading}>
                         {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
                         Checkout
                       </Button>
-                    <Button variant="warning" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px' }} onClick={handleHoldTransaction}>
+                    <Button variant="warning" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }} onClick={handleHoldTransaction}>
                         <i className="bi bi-pause-circle me-2"></i>
                         On Hold
                       </Button>
-                    <Button variant="info" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px' }}>
+                    <Button variant="info" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }}>
                       <i className="bi bi-cash-stack me-2"></i>
                       Open Till
                     </Button>
@@ -1294,9 +1294,9 @@ const SalesPage = () => {
                     className="fw-bold category-btn"
                         onClick={() => handleCategoryClick(category)}
                         style={{ 
-                          padding: '0.8rem', 
-                          fontSize: '0.9rem', 
-                          minHeight: '50px',
+                          padding: '1rem', 
+                          fontSize: '1.1rem', 
+                          minHeight: '60px',
                           backgroundColor: '#f8f9fa',
                           color: '#495057',
                           borderColor: '#dee2e6'
@@ -1331,9 +1331,9 @@ const SalesPage = () => {
                         className="fw-bold quick-sale-btn"
                     size="lg"
                     style={{ 
-                      padding: '0.8rem', 
-                      fontSize: '1rem', 
-                      minHeight: '55px',
+                      padding: '1rem', 
+                      fontSize: '1.2rem', 
+                      minHeight: '65px',
                       backgroundColor: '#f8f9fa',
                       color: '#495057',
                       borderColor: '#dee2e6'
@@ -1374,8 +1374,8 @@ const SalesPage = () => {
                           className="py-2 fw-bold category-item-btn"
                           size="lg"
                           style={{ 
-                            minHeight: '60px', 
-                            fontSize: '1rem',
+                            minHeight: '70px', 
+                            fontSize: '1.1rem',
                             backgroundColor: '#f8f9fa',
                             color: '#495057',
                             borderColor: '#dee2e6'

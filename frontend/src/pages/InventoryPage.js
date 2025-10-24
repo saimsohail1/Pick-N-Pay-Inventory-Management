@@ -13,6 +13,7 @@ import {
   InputGroup
 } from 'react-bootstrap';
 import { itemsAPI, categoriesAPI } from '../services/api';
+import EditItemDialog from '../components/EditItemDialog';
 
 const InventoryPage = () => {
   const [items, setItems] = useState([]);
@@ -136,18 +137,31 @@ const InventoryPage = () => {
 
   const handleEdit = (item) => {
     setEditingItem(item);
-    setFormData({
-      name: item.name,
-      description: item.description || '',
-      price: item.price.toString(),
-      stockQuantity: item.stockQuantity.toString(),
-      barcode: item.barcode || '',
-      vatRate: item.vatRate ? item.vatRate.toString() : '23.00',
-      categoryId: item.categoryId || '',
-      batchId: item.batchId || '',
-      generalExpiryDate: item.generalExpiryDate || ''
-    });
     setShowEditModal(true);
+  };
+
+  const handleEditItem = async (formData) => {
+    if (!editingItem) return;
+    
+    setLoading(true);
+    try {
+      const itemData = {
+        ...formData,
+        price: parseFloat(formData.price),
+        stockQuantity: parseInt(formData.stockQuantity),
+        vatRate: parseFloat(formData.vatRate)
+      };
+
+      await itemsAPI.update(editingItem.id, itemData);
+      setSuccess('Item updated successfully');
+      setShowEditModal(false);
+      setEditingItem(null);
+      fetchItems();
+    } catch (err) {
+      setError('Failed to update item');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -660,156 +674,15 @@ const InventoryPage = () => {
       </Modal>
 
       {/* Edit Item Modal */}
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className="bi bi-pencil me-2"></i>
-            Edit Item
-          </Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleSubmit}>
-          <Modal.Body>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Item Name *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Barcode</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="barcode"
-                    value={formData.barcode}
-                    onChange={handleInputChange}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            <Form.Group className="mb-3">
-              <Form.Label>Category</Form.Label>
-              <Form.Select
-                name="categoryId"
-                value={formData.categoryId}
-                onChange={handleInputChange}
-              >
-                <option value="">Select a category (optional)</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-              />
-            </Form.Group>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Price (€) *</Form.Label>
-                  <InputGroup>
-                    <InputGroup.Text>€</InputGroup.Text>
-                    <Form.Control
-                      type="number"
-                      step="0.01"
-                      name="price"
-                      value={formData.price}
-                      onChange={handleInputChange}
-                    />
-                  </InputGroup>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Stock Quantity *</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="stockQuantity"
-                    value={formData.stockQuantity}
-                    onChange={handleInputChange}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>VAT Rate (%) *</Form.Label>
-                  <InputGroup>
-                    <Form.Control
-                      type="number"
-                      step="0.01"
-                      name="vatRate"
-                      value={formData.vatRate}
-                      onChange={handleInputChange}
-                      placeholder="23.00"
-                    />
-                    <InputGroup.Text>%</InputGroup.Text>
-                  </InputGroup>
-                </Form.Group>
-              </Col>
-            </Row>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Batch ID</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="batchId"
-                    value={formData.batchId}
-                    onChange={handleInputChange}
-                    placeholder="Enter batch ID (optional)"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Expiry Date</Form.Label>
-                  <Form.Control
-                    type="date"
-                    name="generalExpiryDate"
-                    value={formData.generalExpiryDate}
-                    onChange={handleInputChange}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowEditModal(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <Spinner size="sm" className="me-2" />
-                  Updating...
-                </>
-              ) : (
-                <>
-                  <i className="bi bi-check-circle me-2"></i>
-                  Update Item
-                </>
-              )}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
+      <EditItemDialog
+        show={showEditModal}
+        onHide={() => setShowEditModal(false)}
+        itemToEdit={editingItem}
+        categories={categories}
+        onSave={handleEditItem}
+        title="Edit Item"
+        isEditMode={true}
+      />
     </div>
   );
 };

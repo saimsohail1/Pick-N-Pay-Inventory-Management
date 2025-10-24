@@ -21,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import BarcodeScanner from '../components/BarcodeScanner';
 import FullscreenIndicator from '../components/FullscreenIndicator';
 import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
+import EditItemDialog from '../components/EditItemDialog';
 
 const SalesPage = () => {
   const [cart, setCart] = useState([]);
@@ -703,8 +704,8 @@ const SalesPage = () => {
           ...item,
           itemName: formData.name || item.itemName,
           unitPrice: parseFloat(formData.price),
-          quantity: parseInt(formData.quantity),
-          totalPrice: parseFloat(formData.price) * parseInt(formData.quantity),
+          quantity: parseInt(formData.stockQuantity),
+          totalPrice: parseFloat(formData.price) * parseInt(formData.stockQuantity),
           itemBarcode: formData.barcode || item.itemBarcode,
           description: formData.description || item.description,
           categoryId: formData.categoryId || item.categoryId,
@@ -2017,292 +2018,18 @@ const SalesPage = () => {
       </Modal>
 
       {/* Edit Item Dialog */}
-      <Modal show={editItemDialogOpen} onHide={() => {
-        setEditItemDialogOpen(false);
-        setItemToEdit(null);
-      }} centered size="lg">
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className="bi bi-pencil-square me-2"></i>
-            Edit Item
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="p-4">
-          {itemToEdit && (
-            <Form onSubmit={handleSubmit(handleSaveEditedItem)}>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold">
-                      <i className="bi bi-upc me-1"></i>
-                      Barcode
-                    </Form.Label>
-                    <Controller
-                      name="barcode"
-                      control={control}
-                      defaultValue={itemToEdit.itemBarcode || ''}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="text"
-                          placeholder="Enter barcode"
-                        />
-                      )}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold">
-                      <i className="bi bi-tags me-1"></i>
-                      Category
-                    </Form.Label>
-                    <Controller
-                      name="categoryId"
-                      control={control}
-                      defaultValue={itemToEdit.categoryId || ''}
-                      render={({ field }) => (
-                        <Form.Select {...field}>
-                          <option value="">Select Category</option>
-                          {categories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      )}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <Row className="mb-3">
-                <Col md={12}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold">
-                      <i className="bi bi-tag me-1"></i>
-                      Item Name
-                    </Form.Label>
-                    <Controller
-                      name="name"
-                      control={control}
-                      defaultValue={itemToEdit.itemName}
-                      rules={{ required: 'Item name is required' }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="text"
-                          placeholder="Enter item name"
-                          className={errors.name ? 'is-invalid' : ''}
-                        />
-                      )}
-                    />
-                    {errors.name && (
-                      <div className="invalid-feedback">{errors.name.message}</div>
-                    )}
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <Row className="mb-3">
-                <Col md={12}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold">
-                      <i className="bi bi-card-text me-1"></i>
-                      Description
-                    </Form.Label>
-                    <Controller
-                      name="description"
-                      control={control}
-                      defaultValue={itemToEdit.description || ''}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          as="textarea"
-                          rows={3}
-                          placeholder="Enter item description"
-                        />
-                      )}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold">
-                      <i className="bi bi-currency-euro me-1"></i>
-                      Price (€) *
-                    </Form.Label>
-                    <Controller
-                      name="price"
-                      control={control}
-                      defaultValue={itemToEdit.unitPrice.toString()}
-                      rules={{ 
-                        required: 'Price is required',
-                        min: { value: 0.01, message: 'Price must be greater than 0' }
-                      }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          placeholder="0.00"
-                          className={errors.price ? 'is-invalid' : ''}
-                        />
-                      )}
-                    />
-                    {errors.price && (
-                      <div className="invalid-feedback">{errors.price.message}</div>
-                    )}
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold">
-                      <i className="bi bi-hash me-1"></i>
-                      Stock Quantity *
-                    </Form.Label>
-                    <Controller
-                      name="quantity"
-                      control={control}
-                      defaultValue={itemToEdit.quantity.toString()}
-                      rules={{ 
-                        required: 'Quantity is required',
-                        min: { value: 1, message: 'Quantity must be at least 1' }
-                      }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="number"
-                          min="1"
-                          placeholder="1"
-                          className={errors.quantity ? 'is-invalid' : ''}
-                        />
-                      )}
-                    />
-                    {errors.quantity && (
-                      <div className="invalid-feedback">{errors.quantity.message}</div>
-                    )}
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold">
-                      <i className="bi bi-percent me-1"></i>
-                      VAT Rate (%) *
-                    </Form.Label>
-                    <Controller
-                      name="vatRate"
-                      control={control}
-                      defaultValue={itemToEdit.vatRate ? itemToEdit.vatRate.toString() : '23.00'}
-                      rules={{ 
-                        required: 'VAT rate is required',
-                        min: { value: 0, message: 'VAT rate must be 0 or greater' }
-                      }}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="23.00"
-                          className={errors.vatRate ? 'is-invalid' : ''}
-                        />
-                      )}
-                    />
-                    {errors.vatRate && (
-                      <div className="invalid-feedback">{errors.vatRate.message}</div>
-                    )}
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold">
-                      <i className="bi bi-calculator me-1"></i>
-                      Total Price
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={`€${(parseFloat(watch('price') || 0) * parseInt(watch('quantity') || 0)).toFixed(2)}`}
-                      readOnly
-                      className="bg-light"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold">
-                      <i className="bi bi-box me-1"></i>
-                      Batch ID
-                    </Form.Label>
-                    <Controller
-                      name="batchId"
-                      control={control}
-                      defaultValue={itemToEdit.batchId || ''}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="text"
-                          placeholder="Enter batch ID (optional)"
-                        />
-                      )}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold">
-                      <i className="bi bi-calendar3 me-1"></i>
-                      Expiry Date
-                    </Form.Label>
-                    <Controller
-                      name="generalExpiryDate"
-                      control={control}
-                      defaultValue={itemToEdit.generalExpiryDate || ''}
-                      render={({ field }) => (
-                        <Form.Control
-                          {...field}
-                          type="date"
-                          placeholder="Select expiry date"
-                        />
-                      )}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <div className="d-flex justify-content-end gap-2 mt-4">
-                <Button 
-                  variant="secondary" 
-                  onClick={() => {
-                    setEditItemDialogOpen(false);
-                    setItemToEdit(null);
-                  }}
-                >
-                  <i className="bi bi-x-circle me-1"></i>
-                  Cancel
-                </Button>
-                <Button 
-                  variant="primary" 
-                  type="submit"
-                >
-                  <i className="bi bi-check-circle me-1"></i>
-                  Update Item
-                </Button>
-              </div>
-            </Form>
-          )}
-        </Modal.Body>
-      </Modal>
+      <EditItemDialog
+        show={editItemDialogOpen}
+        onHide={() => {
+          setEditItemDialogOpen(false);
+          setItemToEdit(null);
+        }}
+        itemToEdit={itemToEdit}
+        categories={categories}
+        onSave={handleSaveEditedItem}
+        title="Edit Item"
+        isEditMode={true}
+      />
       
       {/* Fullscreen indicator */}
       <FullscreenIndicator />

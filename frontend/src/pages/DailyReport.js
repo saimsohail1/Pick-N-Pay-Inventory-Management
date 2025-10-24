@@ -29,30 +29,47 @@ const DailyReport = () => {
     setError(null);
     try {
       console.log('Fetching daily report for date range:', startDate, 'to', endDate);
+      console.log('User details:', { 
+        isAdmin: isAdmin(), 
+        selectedUserId, 
+        currentUserId: user?.id,
+        startDate, 
+        endDate 
+      });
       let response;
       
       // Check if it's a date range (different start and end dates)
       const isDateRange = startDate !== endDate;
+      console.log('Is date range:', isDateRange);
       
       if (isAdmin() && selectedUserId && selectedUserId !== '') {
         // Admin viewing specific user's report
+        console.log('Admin viewing specific user report');
         if (isDateRange) {
+          console.log('Calling getDailyReportByUserAndDateRange with:', startDate, endDate, selectedUserId);
           response = await salesAPI.getDailyReportByUserAndDateRange(startDate, endDate, selectedUserId);
         } else {
+          console.log('Calling getDailyReportByUser with:', startDate, selectedUserId);
           response = await salesAPI.getDailyReportByUser(startDate, selectedUserId);
         }
       } else if (isAdmin() && (!selectedUserId || selectedUserId === '')) {
         // Admin viewing all users' report
+        console.log('Admin viewing all users report');
         if (isDateRange) {
+          console.log('Calling getDailyReportByDateRangeForAdmin with:', startDate, endDate);
           response = await salesAPI.getDailyReportByDateRangeForAdmin(startDate, endDate);
         } else {
+          console.log('Calling getDailyReport with:', startDate);
           response = await salesAPI.getDailyReport(startDate);
         }
       } else {
         // Regular user sees only their sales
+        console.log('Regular user viewing own report');
         if (isDateRange) {
+          console.log('Calling getDailyReportByUserAndDateRange with:', startDate, endDate, user?.id);
           response = await salesAPI.getDailyReportByUserAndDateRange(startDate, endDate, user?.id);
         } else {
+          console.log('Calling getDailyReportByUser with:', startDate, user?.id);
           response = await salesAPI.getDailyReportByUser(startDate, user?.id);
         }
       }

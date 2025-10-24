@@ -2262,7 +2262,7 @@ const SalesPage = () => {
                   <Form.Group>
                     <Form.Label className="fw-semibold">
                       <i className="bi bi-calendar3 me-1"></i>
-                      General Expiry Date
+                      Expiry Date
                     </Form.Label>
                     <Controller
                       name="generalExpiryDate"

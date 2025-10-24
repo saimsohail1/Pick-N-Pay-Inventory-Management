@@ -1144,7 +1144,7 @@ const SalesPage = () => {
                   variant={appliedDiscount ? "success" : "primary"} 
                   size="lg" 
                   className="fw-bold" 
-                  style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', width: '200 }}
+                  style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', width: '200px' }}
                   onClick={() => setDiscountDialogOpen(true)}
                 >
                     <i className="bi bi-percent me-2"></i>
@@ -1159,7 +1159,7 @@ const SalesPage = () => {
                   variant="danger" 
                   size="lg" 
                   className="fw-bold" 
-                  style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', width: '200' }}
+                  style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', width: '200px' }}
                   onClick={() => {
                     console.log('Exit button clicked');
                     // Check if running in Electron

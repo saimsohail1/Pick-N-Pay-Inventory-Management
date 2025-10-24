@@ -301,27 +301,23 @@ const DailyReport = () => {
               )}
               <div>
                 <Form.Label className="small fw-bold">Period Start</Form.Label>
-                <div className="d-flex align-items-center">
-                  <input
-                    type="date"
-                    className="date-input"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                  <i className="bi bi-calendar ms-2"></i>
-                </div>
+                <input
+                  type="date"
+                  className="date-input"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  style={{ width: '180px' }}
+                />
               </div>
               <div>
                 <Form.Label className="small fw-bold">Period End</Form.Label>
-                <div className="d-flex align-items-center">
-                  <input
-                    type="date"
-                    className="date-input"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                  <i className="bi bi-calendar ms-2"></i>
-                </div>
+                <input
+                  type="date"
+                  className="date-input"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  style={{ width: '180px' }}
+                />
               </div>
             </div>
       </div>

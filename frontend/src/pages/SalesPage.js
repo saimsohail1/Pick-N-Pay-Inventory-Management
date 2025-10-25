@@ -1063,11 +1063,11 @@ const SalesPage = () => {
                   <Table striped hover className="mb-0" size="sm">
                       <thead className="table-primary" style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                         <tr>
-                          <th style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>Id</th>
+                          <th style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>ID</th>
                           <th style={{ width: '40%', fontSize: '1rem', padding: '0.6rem' }}>Item</th>
                           <th className="text-end" style={{ width: '12%', fontSize: '1rem', padding: '0.6rem' }}>Price</th>
-                          <th className="text-center" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Qty</th>
-                          <th className="text-end" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Disc</th>
+                          <th className="text-center" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Quantity</th>
+                          <th className="text-end" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Discount</th>
                           <th className="text-end" style={{ width: '20%', fontSize: '1rem', padding: '0.6rem' }}>Total</th>
                       </tr>
                     </thead>

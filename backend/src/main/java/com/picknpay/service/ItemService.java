@@ -84,9 +84,16 @@ public class ItemService {
                     existingItem.setGeneralExpiryDate(itemDTO.getGeneralExpiryDate());
                     
                     // Update category if provided
-                    if (itemDTO.getCategoryId() != null) {
-                        Category category = categoryRepository.findById(itemDTO.getCategoryId()).orElse(null);
-                        existingItem.setCategory(category);
+                    if (itemDTO.getCategoryId() != null && !itemDTO.getCategoryId().toString().trim().isEmpty()) {
+                        try {
+                            Category category = categoryRepository.findById(itemDTO.getCategoryId()).orElse(null);
+                            existingItem.setCategory(category);
+                        } catch (Exception e) {
+                            // If category lookup fails, set category to null
+                            existingItem.setCategory(null);
+                        }
+                    } else {
+                        existingItem.setCategory(null);
                     }
                     
                     Item updatedItem = itemRepository.save(existingItem);
@@ -142,9 +149,16 @@ public class ItemService {
         item.setPrice(dto.getPrice());
         item.setStockQuantity(dto.getStockQuantity());
         item.setBarcode(dto.getBarcode());
-        if (dto.getCategoryId() != null) {
-            Category category = categoryRepository.findById(dto.getCategoryId()).orElse(null);
-            item.setCategory(category);
+        if (dto.getCategoryId() != null && !dto.getCategoryId().toString().trim().isEmpty()) {
+            try {
+                Category category = categoryRepository.findById(dto.getCategoryId()).orElse(null);
+                item.setCategory(category);
+            } catch (Exception e) {
+                // If category lookup fails, set category to null
+                item.setCategory(null);
+            }
+        } else {
+            item.setCategory(null);
         }
         item.setVatRate(dto.getVatRate() != null ? dto.getVatRate() : new BigDecimal("23.00"));
         item.setBatchId(dto.getBatchId());

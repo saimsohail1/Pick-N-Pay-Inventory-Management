@@ -1886,7 +1886,7 @@ const SalesPage = () => {
                   price: parseFloat(newItem.price),
                   stockQuantity: parseInt(newItem.stockQuantity),
                   vatRate: parseFloat(newItem.vatRate),
-                  categoryId: parseInt(newItem.categoryId)
+                  categoryId: newItem.categoryId && newItem.categoryId.trim() !== '' ? parseInt(newItem.categoryId) : null
                 };
                 
                 await itemsAPI.create(itemData);

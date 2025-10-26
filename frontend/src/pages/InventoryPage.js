@@ -101,7 +101,8 @@ const InventoryPage = () => {
         ...formData,
         price: parseFloat(formData.price),
         stockQuantity: parseInt(formData.stockQuantity),
-        vatRate: parseFloat(formData.vatRate)
+        vatRate: parseFloat(formData.vatRate),
+        categoryId: formData.categoryId && formData.categoryId.trim() !== '' ? formData.categoryId : null
       };
 
       if (editingItem) {

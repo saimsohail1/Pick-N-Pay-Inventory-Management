@@ -67,14 +67,19 @@ const CategoryPage = () => {
 
   const handleDeleteCategory = async (id) => {
     if (window.confirm('Are you sure you want to delete this category?')) {
+      setLoading(true);
       try {
         await categoriesAPI.delete(id);
         setSuccess('Category deleted successfully!');
         addTimeout(() => setSuccess(null), 3000);
         fetchCategories();
       } catch (err) {
-        setError('Failed to delete category.');
-        addTimeout(() => setError(null), 3000);
+        const errorMessage = err.response?.data || 'Failed to delete category.';
+        setError(errorMessage);
+        addTimeout(() => setError(null), 5000);
+        console.error('Delete category error:', err);
+      } finally {
+        setLoading(false);
       }
     }
   };

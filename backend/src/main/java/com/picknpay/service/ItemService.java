@@ -102,11 +102,18 @@ public class ItemService {
     }
     
     public boolean deleteItem(Long id) {
-        if (itemRepository.existsById(id)) {
-            itemRepository.deleteById(id);
-            return true;
+        try {
+            if (itemRepository.existsById(id)) {
+                itemRepository.deleteById(id);
+                return true;
+            }
+            return false;
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // Item cannot be deleted because it's referenced by sales or other entities
+            throw new RuntimeException("Cannot delete item: It is referenced by existing sales or other records.");
+        } catch (Exception e) {
+            throw new RuntimeException("Error deleting item: " + e.getMessage());
         }
-        return false;
     }
     
     

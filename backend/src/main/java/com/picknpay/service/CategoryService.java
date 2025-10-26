@@ -49,11 +49,18 @@ public class CategoryService {
     }
 
     public boolean deleteCategory(Long id) {
-        if (categoryRepository.existsById(id)) {
-            categoryRepository.deleteById(id);
-            return true;
+        try {
+            if (categoryRepository.existsById(id)) {
+                categoryRepository.deleteById(id);
+                return true;
+            }
+            return false;
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // Category cannot be deleted because it's referenced by items
+            throw new RuntimeException("Cannot delete category: It is referenced by existing items.");
+        } catch (Exception e) {
+            throw new RuntimeException("Error deleting category: " + e.getMessage());
         }
-        return false;
     }
 
     private Category convertToEntity(CategoryDTO dto) {

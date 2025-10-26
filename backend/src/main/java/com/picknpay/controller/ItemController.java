@@ -86,9 +86,13 @@ public class ItemController {
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
-        boolean deleted = itemService.deleteItem(id);
-        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    public ResponseEntity<?> deleteItem(@PathVariable Long id) {
+        try {
+            boolean deleted = itemService.deleteItem(id);
+            return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
     
     @PatchMapping("/{id}/stock")

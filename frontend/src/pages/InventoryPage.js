@@ -173,7 +173,9 @@ const InventoryPage = () => {
         setSuccess('Item deleted successfully');
         fetchItems();
       } catch (err) {
-        setError('Failed to delete item');
+        const errorMessage = err.response?.data || 'Failed to delete item';
+        setError(errorMessage);
+        console.error('Delete item error:', err);
       } finally {
         setLoading(false);
       }

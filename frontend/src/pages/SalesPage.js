@@ -141,16 +141,8 @@ const SalesPage = () => {
       setCategories(posCategories);
     } catch (err) {
       console.error('Failed to load categories:', err);
-      // Set default categories if API fails
-      setCategories([
-        { id: 1, name: 'No Category' },
-        { id: 2, name: 'Tobacco' },
-        { id: 3, name: 'Vape' },
-        { id: 4, name: 'Drinks' },
-        { id: 5, name: 'Snacks' },
-        { id: 6, name: 'Mobile Accessories' },
-        { id: 7, name: 'Pick & Mix' }
-      ]);
+      // Set empty categories if API fails - only Quick Sale will be available
+      setCategories([]);
     }
   };
 

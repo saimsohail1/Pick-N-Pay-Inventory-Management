@@ -178,20 +178,9 @@ INSERT INTO company_settings (company_name, address, phone, email, tax_number) V
 'info@picknpay.com', 
 'IE123456789');
 
--- Insert sample categories
+-- Insert Quick Sale category only
 INSERT INTO categories (name, description, is_active, display_on_pos) VALUES
-('Beverages', 'Soft drinks, juices, and other beverages', true, true),
-('Food', 'Food items and snacks', true, true),
-('Dairy', 'Milk, cheese, and dairy products', true, true),
-('Bakery', 'Bread, pastries, and baked goods', true, true);
-
--- Insert sample items
-INSERT INTO items (name, description, price, stock_quantity, barcode, vat_rate, category_id) VALUES
-('Coca Cola 330ml', 'Refreshing soft drink', 2.50, 100, '1234567890123', 23.00, 1),
-('Bread Loaf', 'Fresh white bread', 3.00, 50, '2345678901234', 0.00, 4),
-('Milk 1L', 'Fresh whole milk', 2.80, 75, '3456789012345', 0.00, 3),
-('Chocolate Bar', 'Milk chocolate bar', 1.50, 200, '4567890123456', 23.00, 2),
-('Apple', 'Fresh red apples', 0.80, 150, '5678901234567', 0.00, 2);
+('Quick Sale', 'Quick sale items without specific category', true, true);
 
 -- ============================================
 -- 6. CREATE TRIGGERS FOR AUTOMATIC TIMESTAMPS
@@ -235,12 +224,12 @@ SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' O
 SELECT 'Admin user created:' as status;
 SELECT username, email, role, is_active FROM users WHERE role = 'ADMIN';
 
--- Verify sample data
-SELECT 'Sample categories:' as status;
-SELECT id, name, is_active FROM categories;
+-- Verify Quick Sale category
+SELECT 'Quick Sale category:' as status;
+SELECT id, name, is_active FROM categories WHERE name = 'Quick Sale';
 
-SELECT 'Sample items:' as status;
-SELECT id, name, price, vat_rate, stock_quantity FROM items LIMIT 5;
+-- No sample items - database starts empty
+SELECT 'No sample items - database starts empty' as status;
 
 -- ============================================
 -- 9. SUCCESS MESSAGE
@@ -271,7 +260,7 @@ BEGIN
     RAISE NOTICE '1. Start the Spring Boot application';
     RAISE NOTICE '2. Login with admin credentials';
     RAISE NOTICE '3. Configure company settings';
-    RAISE NOTICE '4. Add more categories and items';
-    RAISE NOTICE '5. Create batches for inventory tracking';
+    RAISE NOTICE '4. Add categories and items as needed';
+    RAISE NOTICE '5. Quick Sale category is ready for immediate use';
     RAISE NOTICE '============================================';
 END $$;

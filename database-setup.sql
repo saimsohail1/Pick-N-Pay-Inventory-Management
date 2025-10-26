@@ -131,7 +131,8 @@ CREATE TABLE sale_items (
     vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00, -- FIXED: VAT rate is always calculated, default 23%
     vat_amount DECIMAL(10,2) NOT NULL DEFAULT 0, -- FIXED: VAT amount is always calculated
     price_excluding_vat DECIMAL(10,2) NOT NULL DEFAULT 0, -- FIXED: Price excluding VAT is always calculated
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -202,6 +203,7 @@ CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON categories FOR EACH
 CREATE TRIGGER update_items_updated_at BEFORE UPDATE ON items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_batches_updated_at BEFORE UPDATE ON batches FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_sales_updated_at BEFORE UPDATE ON sales FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_sale_items_updated_at BEFORE UPDATE ON sale_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
 -- 7. GRANT PERMISSIONS

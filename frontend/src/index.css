@@ -471,6 +471,48 @@ body {
   z-index: 1060 !important;
 }
 
+/* Custom Scrollbar Styles for Categories Section */
+.scrollable-categories,
+.scrollable-quick-sale,
+.scrollable-category-items {
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  scrollbar-width: thin;
+  scrollbar-color: #6c757d #f8f9fa;
+}
+
+.scrollable-categories::-webkit-scrollbar,
+.scrollable-quick-sale::-webkit-scrollbar,
+.scrollable-category-items::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable-categories::-webkit-scrollbar-track,
+.scrollable-quick-sale::-webkit-scrollbar-track,
+.scrollable-category-items::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.scrollable-categories::-webkit-scrollbar-thumb,
+.scrollable-quick-sale::-webkit-scrollbar-thumb,
+.scrollable-category-items::-webkit-scrollbar-thumb {
+  background: #6c757d;
+  border-radius: 4px;
+}
+
+.scrollable-categories::-webkit-scrollbar-thumb:hover,
+.scrollable-quick-sale::-webkit-scrollbar-thumb:hover,
+.scrollable-category-items::-webkit-scrollbar-thumb:hover {
+  background: #495057;
+}
+
+/* Smooth scrolling for better UX */
+.scrollable-categories,
+.scrollable-quick-sale,
+.scrollable-category-items {
+  scroll-behavior: smooth;
+}
+
 /* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *,

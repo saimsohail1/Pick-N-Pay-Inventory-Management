@@ -958,6 +958,20 @@ const SalesPage = () => {
         </div>
       </div>
 
+      {/* Success and Error Messages */}
+      {success && (
+        <Alert variant="success" className="m-3 mb-0" onClose={() => setSuccess(null)} dismissible>
+          <i className="bi bi-check-circle me-2"></i>
+          {success}
+        </Alert>
+      )}
+      {error && (
+        <Alert variant="danger" className="m-3 mb-0" onClose={() => setError(null)} dismissible>
+          <i className="bi bi-exclamation-triangle me-2"></i>
+          {error}
+        </Alert>
+      )}
+
       {/* Main Content */}
       <div className="flex-grow-1 d-flex" style={{ overflow: 'hidden', margin: 0, padding: 0 }}>
           {/* Main Content Area */}

@@ -71,6 +71,7 @@ const SalesPage = () => {
   const [outOfStockItem, setOutOfStockItem] = useState(null);
   const [editItemDialogOpen, setEditItemDialogOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState(null);
+  const [itemFormCache, setItemFormCache] = useState({}); // Cache for item registration forms by barcode
   const lastClickRef = React.useRef({});
   const { addTimeout } = useTimeoutManager();
 
@@ -123,6 +124,35 @@ const SalesPage = () => {
       }
     }
   }, [selectedItemId, items, reset]);
+
+  // Helper function to save form data to cache
+  const saveFormToCache = (barcode, formData) => {
+    if (barcode && barcode.trim() !== '') {
+      setItemFormCache(prev => ({
+        ...prev,
+        [barcode]: { ...formData }
+      }));
+    }
+  };
+
+  // Helper function to load form data from cache
+  const loadFormFromCache = (barcode) => {
+    if (barcode && barcode.trim() !== '' && itemFormCache[barcode]) {
+      return { ...itemFormCache[barcode] };
+    }
+    return null;
+  };
+
+  // Helper function to clear form cache for a specific barcode
+  const clearFormCache = (barcode) => {
+    if (barcode && barcode.trim() !== '') {
+      setItemFormCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[barcode];
+        return newCache;
+      });
+    }
+  };
 
   const fetchItems = async () => {
     try {
@@ -1804,14 +1834,34 @@ const SalesPage = () => {
               size="lg"
               onClick={() => {
                 setItemNotFoundDialogOpen(false);
-                setNewItem({
-                  name: '',
-                  barcode: scannedBarcode,
-                  price: '',
-                  stockQuantity: '',
-                  vatRate: '23.00',
-                  categoryId: ''
-                });
+                
+                // Check if we have cached data for this barcode
+                const cachedData = loadFormFromCache(scannedBarcode);
+                
+                if (cachedData) {
+                  // Restore cached form data
+                  setNewItem({
+                    name: cachedData.name || '',
+                    barcode: scannedBarcode,
+                    price: cachedData.price || '',
+                    stockQuantity: cachedData.stockQuantity || '',
+                    vatRate: cachedData.vatRate || '23.00',
+                    categoryId: cachedData.categoryId || ''
+                  });
+                  setSuccess('Previous form data restored for this barcode!');
+                  addTimeout(() => setSuccess(null), 3000);
+                } else {
+                  // No cached data, start fresh
+                  setNewItem({
+                    name: '',
+                    barcode: scannedBarcode,
+                    price: '',
+                    stockQuantity: '',
+                    vatRate: '23.00',
+                    categoryId: ''
+                  });
+                }
+                
                 setRegisterItemDialogOpen(true);
               }}
               className="px-4"
@@ -1838,7 +1888,11 @@ const SalesPage = () => {
                 type="text"
                 placeholder="Enter item name"
                 value={newItem.name}
-                onChange={(e) => setNewItem(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => {
+                  const updatedItem = { ...newItem, name: e.target.value };
+                  setNewItem(updatedItem);
+                  saveFormToCache(newItem.barcode, updatedItem);
+                }}
                 required
               />
             </Form.Group>
@@ -1849,7 +1903,11 @@ const SalesPage = () => {
                 type="text"
                 placeholder="Enter barcode"
                 value={newItem.barcode}
-                onChange={(e) => setNewItem(prev => ({ ...prev, barcode: e.target.value }))}
+                onChange={(e) => {
+                  const updatedItem = { ...newItem, barcode: e.target.value };
+                  setNewItem(updatedItem);
+                  saveFormToCache(e.target.value, updatedItem);
+                }}
                 required
               />
             </Form.Group>
@@ -1861,7 +1919,11 @@ const SalesPage = () => {
                 step="0.01"
                 placeholder="Enter price"
                 value={newItem.price}
-                onChange={(e) => setNewItem(prev => ({ ...prev, price: e.target.value }))}
+                onChange={(e) => {
+                  const updatedItem = { ...newItem, price: e.target.value };
+                  setNewItem(updatedItem);
+                  saveFormToCache(newItem.barcode, updatedItem);
+                }}
                 required
               />
             </Form.Group>
@@ -1872,7 +1934,11 @@ const SalesPage = () => {
                 type="number"
                 placeholder="Enter stock quantity"
                 value={newItem.stockQuantity}
-                onChange={(e) => setNewItem(prev => ({ ...prev, stockQuantity: e.target.value }))}
+                onChange={(e) => {
+                  const updatedItem = { ...newItem, stockQuantity: e.target.value };
+                  setNewItem(updatedItem);
+                  saveFormToCache(newItem.barcode, updatedItem);
+                }}
                 required
               />
             </Form.Group>
@@ -1885,7 +1951,11 @@ const SalesPage = () => {
                   step="0.01"
                   placeholder="23.00"
                   value={newItem.vatRate}
-                  onChange={(e) => setNewItem(prev => ({ ...prev, vatRate: e.target.value }))}
+                  onChange={(e) => {
+                    const updatedItem = { ...newItem, vatRate: e.target.value };
+                    setNewItem(updatedItem);
+                    saveFormToCache(newItem.barcode, updatedItem);
+                  }}
                   required
                 />
                 <InputGroup.Text>%</InputGroup.Text>
@@ -1896,7 +1966,11 @@ const SalesPage = () => {
               <Form.Label>Category</Form.Label>
               <Form.Select
                 value={newItem.categoryId}
-                onChange={(e) => setNewItem(prev => ({ ...prev, categoryId: e.target.value }))}
+                onChange={(e) => {
+                  const updatedItem = { ...newItem, categoryId: e.target.value };
+                  setNewItem(updatedItem);
+                  saveFormToCache(newItem.barcode, updatedItem);
+                }}
               >
                 <option value="">Select a category</option>
                 {categories.map((category) => (
@@ -1929,6 +2003,9 @@ const SalesPage = () => {
                 setSuccess('Item registered successfully!');
                 addTimeout(() => setSuccess(null), 3000);
                 setRegisterItemDialogOpen(false);
+                
+                // Clear cache for this barcode since item was successfully registered
+                clearFormCache(newItem.barcode);
                 
                 // Reset form
                 setNewItem({

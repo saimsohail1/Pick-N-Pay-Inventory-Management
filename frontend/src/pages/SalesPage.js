@@ -172,8 +172,8 @@ const SalesPage = () => {
           updatedCart[existingItemIndex].unitPrice * updatedCart[existingItemIndex].quantity;
         return updatedCart;
       } else {
-        // Add new item to cart
-        return [...currentCart, newItem];
+        // Add new item to cart at the beginning (latest first)
+        return [newItem, ...currentCart];
       }
     });
   };
@@ -199,7 +199,7 @@ const SalesPage = () => {
         console.log('Updated existing item, new quantity:', updatedCart[existingItemIndex].quantity);
         return updatedCart;
       } else {
-        // Add new quick sale item
+        // Add new quick sale item at the beginning (latest first)
         const quickSaleItem = {
           id: Date.now() + Math.random(),
           itemId: null,
@@ -210,7 +210,7 @@ const SalesPage = () => {
           totalPrice: price
         };
         console.log('Adding new quick sale item:', quickSaleItem);
-        return [...currentCart, quickSaleItem];
+        return [quickSaleItem, ...currentCart];
       }
     });
   };

@@ -1390,7 +1390,7 @@ const SalesPage = () => {
                       {categories.map((category) => (
                         <Button 
                           key={category.id} 
-                          variant="outline-primary" 
+                          variant={category.name === 'Quick Sale' ? 'secondary' : 'outline-primary'} 
                           size="lg"
                           className="fw-bold category-btn"
                           onClick={() => handleCategoryClick(category)}
@@ -1398,9 +1398,9 @@ const SalesPage = () => {
                             padding: '1rem', 
                             fontSize: '1.1rem', 
                             minHeight: '60px',
-                            backgroundColor: '#f8f9fa',
-                            color: '#495057',
-                            borderColor: '#dee2e6'
+                            backgroundColor: category.name === 'Quick Sale' ? '#6c757d' : '#f8f9fa',
+                            color: category.name === 'Quick Sale' ? '#ffffff' : '#495057',
+                            borderColor: category.name === 'Quick Sale' ? '#6c757d' : '#dee2e6'
                           }}
                         >
                           {category.name}

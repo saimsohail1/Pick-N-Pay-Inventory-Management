@@ -149,6 +149,7 @@ export const createReceiptHTML = (sale, companyName = 'PickNPay') => {
             font-size: 12px; 
             line-height: 1.2;
             width: 70mm;
+            font-weight: bold;
           }
         }
         body { 
@@ -158,6 +159,7 @@ export const createReceiptHTML = (sale, companyName = 'PickNPay') => {
           margin: 0; 
           padding: 5mm; 
           width: 70mm;
+          font-weight: bold;
         }
         .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
         .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
@@ -256,6 +258,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
             line-height: 1.7;
             color: #000;
             background: white;
+            font-weight: bold;
           }
           .no-print {
             display: none !important;
@@ -270,6 +273,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           padding: 5mm; 
           color: #000;
           background: white;
+          font-weight: bold;
         }
         
         .header { 
@@ -490,6 +494,7 @@ export const createSalesHistoryHTML = (sales, companyName = 'PickNPay', dateRang
             line-height: 1.4;
             color: #000;
             background: white;
+            font-weight: bold;
           }
           .no-print {
             display: none !important;
@@ -504,6 +509,7 @@ export const createSalesHistoryHTML = (sales, companyName = 'PickNPay', dateRang
           padding: 10mm; 
           color: #000;
           background: white;
+          font-weight: bold;
         }
         
         .header { 

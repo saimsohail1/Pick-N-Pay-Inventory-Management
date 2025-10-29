@@ -210,35 +210,6 @@ const SalesHistory = () => {
     }
   };
 
-  const handlePrintAllSales = async () => {
-    try {
-      const companyName = 'PickNPay';
-      const dateRange = selectedDate ? `Date: ${selectedDate}` : 'All Sales';
-      const salesHistoryContent = createSalesHistoryHTML(sales, companyName, dateRange);
-      
-      try {
-        await directPrint(salesHistoryContent, `Sales History - ${dateRange}`);
-      } catch (printError) {
-        console.log('Direct print failed, trying Safari-compatible method');
-        const printWindow = window.open('', '_blank', 'width=800,height=600');
-        if (printWindow) {
-          printWindow.document.write(salesHistoryContent);
-          printWindow.document.close();
-          printWindow.focus();
-          setTimeout(() => {
-            printWindow.print();
-            setTimeout(() => printWindow.close(), 1000);
-          }, 500);
-        } else {
-          throw new Error('Popup blocked. Please allow popups for this site.');
-        }
-      }
-    } catch (error) {
-      console.error('Print all sales error:', error);
-      alert('Printing failed. Please check your printer connection and allow popups for this site.');
-    }
-  };
-
   const formatTime = (date) => format(new Date(date), "HH:mm");
 
   const getPaymentMethodBadge = (method) => {
@@ -361,15 +332,6 @@ const SalesHistory = () => {
               Sales Transactions
             </h6>
             <div className="d-flex align-items-center gap-3">
-              <Button
-                variant="outline-primary"
-                size="sm"
-                onClick={handlePrintAllSales}
-                className="no-print"
-              >
-                <i className="bi bi-printer me-1"></i>
-                Print All
-              </Button>
               <div className="text-end">
                 <small className="text-muted">
                   <i className="bi bi-calendar3 me-1"></i>

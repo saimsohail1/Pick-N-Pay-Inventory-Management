@@ -1398,7 +1398,7 @@ const SalesPage = () => {
             </div>
 
             {/* Categories / Category Items Navigation */}
-            <div className="mb-1 flex-grow-1" style={{ padding: '0.5rem' }}>
+            <div className="mb-1 flex-grow-1 d-flex flex-column" style={{ padding: '0.5rem', overflow: 'hidden' }}>
               {currentView === 'categories' ? (
                 <>
                   {/* Categories Header with Blue Background */}
@@ -1408,7 +1408,7 @@ const SalesPage = () => {
                   {/* Scrollable Categories Container */}
                   <div 
                     style={{ 
-                      maxHeight: '400px', 
+                      flex: '1',
                       overflowY: 'auto',
                       paddingRight: '8px'
                     }}
@@ -1455,7 +1455,7 @@ const SalesPage = () => {
                   {/* Scrollable Quick Sale Container */}
                   <div 
                     style={{ 
-                      maxHeight: '400px', 
+                      flex: '1',
                       overflowY: 'auto',
                       paddingRight: '8px'
                     }}
@@ -1508,7 +1508,7 @@ const SalesPage = () => {
                     /* Scrollable Category Items Container */
                     <div 
                       style={{ 
-                        maxHeight: '400px', 
+                        flex: '1',
                         overflowY: 'auto',
                         paddingRight: '8px'
                       }}

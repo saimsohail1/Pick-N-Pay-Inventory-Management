@@ -988,15 +988,43 @@ const SalesPage = () => {
         </div>
       </div>
 
-      {/* Success and Error Messages */}
+      {/* Success and Error Messages - Fixed Position */}
       {success && (
-        <Alert variant="success" className="m-3 mb-0" onClose={() => setSuccess(null)} dismissible>
+        <Alert 
+          variant="success" 
+          onClose={() => setSuccess(null)} 
+          dismissible
+          style={{
+            position: 'fixed',
+            top: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            minWidth: '400px',
+            maxWidth: '600px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}
+        >
           <i className="bi bi-check-circle me-2"></i>
           {success}
         </Alert>
       )}
       {error && (
-        <Alert variant="danger" className="m-3 mb-0" onClose={() => setError(null)} dismissible>
+        <Alert 
+          variant="danger" 
+          onClose={() => setError(null)} 
+          dismissible
+          style={{
+            position: 'fixed',
+            top: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            minWidth: '400px',
+            maxWidth: '600px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}
+        >
           <i className="bi bi-exclamation-triangle me-2"></i>
           {error}
         </Alert>
@@ -1386,14 +1414,14 @@ const SalesPage = () => {
                     }}
                     className="scrollable-categories"
                   >
-                    <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                      {categories.map((category) => (
-                        <Button 
-                          key={category.id} 
+                  <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                {categories.map((category) => (
+                  <Button 
+                    key={category.id} 
                           variant={category.name === 'Quick Sale' ? 'secondary' : 'outline-primary'} 
-                          size="lg"
-                          className="fw-bold category-btn"
-                          onClick={() => handleCategoryClick(category)}
+                    size="lg"
+                    className="fw-bold category-btn"
+                        onClick={() => handleCategoryClick(category)}
                           style={{ 
                             padding: '1rem', 
                             fontSize: '1.1rem', 
@@ -1402,12 +1430,12 @@ const SalesPage = () => {
                             color: category.name === 'Quick Sale' ? '#ffffff' : '#495057',
                             borderColor: category.name === 'Quick Sale' ? '#6c757d' : '#dee2e6'
                           }}
-                        >
-                          {category.name}
-                        </Button>
-                      ))}
+                  >
+                    {category.name}
+                  </Button>
+                ))}
                     </div>
-                  </div>
+              </div>
                 </>
               ) : currentView === 'quickSale' ? (
                 <>
@@ -1423,7 +1451,7 @@ const SalesPage = () => {
                       <i className="bi bi-x-circle me-2"></i>
                       Back
                     </Button>
-                  </div>
+            </div>
                   {/* Scrollable Quick Sale Container */}
                   <div 
                     style={{ 
@@ -1433,14 +1461,14 @@ const SalesPage = () => {
                     }}
                     className="scrollable-quick-sale"
                   >
-                    <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                      {quickSalePrices.map((price, index) => (
-                        <Button
-                          key={`quick-sale-${price}`}
-                          variant="outline-primary"
-                          onClick={(e) => handleQuickPriceSale(price, e)}
-                          className="fw-bold quick-sale-btn"
-                          size="lg"
+              <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                {quickSalePrices.map((price, index) => (
+                  <Button
+                    key={`quick-sale-${price}`}
+                    variant="outline-primary"
+                    onClick={(e) => handleQuickPriceSale(price, e)}
+                        className="fw-bold quick-sale-btn"
+                    size="lg"
                           style={{ 
                             padding: '1rem', 
                             fontSize: '1.2rem', 
@@ -1449,12 +1477,12 @@ const SalesPage = () => {
                             color: '#495057',
                             borderColor: '#dee2e6'
                           }}
-                        >
-                          €{price.toFixed(2)}
-                        </Button>
-                      ))}
+                  >
+                    €{price.toFixed(2)}
+                  </Button>
+                ))}
                     </div>
-                  </div>
+              </div>
                 </>
               ) : (
                 <>
@@ -1470,7 +1498,7 @@ const SalesPage = () => {
                       <i className="bi bi-x-circle me-1"></i>
                       Back
                     </Button>
-                  </div>
+            </div>
                   {loading ? (
                     <div className="text-center py-3">
                       <Spinner animation="border" size="sm" />
@@ -1486,14 +1514,14 @@ const SalesPage = () => {
                       }}
                       className="scrollable-category-items"
                     >
-                      <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-                        {categoryItems.map((item) => (
-                          <Button
-                            key={item.id}
-                            variant="outline-primary"
-                            onClick={() => handleCategoryItemClick(item)}
-                            className="py-2 fw-bold category-item-btn"
-                            size="lg"
+                    <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                      {categoryItems.map((item) => (
+                        <Button
+                          key={item.id}
+                          variant="outline-primary"
+                          onClick={() => handleCategoryItemClick(item)}
+                          className="py-2 fw-bold category-item-btn"
+                          size="lg"
                             style={{ 
                               minHeight: '70px', 
                               fontSize: '1.1rem',
@@ -1501,13 +1529,13 @@ const SalesPage = () => {
                               color: '#495057',
                               borderColor: '#dee2e6'
                             }}
-                          >
-                            <div className="text-start">
-                              <div className="fw-bold">{item.name}</div>
-                              <div className="small text-muted">€{parseFloat(item.price).toFixed(2)}</div>
-                            </div>
-                          </Button>
-                        ))}
+                        >
+                          <div className="text-start">
+                            <div className="fw-bold">{item.name}</div>
+                            <div className="small text-muted">€{parseFloat(item.price).toFixed(2)}</div>
+                          </div>
+                        </Button>
+                      ))}
                       </div>
                     </div>
                   )}
@@ -1852,14 +1880,14 @@ const SalesPage = () => {
                   addTimeout(() => setSuccess(null), 3000);
                 } else {
                   // No cached data, start fresh
-                  setNewItem({
-                    name: '',
-                    barcode: scannedBarcode,
-                    price: '',
-                    stockQuantity: '',
-                    vatRate: '23.00',
-                    categoryId: ''
-                  });
+                setNewItem({
+                  name: '',
+                  barcode: scannedBarcode,
+                  price: '',
+                  stockQuantity: '',
+                  vatRate: '23.00',
+                  categoryId: ''
+                });
                 }
                 
                 setRegisterItemDialogOpen(true);

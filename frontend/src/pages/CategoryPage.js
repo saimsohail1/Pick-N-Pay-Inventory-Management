@@ -41,7 +41,7 @@ const CategoryPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await categoriesAPI.getAll();
+      const response = await categoriesAPI.getAllIncludingInactive();
       setCategories(response.data);
     } catch (err) {
       setError('Failed to fetch categories.');

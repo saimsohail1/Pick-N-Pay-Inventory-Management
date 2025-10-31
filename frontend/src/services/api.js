@@ -92,6 +92,7 @@ export const companySettingsAPI = {
 // Categories API
 export const categoriesAPI = {
   getAll: () => api.get('/categories'),
+  getAllIncludingInactive: () => api.get('/categories/all'),
   getAllWithItems: () => api.get('/categories/with-items'),
   getById: (id) => api.get(`/categories/${id}`),
   getCategoryItems: (id) => api.get(`/categories/${id}/items`),

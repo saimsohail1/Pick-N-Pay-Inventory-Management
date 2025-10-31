@@ -23,6 +23,13 @@ public class CategoryService {
                 .collect(Collectors.toList());
     }
 
+    public List<CategoryDTO> getAllCategories() {
+        return categoryRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
 
     public Optional<CategoryDTO> getCategoryById(Long id) {
         return categoryRepository.findById(id)

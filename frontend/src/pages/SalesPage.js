@@ -168,7 +168,15 @@ const SalesPage = () => {
       const response = await categoriesAPI.getAll();
       // Filter categories to only show those with displayOnPos = true (or null for backward compatibility)
       const posCategories = response.data.filter(category => category.displayOnPos !== false);
-      setCategories(posCategories);
+      
+      // Sort categories to put "Quick Sale" first, then alphabetically
+      const sortedCategories = posCategories.sort((a, b) => {
+        if (a.name === 'Quick Sale') return -1;
+        if (b.name === 'Quick Sale') return 1;
+        return a.name.localeCompare(b.name);
+      });
+      
+      setCategories(sortedCategories);
     } catch (err) {
       console.error('Failed to load categories:', err);
       // Set empty categories if API fails - only Quick Sale will be available

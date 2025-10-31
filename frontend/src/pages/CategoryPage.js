@@ -229,22 +229,36 @@ const CategoryPage = () => {
                         {new Date(category.createdAt).toLocaleDateString()}
                       </td>
                       <td>
-                        <div className="d-flex gap-1">
+                        <div className="d-flex gap-2">
                           <Button
                             variant="outline-primary"
-                            size="sm"
                             onClick={() => handleEditCategory(category)}
                             title="Edit"
+                            style={{
+                              width: '50px',
+                              height: '50px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '0'
+                            }}
                           >
-                            <i className="bi bi-pencil"></i>
+                            <i className="bi bi-pencil" style={{ fontSize: '18px' }}></i>
                           </Button>
                           <Button
                             variant="outline-danger"
-                            size="sm"
                             onClick={() => handleDeleteCategory(category.id)}
                             title="Delete"
+                            style={{
+                              width: '50px',
+                              height: '50px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '0'
+                            }}
                           >
-                            <i className="bi bi-trash"></i>
+                            <i className="bi bi-trash" style={{ fontSize: '18px' }}></i>
                           </Button>
                         </div>
                       </td>

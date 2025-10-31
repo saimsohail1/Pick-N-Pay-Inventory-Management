@@ -498,22 +498,36 @@ const InventoryPage = () => {
                     )}
                   </td>
                   <td className="text-center">
-                    <div className="d-flex justify-content-center gap-1">
+                    <div className="d-flex justify-content-center gap-2">
                       <Button
                         variant="outline-primary"
-                        size="sm"
                         onClick={() => handleEdit(item)}
                         title="Edit Item"
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0'
+                        }}
                       >
-                        <i className="bi bi-pencil"></i>
+                        <i className="bi bi-pencil" style={{ fontSize: '18px' }}></i>
                       </Button>
                       <Button
                         variant="outline-danger"
-                        size="sm"
                         onClick={() => handleDelete(item.id)}
                         title="Delete Item"
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0'
+                        }}
                       >
-                        <i className="bi bi-trash"></i>
+                        <i className="bi bi-trash" style={{ fontSize: '18px' }}></i>
                       </Button>
                     </div>
                   </td>

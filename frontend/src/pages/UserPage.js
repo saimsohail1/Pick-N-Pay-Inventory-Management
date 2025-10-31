@@ -283,32 +283,56 @@ const UserPage = () => {
                     </td>
                     <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                     <td className="text-center">
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleEditUser(user)}
-                        disabled={submitting}
-                      >
-                        <i className="bi bi-pencil-square"></i>
-                      </Button>
-                      <Button
-                        variant={user.isActive ? 'outline-warning' : 'outline-success'}
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleToggleStatus(user.id)}
-                        disabled={submitting}
-                      >
-                        <i className={`bi ${user.isActive ? 'bi-pause' : 'bi-play'}`}></i>
-                      </Button>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => handleDeleteUser(user.id)}
-                        disabled={submitting}
-                      >
-                        <i className="bi bi-trash"></i>
-                      </Button>
+                      <div className="d-flex justify-content-center gap-2">
+                        <Button
+                          variant="outline-primary"
+                          onClick={() => handleEditUser(user)}
+                          disabled={submitting}
+                          title="Edit User"
+                          style={{
+                            width: '50px',
+                            height: '50px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '0'
+                          }}
+                        >
+                          <i className="bi bi-pencil-square" style={{ fontSize: '18px' }}></i>
+                        </Button>
+                        <Button
+                          variant={user.isActive ? 'outline-warning' : 'outline-success'}
+                          onClick={() => handleToggleStatus(user.id)}
+                          disabled={submitting}
+                          title={user.isActive ? 'Deactivate User' : 'Activate User'}
+                          style={{
+                            width: '50px',
+                            height: '50px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '0'
+                          }}
+                        >
+                          <i className={`bi ${user.isActive ? 'bi-pause' : 'bi-play'}`} style={{ fontSize: '18px' }}></i>
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          onClick={() => handleDeleteUser(user.id)}
+                          disabled={submitting}
+                          title="Delete User"
+                          style={{
+                            width: '50px',
+                            height: '50px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '0'
+                          }}
+                        >
+                          <i className="bi bi-trash" style={{ fontSize: '18px' }}></i>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

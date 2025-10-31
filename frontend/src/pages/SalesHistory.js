@@ -411,8 +411,8 @@ const SalesHistory = () => {
                               borderRadius: '8px',
                               borderWidth: '2px',
                               borderColor: '#007bff',
-                              width: '45px',
-                              height: '45px',
+                              width: '60px',
+                              height: '60px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -421,7 +421,7 @@ const SalesHistory = () => {
                             }}
                             title="Edit Sale"
                           >
-                            <i className="bi bi-pencil text-primary" style={{ fontSize: '16px' }}></i>
+                            <i className="bi bi-pencil text-primary" style={{ fontSize: '20px' }}></i>
                           </Button>
                         )}
                         <Button 
@@ -432,8 +432,8 @@ const SalesHistory = () => {
                             borderRadius: '8px',
                             borderWidth: '2px',
                             borderColor: '#28a745',
-                            width: '45px',
-                            height: '45px',
+                            width: '60px',
+                            height: '60px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -442,7 +442,7 @@ const SalesHistory = () => {
                           }}
                           title="Print Receipt"
                         >
-                          <i className="bi bi-printer text-success" style={{ fontSize: '16px' }}></i>
+                          <i className="bi bi-printer text-success" style={{ fontSize: '20px' }}></i>
                         </Button>
                         {isAdminUser && (
                           <Button 
@@ -453,8 +453,8 @@ const SalesHistory = () => {
                               borderRadius: '8px',
                               borderWidth: '2px',
                               borderColor: '#dc3545',
-                              width: '45px',
-                              height: '45px',
+                              width: '60px',
+                              height: '60px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -463,7 +463,7 @@ const SalesHistory = () => {
                             }}
                             title="Delete Sale"
                           >
-                            <i className="bi bi-trash text-danger" style={{ fontSize: '16px' }}></i>
+                            <i className="bi bi-trash text-danger" style={{ fontSize: '20px' }}></i>
                           </Button>
                         )}
                       </div>

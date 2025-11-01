@@ -719,14 +719,37 @@ const SalesPage = () => {
     }
   };
 
-  const handleEditSelectedItem = () => {
+  const handleEditSelectedItem = async () => {
     if (!selectedCartItem) {
       setError('Please select an item from the cart first.');
       addTimeout(() => setError(null), 3000);
       return;
     }
-    setItemToEdit(selectedCartItem);
-    setEditItemDialogOpen(true);
+    
+    // Fetch the full item data from database to get actual stock quantity
+    try {
+      setLoading(true);
+      const response = await itemsAPI.getById(selectedCartItem.itemId);
+      const fullItemData = response.data || response;
+      
+      // Merge cart item data with database item data
+      const itemToEditData = {
+        ...selectedCartItem,
+        stockQuantity: fullItemData.stockQuantity, // Use actual DB stock quantity
+        generalExpiryDate: fullItemData.generalExpiryDate,
+        batchId: fullItemData.batchId,
+        description: fullItemData.description
+      };
+      
+      setItemToEdit(itemToEditData);
+      setEditItemDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching item details:', error);
+      setError('Failed to load item details. Please try again.');
+      addTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
   };
 
 

@@ -191,8 +191,8 @@ const InventoryPage = () => {
         const canvas = document.createElement('canvas');
         JsBarcode(canvas, item.barcode, {
           format: 'CODE128',
-          width: 2,
-          height: 80,
+          width: 1,
+          height: 40,
           displayValue: false,
           margin: 0
         });
@@ -243,15 +243,15 @@ const InventoryPage = () => {
           }
           
           .item-name {
-            font-size: 32px;
+            font-size: 16px;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 8px;
             word-wrap: break-word;
             line-height: 1.2;
           }
           
           .barcode-container {
-            margin: 15px 0;
+            margin: 8px 0;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -263,14 +263,14 @@ const InventoryPage = () => {
           }
           
           .item-price {
-            font-size: 48px;
+            font-size: 24px;
             font-weight: bold;
             color: #000;
-            margin-top: 10px;
+            margin-top: 5px;
           }
           
           .price-symbol {
-            font-size: 36px;
+            font-size: 18px;
           }
         </style>
       </head>

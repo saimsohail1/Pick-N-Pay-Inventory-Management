@@ -14,6 +14,7 @@ import {
 } from 'react-bootstrap';
 import { itemsAPI, categoriesAPI } from '../services/api';
 import EditItemDialog from '../components/EditItemDialog';
+import JsBarcode from 'jsbarcode';
 
 const InventoryPage = () => {
   const [items, setItems] = useState([]);
@@ -183,6 +184,24 @@ const InventoryPage = () => {
   };
 
   const handlePrintLabel = (item) => {
+    // Generate barcode SVG
+    let barcodeDataURL = '';
+    if (item.barcode) {
+      try {
+        const canvas = document.createElement('canvas');
+        JsBarcode(canvas, item.barcode, {
+          format: 'CODE128',
+          width: 2,
+          height: 80,
+          displayValue: false,
+          margin: 0
+        });
+        barcodeDataURL = canvas.toDataURL('image/png');
+      } catch (error) {
+        console.error('Error generating barcode:', error);
+      }
+    }
+    
     const labelHTML = `
       <!DOCTYPE html>
       <html>
@@ -231,12 +250,16 @@ const InventoryPage = () => {
             line-height: 1.2;
           }
           
-          .item-barcode {
-            font-size: 28px;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-            margin-bottom: 15px;
-            letter-spacing: 2px;
+          .barcode-container {
+            margin: 15px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+          
+          .barcode-image {
+            max-width: 100%;
+            height: auto;
           }
           
           .item-price {
@@ -254,7 +277,11 @@ const InventoryPage = () => {
       <body>
         <div class="label-container">
           <div class="item-name">${item.name}</div>
-          ${item.barcode ? `<div class="item-barcode">${item.barcode}</div>` : ''}
+          ${barcodeDataURL ? `
+            <div class="barcode-container">
+              <img src="${barcodeDataURL}" alt="Barcode" class="barcode-image" />
+            </div>
+          ` : ''}
           <div class="item-price">
             <span class="price-symbol">€</span>${item.price.toFixed(2)}
           </div>

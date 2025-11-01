@@ -25,6 +25,7 @@
     "bootstrap-icons": "^1.13.1",
     "date-fns": "^2.29.3",
     "electron-is-dev": "^2.0.0",
+    "jsbarcode": "^3.12.1",
     "quagga": "^0.12.1",
     "react": "^18.2.0",
     "react-bootstrap": "^2.10.10",

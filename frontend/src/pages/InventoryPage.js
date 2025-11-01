@@ -218,7 +218,7 @@ const InventoryPage = () => {
           @media print {
             @page { 
               size: 2in 4in;
-              margin: 0.1in;
+              margin: 0.05in;
             }
             body {
               margin: 0;
@@ -233,13 +233,14 @@ const InventoryPage = () => {
             justify-content: center;
             align-items: center;
             min-height: 4in;
-            padding: 0.2in;
+            padding: 0.05in;
             font-weight: bold;
           }
           
           .label-container {
             text-align: center;
             width: 100%;
+            padding: 0;
           }
           
           .item-name {

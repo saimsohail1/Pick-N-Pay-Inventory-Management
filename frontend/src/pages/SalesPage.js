@@ -71,6 +71,8 @@ const SalesPage = () => {
   const [outOfStockItem, setOutOfStockItem] = useState(null);
   const [editItemDialogOpen, setEditItemDialogOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState(null);
+  const [printLabelDialogOpen, setPrintLabelDialogOpen] = useState(false);
+  const [itemToPrint, setItemToPrint] = useState(null);
   const [itemFormCache, setItemFormCache] = useState({}); // Cache for item registration forms by barcode
   const lastClickRef = React.useRef({});
   const { addTimeout } = useTimeoutManager();
@@ -790,9 +792,17 @@ const SalesPage = () => {
 
       setCart(updatedCart);
       setEditItemDialogOpen(false);
-      setItemToEdit(null);
       setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart and database.`);
-    addTimeout(() => setSuccess(null), 3000);
+      addTimeout(() => setSuccess(null), 3000);
+      
+      // Show print label dialog
+      setItemToPrint({
+        name: formData.name,
+        barcode: formData.barcode,
+        price: parseFloat(formData.price)
+      });
+      setPrintLabelDialogOpen(true);
+      setItemToEdit(null);
     } catch (err) {
       console.error('Failed to update item:', err);
       setError('Failed to update item. Please try again.');
@@ -800,6 +810,113 @@ const SalesPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePrintItemLabel = () => {
+    if (!itemToPrint) return;
+    
+    const labelHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Item Label - ${itemToPrint.name}</title>
+        <meta charset="UTF-8">
+        <style>
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          
+          @media print {
+            @page { 
+              size: 4in 2in;
+              margin: 0.1in;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+            }
+          }
+          
+          body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 2in;
+            padding: 0.2in;
+            font-weight: bold;
+          }
+          
+          .label-container {
+            text-align: center;
+            width: 100%;
+          }
+          
+          .item-name {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            word-wrap: break-word;
+            line-height: 1.2;
+          }
+          
+          .item-barcode {
+            font-size: 28px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+          }
+          
+          .item-price {
+            font-size: 48px;
+            font-weight: bold;
+            color: #000;
+            margin-top: 10px;
+          }
+          
+          .price-symbol {
+            font-size: 36px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="label-container">
+          <div class="item-name">${itemToPrint.name}</div>
+          ${itemToPrint.barcode ? `<div class="item-barcode">${itemToPrint.barcode}</div>` : ''}
+          <div class="item-price">
+            <span class="price-symbol">€</span>${itemToPrint.price.toFixed(2)}
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Create hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '-9999px';
+    document.body.appendChild(iframe);
+    
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(labelHTML);
+    doc.close();
+    
+    // Wait for content to load then print
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    }, 500);
+    
+    setPrintLabelDialogOpen(false);
+    setItemToPrint(null);
   };
 
   const handleConfirmDelete = () => {
@@ -2294,6 +2411,60 @@ const SalesPage = () => {
         title="Edit Item"
         isEditMode={true}
       />
+
+      {/* Print Label Confirmation Dialog */}
+      <Modal 
+        show={printLabelDialogOpen} 
+        onHide={() => {
+          setPrintLabelDialogOpen(false);
+          setItemToPrint(null);
+        }}
+        centered
+      >
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title>
+            <i className="bi bi-printer me-2"></i>
+            Print Item Label
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center py-4">
+          <div className="mb-4">
+            <i className="bi bi-tag text-primary" style={{ fontSize: '4rem' }}></i>
+          </div>
+          <h5 className="mb-3">Print Label for Updated Item?</h5>
+          {itemToPrint && (
+            <div className="text-start bg-light p-3 rounded mb-4">
+              <p className="mb-2"><strong>Name:</strong> {itemToPrint.name}</p>
+              {itemToPrint.barcode && (
+                <p className="mb-2"><strong>Barcode:</strong> {itemToPrint.barcode}</p>
+              )}
+              <p className="mb-0"><strong>Price:</strong> €{itemToPrint.price.toFixed(2)}</p>
+            </div>
+          )}
+          <p className="text-muted mb-0">
+            Would you like to print a label with the item's name, barcode, and price?
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setPrintLabelDialogOpen(false);
+              setItemToPrint(null);
+            }}
+          >
+            <i className="bi bi-x-circle me-1"></i>
+            No, Skip
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handlePrintItemLabel}
+          >
+            <i className="bi bi-printer me-1"></i>
+            Yes, Print Label
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       
       {/* Fullscreen indicator */}

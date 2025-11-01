@@ -1173,7 +1173,7 @@ const SalesPage = () => {
           dismissible
           style={{
             position: 'fixed',
-            top: '80px',
+            top: '20px',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 9999,
@@ -1193,7 +1193,7 @@ const SalesPage = () => {
           dismissible
           style={{
             position: 'fixed',
-            top: '80px',
+            top: '20px',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 9999,

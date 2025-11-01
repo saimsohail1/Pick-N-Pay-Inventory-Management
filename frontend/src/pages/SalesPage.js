@@ -726,7 +726,7 @@ const SalesPage = () => {
       return;
     }
     
-    // Fetch the full item data from database to get actual stock quantity
+    // Fetch the full item data from database to get actual stock quantity and category
     try {
       setLoading(true);
       const response = await itemsAPI.getById(selectedCartItem.itemId);
@@ -736,9 +736,11 @@ const SalesPage = () => {
       const itemToEditData = {
         ...selectedCartItem,
         stockQuantity: fullItemData.stockQuantity, // Use actual DB stock quantity
+        categoryId: fullItemData.categoryId, // Use actual DB category
         generalExpiryDate: fullItemData.generalExpiryDate,
         batchId: fullItemData.batchId,
-        description: fullItemData.description
+        description: fullItemData.description,
+        vatRate: fullItemData.vatRate
       };
       
       setItemToEdit(itemToEditData);

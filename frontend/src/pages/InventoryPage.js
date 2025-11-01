@@ -217,7 +217,7 @@ const InventoryPage = () => {
           
           @media print {
             @page { 
-              size: 4in 2in;
+              size: 2in 4in;
               margin: 0.1in;
             }
             body {
@@ -232,7 +232,7 @@ const InventoryPage = () => {
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 2in;
+            min-height: 4in;
             padding: 0.2in;
             font-weight: bold;
           }

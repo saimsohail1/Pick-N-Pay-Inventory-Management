@@ -182,6 +182,108 @@ const InventoryPage = () => {
     }
   };
 
+  const handlePrintLabel = (item) => {
+    const labelHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Item Label - ${item.name}</title>
+        <meta charset="UTF-8">
+        <style>
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          
+          @media print {
+            @page { 
+              size: 4in 2in;
+              margin: 0.1in;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+            }
+          }
+          
+          body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 2in;
+            padding: 0.2in;
+            font-weight: bold;
+          }
+          
+          .label-container {
+            text-align: center;
+            width: 100%;
+          }
+          
+          .item-name {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            word-wrap: break-word;
+            line-height: 1.2;
+          }
+          
+          .item-barcode {
+            font-size: 28px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+          }
+          
+          .item-price {
+            font-size: 48px;
+            font-weight: bold;
+            color: #000;
+            margin-top: 10px;
+          }
+          
+          .price-symbol {
+            font-size: 36px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="label-container">
+          <div class="item-name">${item.name}</div>
+          ${item.barcode ? `<div class="item-barcode">${item.barcode}</div>` : ''}
+          <div class="item-price">
+            <span class="price-symbol">€</span>${item.price.toFixed(2)}
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Create hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '-9999px';
+    document.body.appendChild(iframe);
+    
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(labelHTML);
+    doc.close();
+    
+    // Wait for content to load then print
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    }, 500);
+  };
+
   // Filter and sort items based on current settings
   const getFilteredAndSortedItems = () => {
     let filteredItems = [...items];
@@ -513,6 +615,21 @@ const InventoryPage = () => {
                         }}
                       >
                         <i className="bi bi-pencil" style={{ fontSize: '18px' }}></i>
+                      </Button>
+                      <Button
+                        variant="outline-success"
+                        onClick={() => handlePrintLabel(item)}
+                        title="Print Label"
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0'
+                        }}
+                      >
+                        <i className="bi bi-printer" style={{ fontSize: '18px' }}></i>
                       </Button>
                       <Button
                         variant="outline-danger"

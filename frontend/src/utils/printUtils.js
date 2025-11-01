@@ -254,11 +254,11 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
             margin: 0; 
             padding: 0; 
             font-family: 'Arial', sans-serif; 
-            font-size: 20px; 
-            line-height: 1.7;
+            font-size: 24px; 
+            line-height: 1.8;
             color: #000;
             background: white;
-            font-weight: bold;
+            font-weight: 900;
           }
           .no-print {
             display: none !important;
@@ -267,117 +267,121 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         
         body { 
           font-family: 'Arial', sans-serif; 
-          font-size: 20px; 
-          line-height: 1.7; 
+          font-size: 24px; 
+          line-height: 1.8; 
           margin: 0; 
           padding: 5mm; 
           color: #000;
           background: white;
-          font-weight: bold;
+          font-weight: 900;
         }
         
         .header { 
           text-align: center; 
-          border-bottom: 3px solid #000; 
-          padding-bottom: 20px; 
-          margin-bottom: 25px; 
+          border-bottom: 4px solid #000; 
+          padding-bottom: 25px; 
+          margin-bottom: 30px; 
         }
         
         .header h1 {
-          margin: 0 0 12px 0;
-          font-size: 36px;
-          font-weight: bold;
+          margin: 0 0 15px 0;
+          font-size: 42px;
+          font-weight: 900;
         }
         
         .header .subtitle {
-          margin: 12px 0;
-          font-size: 28px;
-          font-weight: bold;
+          margin: 15px 0;
+          font-size: 34px;
+          font-weight: 900;
         }
         
         .header .date-info {
-          margin: 12px 0;
-          font-size: 20px;
+          margin: 15px 0;
+          font-size: 24px;
+          font-weight: 900;
         }
         
         .section { 
-          margin: 25px 0; 
+          margin: 30px 0; 
           page-break-inside: avoid;
         }
         
         .section-title { 
-          font-weight: bold; 
-          font-size: 24px; 
-          margin-bottom: 20px; 
-          border-bottom: 4px solid #333; 
-          padding-bottom: 12px;
+          font-weight: 900; 
+          font-size: 28px; 
+          margin-bottom: 25px; 
+          border-bottom: 5px solid #333; 
+          padding-bottom: 15px;
           text-transform: uppercase;
         }
         
         table { 
           width: 100%; 
           border-collapse: collapse; 
-          margin: 15px 0;
-          border: 2px solid #000;
+          margin: 20px 0;
+          border: 3px solid #000;
         }
         
         th, td { 
-          padding: 18px 22px; 
+          padding: 20px 25px; 
           text-align: left; 
-          border: 2px solid #000;
+          border: 3px solid #000;
           vertical-align: top;
         }
         
         th { 
           background-color: #f0f0f0; 
-          font-weight: bold; 
-          font-size: 20px;
+          font-weight: 900; 
+          font-size: 24px;
           text-transform: uppercase;
         }
         
         td { 
-          font-size: 20px;
+          font-size: 24px;
+          font-weight: 900;
         }
         
         .total-row { 
-          font-weight: bold; 
+          font-weight: 900; 
           background-color: #e0e0e0; 
-          border-top: 2px solid #000;
+          border-top: 3px solid #000;
         }
         
         .footer { 
           text-align: center; 
-          margin-top: 30px; 
-          font-size: 18px; 
-          border-top: 4px solid #000;
-          padding-top: 20px;
+          margin-top: 35px; 
+          font-size: 22px; 
+          border-top: 5px solid #000;
+          padding-top: 25px;
+          font-weight: 900;
         }
         
         .right { text-align: right; }
         .center { text-align: center; }
-        .bold { font-weight: bold; }
+        .bold { font-weight: 900; }
         
         .summary-box {
-          border: 5px solid #000;
-          padding: 30px;
-          margin: 35px 0;
+          border: 6px solid #000;
+          padding: 35px;
+          margin: 40px 0;
           background-color: #f9f9f9;
         }
         
         .summary-row {
           display: flex;
           justify-content: space-between;
-          margin: 15px 0;
-          padding: 10px 0;
-          font-size: 20px;
+          margin: 18px 0;
+          padding: 12px 0;
+          font-size: 24px;
+          font-weight: 900;
         }
         
         .summary-total {
-          border-top: 4px solid #000;
-          padding-top: 15px;
-          margin-top: 25px;
-          font-weight: bold;
-          font-size: 22px;
+          border-top: 5px solid #000;
+          padding-top: 18px;
+          margin-top: 30px;
+          font-weight: 900;
+          font-size: 26px;
         }
       </style>
     </head>

@@ -794,7 +794,7 @@ const SalesPage = () => {
       setCart(updatedCart);
       setEditItemDialogOpen(false);
       setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart and database.`);
-      addTimeout(() => setSuccess(null), 3000);
+    addTimeout(() => setSuccess(null), 3000);
       
       // Show print label dialog
       setItemToPrint({
@@ -2447,50 +2447,30 @@ const SalesPage = () => {
           setItemToPrint(null);
         }}
         centered
+        size="sm"
       >
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className="bi bi-printer me-2"></i>
-            Print Item Label
-          </Modal.Title>
-        </Modal.Header>
         <Modal.Body className="text-center py-4">
-          <div className="mb-4">
-            <i className="bi bi-tag text-primary" style={{ fontSize: '4rem' }}></i>
+          <h6 className="mb-4">Print label?</h6>
+          <div className="d-flex gap-3 justify-content-center">
+            <Button 
+              variant="outline-secondary" 
+              onClick={() => {
+                setPrintLabelDialogOpen(false);
+                setItemToPrint(null);
+              }}
+              style={{ minWidth: '80px' }}
+            >
+              No
+            </Button>
+            <Button 
+              variant="primary"
+              onClick={handlePrintItemLabel}
+              style={{ minWidth: '80px' }}
+            >
+              Yes
+            </Button>
           </div>
-          <h5 className="mb-3">Print Label for Updated Item?</h5>
-          {itemToPrint && (
-            <div className="text-start bg-light p-3 rounded mb-4">
-              <p className="mb-2"><strong>Name:</strong> {itemToPrint.name}</p>
-              {itemToPrint.barcode && (
-                <p className="mb-2"><strong>Barcode:</strong> {itemToPrint.barcode}</p>
-              )}
-              <p className="mb-0"><strong>Price:</strong> €{itemToPrint.price.toFixed(2)}</p>
-            </div>
-          )}
-          <p className="text-muted mb-0">
-            Would you like to print a label with the item's name, barcode, and price?
-          </p>
         </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setPrintLabelDialogOpen(false);
-              setItemToPrint(null);
-            }}
-          >
-            <i className="bi bi-x-circle me-1"></i>
-            No, Skip
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handlePrintItemLabel}
-          >
-            <i className="bi bi-printer me-1"></i>
-            Yes, Print Label
-          </Button>
-        </Modal.Footer>
       </Modal>
 
       

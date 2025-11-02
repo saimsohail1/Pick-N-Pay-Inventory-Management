@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTimeoutManager } from '../hooks/useTimeoutManager';
 import {
   Row,
@@ -40,6 +40,7 @@ const SalesPage = () => {
   const [quickPrice, setQuickPrice] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
+  const barcodeInputRef = useRef(null);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [cashAmount, setCashAmount] = useState('');
   const [selectedNotes, setSelectedNotes] = useState({});
@@ -94,6 +95,61 @@ const SalesPage = () => {
     fetchCategories();
     fetchCompanyName();
   }, []);
+
+  // Auto-focus barcode input on mount and keep it focused
+  useEffect(() => {
+    if (barcodeInputRef.current) {
+      barcodeInputRef.current.focus();
+    }
+  }, []);
+
+  // Refocus barcode input after modals close, cart operations, etc.
+  useEffect(() => {
+    if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
+        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && 
+        !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
+      // Small delay to ensure modal is fully closed
+      const timer = setTimeout(() => {
+        if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current) {
+          barcodeInputRef.current.focus();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
+      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, 
+      outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
+
+  // Keep barcode input focused continuously (when no modals are open)
+  useEffect(() => {
+    if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
+        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && 
+        !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
+      const handleFocusLoss = () => {
+        // Only refocus if user clicked outside an input/button or on the document
+        setTimeout(() => {
+          if (barcodeInputRef.current && 
+              document.activeElement !== barcodeInputRef.current && 
+              document.activeElement?.tagName !== 'INPUT' && 
+              document.activeElement?.tagName !== 'BUTTON' &&
+              document.activeElement?.tagName !== 'SELECT') {
+            barcodeInputRef.current.focus();
+          }
+        }, 100);
+      };
+      
+      // Listen for clicks that might steal focus
+      document.addEventListener('click', handleFocusLoss);
+      document.addEventListener('focusin', handleFocusLoss);
+      
+      return () => {
+        document.removeEventListener('click', handleFocusLoss);
+        document.removeEventListener('focusin', handleFocusLoss);
+      };
+    }
+  }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
+      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, 
+      outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
   useEffect(() => {
     // Focus on barcode input when component mounts
@@ -532,11 +588,23 @@ const SalesPage = () => {
       setCustomDiscountAmount('');
       setSuccess('Cash payment completed successfully!');
       addTimeout(() => setSuccess(null), 3000);
+      // Refocus barcode input after payment
+      setTimeout(() => {
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.focus();
+        }
+      }, 200);
     } catch (err) {
       console.error('Error creating sale:', err);
       console.error('Error response:', err.response?.data);
       setError(`Failed to complete sale: ${err.response?.data || err.message}`);
       setTimeout(() => setError(null), 5000);
+      // Refocus barcode input even on error
+      setTimeout(() => {
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.focus();
+        }
+      }, 200);
     } finally {
       setLoading(false);
     }
@@ -581,11 +649,23 @@ const SalesPage = () => {
       setSelectedCartItem(null); // Clear selected item after sale
       setSuccess('Card payment completed successfully!');
       addTimeout(() => setSuccess(null), 3000);
+      // Refocus barcode input after payment
+      setTimeout(() => {
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.focus();
+        }
+      }, 200);
     } catch (err) {
       console.error('Error creating sale:', err);
       console.error('Error response:', err.response?.data);
       setError(`Failed to complete sale: ${err.response?.data || err.message}`);
       setTimeout(() => setError(null), 5000);
+      // Refocus barcode input even on error
+      setTimeout(() => {
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.focus();
+        }
+      }, 200);
     } finally {
       setLoading(false);
     }
@@ -1011,6 +1091,12 @@ const SalesPage = () => {
     setSelectedCartItem(null); // Clear selected item when holding transaction
     setSuccess('Transaction held successfully!');
     addTimeout(() => setSuccess(null), 3000);
+    // Refocus barcode input after holding transaction
+    setTimeout(() => {
+      if (barcodeInputRef.current) {
+        barcodeInputRef.current.focus();
+      }
+    }, 200);
   };
 
   const handleLoadHeldTransaction = (heldTransaction) => {
@@ -1427,7 +1513,18 @@ const SalesPage = () => {
                     <i className="bi bi-eye me-2"></i>
                   STOCK
                 </Button>
-                  <Button variant="outline-danger" size="lg" onClick={() => { setCart([]); setAppliedDiscount(null); setCustomDiscountAmount(''); setSelectedCartItem(null); }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
+                  <Button variant="outline-danger" size="lg" onClick={() => { 
+                    setCart([]); 
+                    setAppliedDiscount(null); 
+                    setCustomDiscountAmount(''); 
+                    setSelectedCartItem(null);
+                    // Refocus barcode input after clearing cart
+                    setTimeout(() => {
+                      if (barcodeInputRef.current) {
+                        barcodeInputRef.current.focus();
+                      }
+                    }, 100);
+                  }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
                     <i className="bi bi-cart-x me-2"></i>
                   CLEAR CART
                 </Button>
@@ -1560,6 +1657,7 @@ const SalesPage = () => {
                   <i className="bi bi-upc-scan fs-5 text-primary"></i>
                 </InputGroup.Text>
                 <Form.Control
+                  ref={barcodeInputRef}
                   type="text"
                   placeholder="Scan or enter barcode"
                   value={barcodeInput}
@@ -1568,8 +1666,15 @@ const SalesPage = () => {
                     if (e.key === 'Enter') {
                       processBarcode(barcodeInput);
                       setBarcodeInput('');
+                      // Refocus after processing
+                      setTimeout(() => {
+                        if (barcodeInputRef.current) {
+                          barcodeInputRef.current.focus();
+                        }
+                      }, 100);
                     }
                   }}
+                  autoFocus
                   style={{ fontSize: '1rem', borderColor: '#dee2e6' }}
                 />
               </InputGroup>

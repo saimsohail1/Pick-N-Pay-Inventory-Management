@@ -48,7 +48,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/sales-history" element={
-            <ProtectedRoute>
+            <ProtectedRoute requireAdmin={true}>
               <Layout>
                 <SalesHistory />
               </Layout>

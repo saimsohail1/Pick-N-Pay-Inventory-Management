@@ -404,66 +404,53 @@ const SalesHistory = () => {
                       <div className="btn-group" role="group">
                         {isAdminUser && (
                           <Button 
-                            size="sm" 
+                            variant="outline-primary"
                             onClick={() => handleEditSale(sale)}
-                            className="btn btn-light me-1"
+                            className="me-1"
                             style={{ 
-                              borderRadius: '8px',
-                              borderWidth: '2px',
-                              borderColor: '#007bff',
                               width: '60px',
                               height: '60px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              padding: '0',
-                              backgroundColor: '#f8f9fa'
+                              padding: '0'
                             }}
                             title="Edit Sale"
                           >
-                            <i className="bi bi-pencil text-primary" style={{ fontSize: '20px' }}></i>
+                            <i className="bi bi-pencil" style={{ fontSize: '20px' }}></i>
                           </Button>
                         )}
                         <Button 
-                          size="sm" 
+                          variant="outline-success"
                           onClick={() => handlePrintSale(sale)}
-                          className="btn btn-light me-1"
+                          className="me-1"
                           style={{ 
-                            borderRadius: '8px',
-                            borderWidth: '2px',
-                            borderColor: '#28a745',
                             width: '60px',
                             height: '60px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '0',
-                            backgroundColor: '#f8f9fa'
+                            padding: '0'
                           }}
                           title="Print Receipt"
                         >
-                          <i className="bi bi-printer text-success" style={{ fontSize: '20px' }}></i>
+                          <i className="bi bi-printer" style={{ fontSize: '20px' }}></i>
                         </Button>
                         {isAdminUser && (
                           <Button 
-                            size="sm" 
+                            variant="outline-danger"
                             onClick={() => handleDeleteSale(sale)}
-                            className="btn btn-light"
                             style={{ 
-                              borderRadius: '8px',
-                              borderWidth: '2px',
-                              borderColor: '#dc3545',
                               width: '60px',
                               height: '60px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              padding: '0',
-                              backgroundColor: '#f8f9fa'
+                              padding: '0'
                             }}
                             title="Delete Sale"
                           >
-                            <i className="bi bi-trash text-danger" style={{ fontSize: '20px' }}></i>
+                            <i className="bi bi-trash" style={{ fontSize: '20px' }}></i>
                           </Button>
                         )}
                       </div>

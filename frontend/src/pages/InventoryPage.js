@@ -32,6 +32,7 @@ const InventoryPage = () => {
     expiryFilter: 'all', // 'all', 'expired', 'expiring', 'valid'
     categoryFilter: 'all' // 'all' or specific category ID
   });
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -316,6 +317,16 @@ const InventoryPage = () => {
   const getFilteredAndSortedItems = () => {
     let filteredItems = [...items];
 
+    // Apply search filter (barcode or name)
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filteredItems = filteredItems.filter(item => {
+        const itemName = (item.name || '').toLowerCase();
+        const itemBarcode = (item.barcode || '').toLowerCase();
+        return itemName.includes(searchLower) || itemBarcode.includes(searchLower);
+      });
+    }
+
     // Apply stock filters
     if (filters.stockFilter === 'out') {
       filteredItems = filteredItems.filter(item => item.stockQuantity <= 0);
@@ -463,6 +474,33 @@ const InventoryPage = () => {
         <Card.Body className="p-0">
           {/* Filters */}
           <div className="p-3 bg-light border-bottom">
+            {/* Search Bar */}
+            <div className="row mb-3">
+              <div className="col-12">
+                <label className="form-label small fw-bold">
+                  <i className="bi bi-search me-1"></i>Search by Name or Barcode
+                </label>
+                <InputGroup>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter item name or barcode..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    size="sm"
+                  />
+                  {searchTerm && (
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={() => setSearchTerm('')}
+                      title="Clear search"
+                    >
+                      <i className="bi bi-x"></i>
+                    </Button>
+                  )}
+                </InputGroup>
+              </div>
+            </div>
             <div className="row g-3">
               <div className="col-md-3">
                 <label className="form-label small fw-bold">Stock Filter</label>
@@ -526,6 +564,7 @@ const InventoryPage = () => {
                   <small className="text-muted">
                     <i className="bi bi-funnel me-1"></i>
                     Showing {getFilteredAndSortedItems().length} of {items.length} items
+                    {searchTerm && ` (Search: "${searchTerm}")`}
                     {filters.stockFilter !== 'all' && ` (Stock: ${filters.stockFilter})`}
                     {filters.expiryFilter !== 'all' && ` (Expiry: ${filters.expiryFilter})`}
                     {filters.categoryFilter !== 'all' && ` (Category: ${categories.find(c => c.id === parseInt(filters.categoryFilter))?.name})`}

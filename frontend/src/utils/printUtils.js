@@ -233,7 +233,28 @@ export const createReceiptHTML = (sale, companyName = 'PickNPay') => {
  * @param {string} startDate - Report start date
  * @returns {string} HTML content
  */
-export const createZReportHTML = (reportData, companyName = 'PickNPay', startDate) => {
+export const createZReportHTML = (reportData, companyName = 'PickNPay', startDate, companyAddress = '', companyPhone = '') => {
+  // Format date as DD/MM/YYYY
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Process VAT info into table format
+  const vatRows = [];
+  if (reportData.vatInfo) {
+    // Extract VAT breakdown if available
+    const vatRates = [
+      { rate: '0%', gross: reportData.vatInfo.totalAmountExcludingVat || 0, vat: 0, net: reportData.vatInfo.totalAmountExcludingVat || 0 },
+      { rate: '23%', gross: reportData.vatInfo.totalAmountIncludingVat || 0, vat: reportData.vatInfo.totalVatAmount || 0, net: reportData.vatInfo.totalAmountExcludingVat || 0 }
+    ];
+    vatRows.push(...vatRates);
+  }
+
   return `
     <!DOCTYPE html>
     <html>
@@ -243,221 +264,226 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
       <style>
         * {
           box-sizing: border-box;
+          margin: 0;
+          padding: 0;
         }
         
         @media print {
           @page { 
             size: A4; 
-            margin: 5mm; 
+            margin: 10mm; 
           }
           body { 
             margin: 0; 
             padding: 0; 
-            font-family: 'Arial', sans-serif; 
-            font-size: 24px; 
-            line-height: 1.8;
-            color: #000;
-            background: white;
-            font-weight: 900;
-          }
-          .no-print {
-            display: none !important;
           }
         }
         
         body { 
-          font-family: 'Arial', sans-serif; 
-          font-size: 24px; 
-          line-height: 1.8; 
+          font-family: 'Courier New', monospace; 
+          font-size: 11px; 
+          line-height: 1.4; 
           margin: 0; 
-          padding: 5mm; 
+          padding: 10mm; 
           color: #000;
           background: white;
-          font-weight: 900;
+          font-weight: bold;
         }
         
         .header { 
           text-align: center; 
-          border-bottom: 4px solid #000; 
-          padding-bottom: 25px; 
-          margin-bottom: 30px; 
+          margin-bottom: 15px;
         }
         
-        .header h1 {
-          margin: 0 0 15px 0;
-          font-size: 42px;
-          font-weight: 900;
+        .header .company-name {
+          font-size: 14px;
+          font-weight: bold;
+          margin-bottom: 5px;
         }
         
-        .header .subtitle {
-          margin: 15px 0;
-          font-size: 34px;
-          font-weight: 900;
+        .header .address {
+          font-size: 11px;
+          margin-bottom: 3px;
         }
         
-        .header .date-info {
-          margin: 15px 0;
-          font-size: 24px;
-          font-weight: 900;
+        .header .phone {
+          font-size: 11px;
+          margin-bottom: 3px;
+        }
+        
+        .header .date {
+          font-size: 11px;
+          margin-bottom: 10px;
+        }
+        
+        .divider {
+          border-top: 1px dashed #000;
+          margin: 10px 0;
         }
         
         .section { 
-          margin: 30px 0; 
+          margin: 12px 0; 
           page-break-inside: avoid;
-        }
-        
-        .section-title { 
-          font-weight: 900; 
-          font-size: 28px; 
-          margin-bottom: 25px; 
-          border-bottom: 5px solid #333; 
-          padding-bottom: 15px;
-          text-transform: uppercase;
         }
         
         table { 
           width: 100%; 
           border-collapse: collapse; 
-          margin: 20px 0;
-          border: 3px solid #000;
+          margin: 8px 0;
+          font-size: 11px;
         }
         
         th, td { 
-          padding: 20px 25px; 
+          padding: 4px 6px; 
           text-align: left; 
-          border: 3px solid #000;
           vertical-align: top;
+          font-size: 11px;
         }
         
         th { 
-          background-color: #f0f0f0; 
-          font-weight: 900; 
-          font-size: 24px;
+          font-weight: bold;
           text-transform: uppercase;
+          border-bottom: 1px dashed #000;
+          padding-bottom: 4px;
         }
         
-        td { 
-          font-size: 24px;
-          font-weight: 900;
+        .right { 
+          text-align: right; 
         }
         
-        .total-row { 
-          font-weight: 900; 
-          background-color: #e0e0e0; 
-          border-top: 3px solid #000;
+        .total-row {
+          border-top: 1px dashed #000;
+          padding-top: 4px;
+          margin-top: 4px;
+          font-weight: bold;
         }
         
-        .footer { 
-          text-align: center; 
-          margin-top: 35px; 
-          font-size: 22px; 
-          border-top: 5px solid #000;
-          padding-top: 25px;
-          font-weight: 900;
+        .currency {
+          text-align: right;
         }
         
-        .right { text-align: right; }
-        .center { text-align: center; }
-        .bold { font-weight: 900; }
-        
-        .summary-box {
-          border: 6px solid #000;
-          padding: 35px;
-          margin: 40px 0;
-          background-color: #f9f9f9;
+        .count {
+          text-align: right;
         }
         
-        .summary-row {
-          display: flex;
-          justify-content: space-between;
-          margin: 18px 0;
-          padding: 12px 0;
-          font-size: 24px;
-          font-weight: 900;
-        }
-        
-        .summary-total {
-          border-top: 5px solid #000;
-          padding-top: 18px;
-          margin-top: 30px;
-          font-weight: 900;
-          font-size: 26px;
+        .section-title {
+          font-weight: bold;
+          margin-bottom: 6px;
+          font-size: 11px;
         }
       </style>
     </head>
     <body>
       <div class="header">
-        <h1>${companyName.toUpperCase()}</h1>
-        <div class="subtitle">Z-REPORT</div>
-        <div class="date-info">Date: ${startDate}</div>
-        <div class="date-info">Generated: ${new Date().toLocaleString()}</div>
+        <div class="company-name">${companyName}</div>
+        ${companyAddress ? `<div class="address">${companyAddress}</div>` : ''}
+        ${companyPhone ? `<div class="phone">${companyPhone}</div>` : ''}
+        <div class="date">${formatDate(startDate)}</div>
       </div>
       
+      <div class="divider"></div>
+      
       <div class="section">
-        <div class="section-title">Payment Methods Summary</div>
         <table>
           <thead>
             <tr>
-              <th>Payment Method</th>
-              <th class="right">Transactions</th>
-              <th class="right">Total Amount</th>
+              <th>Label</th>
+              <th class="right">Count</th>
+              <th class="right">Total</th>
             </tr>
           </thead>
           <tbody>
             ${(reportData.paymentMethods || []).map(payment => `
               <tr class="${payment.label === 'Total' ? 'total-row' : ''}">
-                <td class="bold">${payment.label.toUpperCase()}</td>
-                <td class="right">${payment.count || 0}</td>
-                <td class="right bold">€${parseFloat(payment.total || 0).toFixed(2)}</td>
+                <td>${payment.label}</td>
+                <td class="count">${payment.count || 0}</td>
+                <td class="currency">€ ${parseFloat(payment.total || 0).toFixed(2)}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       </div>
       
+      <div class="divider"></div>
+      
       <div class="section">
-        <div class="section-title">Category Sales Summary</div>
         <table>
           <thead>
             <tr>
               <th>Category</th>
-              <th class="right">Items Sold</th>
-              <th class="right">Total Amount</th>
+              <th class="right">Count</th>
+              <th class="right">Total</th>
             </tr>
           </thead>
           <tbody>
             ${(reportData.categories || []).map(category => `
               <tr class="${category.category === 'Total' ? 'total-row' : ''}">
-                <td class="bold">${category.category}</td>
-                <td class="right">${category.count || 0}</td>
-                <td class="right bold">€${parseFloat(category.total || 0).toFixed(2)}</td>
+                <td>${category.category}</td>
+                <td class="count">${category.count || 0}</td>
+                <td class="currency">€ ${parseFloat(category.total || 0).toFixed(2)}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       </div>
       
+      <div class="divider"></div>
+      
       <div class="section">
-        <div class="section-title">VAT Summary</div>
-        <div class="summary-box">
-          <div class="summary-row">
-            <span>Amount Excluding VAT:</span>
-            <span class="right bold">€${parseFloat(reportData.vatInfo?.totalAmountExcludingVat || 0).toFixed(2)}</span>
-          </div>
-          <div class="summary-row">
-            <span>Total VAT Amount (23%):</span>
-            <span class="right bold">€${parseFloat(reportData.vatInfo?.totalVatAmount || 0).toFixed(2)}</span>
-          </div>
-          <div class="summary-row summary-total">
-            <span>TOTAL AMOUNT INCLUDING VAT:</span>
-            <span class="right bold">€${parseFloat(reportData.vatInfo?.totalAmountIncludingVat || 0).toFixed(2)}</span>
-        </div>
-        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>VAT %</th>
+              <th class="right">Gross</th>
+              <th class="right">VAT</th>
+              <th class="right">Net</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${vatRows.length > 0 ? vatRows.map(vat => `
+              <tr>
+                <td>${vat.rate}</td>
+                <td class="currency">€ ${parseFloat(vat.gross || 0).toFixed(2)}</td>
+                <td class="currency">€ ${parseFloat(vat.vat || 0).toFixed(2)}</td>
+                <td class="currency">€ ${parseFloat(vat.net || 0).toFixed(2)}</td>
+              </tr>
+            `).join('') : `
+              <tr>
+                <td>23%</td>
+                <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalAmountIncludingVat || 0).toFixed(2)}</td>
+                <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalVatAmount || 0).toFixed(2)}</td>
+                <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalAmountExcludingVat || 0).toFixed(2)}</td>
+              </tr>
+            `}
+            <tr class="total-row">
+              <td>Total</td>
+              <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalAmountIncludingVat || 0).toFixed(2)}</td>
+              <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalVatAmount || 0).toFixed(2)}</td>
+              <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalAmountExcludingVat || 0).toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
       
-      <div class="footer">
-        <div class="bold">End of Z-Report</div>
-        <div>${companyName} - Generated on ${new Date().toLocaleString()}</div>
+      <div class="divider"></div>
+      
+      <div class="section">
+        <table>
+          <thead>
+            <tr>
+              <th>Reason</th>
+              <th class="right">Count</th>
+              <th class="right">Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="total-row">
+              <td>Total</td>
+              <td class="count">0</td>
+              <td class="currency">€ 0.00</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </body>
     </html>

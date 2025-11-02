@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Table, Button, Form, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { salesAPI, usersAPI } from '../services/api';
+import { salesAPI, usersAPI, companySettingsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { directPrint, createZReportHTML } from '../utils/printUtils';
 
@@ -21,6 +21,7 @@ const DailyReport = () => {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [companySettings, setCompanySettings] = useState({ companyName: 'PickNPay', address: '', phone: '' });
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
 
@@ -172,6 +173,7 @@ const DailyReport = () => {
   // Auto-load report on page load
   useEffect(() => {
     generateReport();
+    fetchCompanySettings();
     if (isAdmin()) {
       fetchUsers();
     }
@@ -181,6 +183,21 @@ const DailyReport = () => {
   useEffect(() => {
     generateReport();
   }, [startDate, endDate, selectedUserId]);
+
+  const fetchCompanySettings = async () => {
+    try {
+      const response = await companySettingsAPI.get();
+      if (response.data) {
+        setCompanySettings({
+          companyName: response.data.companyName || 'PickNPay',
+          address: response.data.address || '',
+          phone: response.data.phone || ''
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch company settings:', err);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -198,12 +215,15 @@ const DailyReport = () => {
 
   const handlePrintReport = async () => {
     try {
-      // Get company name for the report
-      const companyName = 'PickNPay'; // You can fetch this from context or API
-      
-      // Create Z-report HTML using utility
+      // Create Z-report HTML using utility with company settings
       const dateRangeText = startDate === endDate ? startDate : `${startDate} to ${endDate}`;
-      const reportContent = createZReportHTML(reportData, companyName, dateRangeText);
+      const reportContent = createZReportHTML(
+        reportData, 
+        companySettings.companyName, 
+        dateRangeText,
+        companySettings.address,
+        companySettings.phone
+      );
       
       // Try direct print first, fallback to window.open for Safari
       try {

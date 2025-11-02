@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Row, Col, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { companySettingsAPI } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [companyName, setCompanyName] = useState('PickNPay');
-  const { isAdmin } = useAuth();
 
   useEffect(() => {
     const fetchCompanyName = async () => {
@@ -87,14 +85,6 @@ const Dashboard = () => {
     }
   ];
 
-  // Filter navigation cards - hide Sales History for non-admin users
-  const filteredNavigationCards = navigationCards.filter(card => {
-    if (card.path === '/sales-history' && !isAdmin()) {
-      return false;
-    }
-    return true;
-  });
-
   return (
     <div className="animate-fade-in-up">
       {/* Welcome Section */}
@@ -116,7 +106,7 @@ const Dashboard = () => {
 
         {/* Navigation Cards Grid */}
         <Row className="g-4 mb-5">
-          {filteredNavigationCards.map((card, index) => (
+          {navigationCards.map((card, index) => (
             <Col xs={12} sm={6} md={4} lg={3} key={index}>
               <Card 
                 className="h-100 stats-card hover-lift" 

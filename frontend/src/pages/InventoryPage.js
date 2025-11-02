@@ -476,7 +476,7 @@ const InventoryPage = () => {
           <div className="p-3 bg-light border-bottom">
             {/* Search Bar */}
             <div className="row mb-3">
-              <div className="col-12">
+              <div className="col-md-6">
                 <label className="form-label small fw-bold">
                   <i className="bi bi-search me-1"></i>Search by Name or Barcode
                 </label>

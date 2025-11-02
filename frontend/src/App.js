@@ -55,7 +55,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/daily-report" element={
-            <ProtectedRoute>
+            <ProtectedRoute requireAdmin={true}>
               <Layout>
                 <DailyReport />
               </Layout>

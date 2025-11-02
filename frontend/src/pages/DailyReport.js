@@ -21,7 +21,7 @@ const DailyReport = () => {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
-  const [companySettings, setCompanySettings] = useState({ companyName: 'PickNPay', address: '', phone: '' });
+  const [companySettings, setCompanySettings] = useState({ companyName: 'PickNPay', address: '' });
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
 
@@ -187,15 +187,18 @@ const DailyReport = () => {
   const fetchCompanySettings = async () => {
     try {
       const response = await companySettingsAPI.get();
-      if (response.data) {
+      // Handle both response.data and direct response
+      const settingsData = response.data || response;
+      if (settingsData) {
         setCompanySettings({
-          companyName: response.data.companyName || 'PickNPay',
-          address: response.data.address || '',
-          phone: response.data.phone || ''
+          companyName: settingsData.companyName || 'PickNPay',
+          address: settingsData.address || ''
         });
+        console.log('Company settings fetched:', settingsData);
       }
     } catch (err) {
       console.error('Failed to fetch company settings:', err);
+      // Keep default values on error
     }
   };
 
@@ -215,14 +218,29 @@ const DailyReport = () => {
 
   const handlePrintReport = async () => {
     try {
+      // Ensure we have the latest company settings before printing
+      let currentCompanySettings = companySettings;
+      try {
+        const response = await companySettingsAPI.get();
+        const settingsData = response.data || response;
+        if (settingsData) {
+          currentCompanySettings = {
+            companyName: settingsData.companyName || 'PickNPay',
+            address: settingsData.address || ''
+          };
+        }
+      } catch (err) {
+        console.error('Failed to fetch company settings for print, using cached:', err);
+      }
+      
       // Create Z-report HTML using utility with company settings
       const dateRangeText = startDate === endDate ? startDate : `${startDate} to ${endDate}`;
       const reportContent = createZReportHTML(
         reportData, 
-        companySettings.companyName, 
+        currentCompanySettings.companyName || 'PickNPay', 
         dateRangeText,
-        companySettings.address,
-        companySettings.phone
+        currentCompanySettings.address || '',
+        '' // Phone field removed as it doesn't exist in CompanySettings
       );
       
       // Try direct print first, fallback to window.open for Safari

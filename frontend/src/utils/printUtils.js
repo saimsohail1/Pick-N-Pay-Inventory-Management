@@ -410,6 +410,12 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           white-space: nowrap;
         }
         
+        td:first-child {
+          white-space: normal;
+          word-wrap: break-word;
+          max-width: 40%;
+        }
+        
         th.right, td.count, td.currency {
           text-align: right;
         }

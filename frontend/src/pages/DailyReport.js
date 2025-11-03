@@ -369,26 +369,36 @@ const DailyReport = () => {
                   <i className="bi bi-calendar3 me-1"></i>
                   Period Start
                 </label>
+                <div className="d-flex align-items-center gap-2">
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                  className="form-control form-control-lg border-2"
-                  style={{ borderRadius: '10px', width: '200px' }}
+                    className="form-control form-control-lg border-2"
+                    style={{ borderRadius: '10px', width: '200px' }}
                   />
+                  <span className="text-muted small" style={{ whiteSpace: 'nowrap' }}>
+                    {formatDate(startDate)}
+                  </span>
+                </div>
               </div>
               <div>
                 <label className="form-label fw-semibold text-dark">
                   <i className="bi bi-calendar3 me-1"></i>
                   Period End
                 </label>
+                <div className="d-flex align-items-center gap-2">
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                  className="form-control form-control-lg border-2"
-                  style={{ borderRadius: '10px', width: '200px' }}
+                    className="form-control form-control-lg border-2"
+                    style={{ borderRadius: '10px', width: '200px' }}
                   />
+                  <span className="text-muted small" style={{ whiteSpace: 'nowrap' }}>
+                    {formatDate(endDate)}
+                  </span>
+                </div>
               </div>
             </div>
       </div>

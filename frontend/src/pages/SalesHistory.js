@@ -339,13 +339,18 @@ const SalesHistory = () => {
                     <i className="bi bi-calendar3 me-1"></i>
                     Select Date
                   </label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="form-control form-control-lg border-2"
-                    style={{ borderRadius: '10px' }}
-                  />
+                  <div className="d-flex align-items-center gap-2">
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="form-control form-control-lg border-2"
+                      style={{ borderRadius: '10px', flex: 1 }}
+                    />
+                    <span className="text-muted small" style={{ whiteSpace: 'nowrap' }}>
+                      {formatDate(selectedDate)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

@@ -272,21 +272,26 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         
         @media print {
           @page { 
-            size: A4; 
-            margin: 10mm; 
+            size: 80mm auto; 
+            margin: 0; 
           }
           body { 
             margin: 0; 
-            padding: 0; 
+            padding: 5mm; 
+            font-family: 'Courier New', monospace; 
+            font-size: 12px; 
+            line-height: 1.2;
+            width: 70mm;
+            font-weight: bold;
           }
         }
-        
         body { 
           font-family: 'Courier New', monospace; 
           font-size: 12px; 
           line-height: 1.2; 
           margin: 0; 
           padding: 5mm; 
+          width: 70mm;
           color: #000;
           background: white;
           font-weight: bold;

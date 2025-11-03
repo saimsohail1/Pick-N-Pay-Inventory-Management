@@ -309,11 +309,11 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           }
           body { 
             margin: 0; 
-            padding: 5mm; 
+            padding: 4mm; 
             font-family: 'Courier New', monospace; 
             font-size: 13px; 
-            line-height: 1.2;
-            width: 70mm;
+            line-height: 1.3;
+            width: 72mm;
             font-weight: 600;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
@@ -322,10 +322,10 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         body { 
           font-family: 'Courier New', monospace; 
           font-size: 13px; 
-          line-height: 1.2; 
+          line-height: 1.3; 
           margin: 0; 
-          padding: 5mm; 
-          width: 70mm;
+          padding: 4mm; 
+          width: 72mm;
           color: #000;
           background: white;
           font-weight: 600;
@@ -335,56 +335,55 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         
         .header { 
           text-align: center; 
-          margin-bottom: 10px;
+          margin-bottom: 8px;
         }
         
         .header .company-name {
           font-size: 13px;
           font-weight: 700;
-          margin-bottom: 5px;
+          margin-bottom: 3px;
         }
         
         .header .address {
           font-size: 13px;
           font-weight: 700;
-          margin-bottom: 3px;
+          margin-bottom: 2px;
         }
         
         .header .phone {
           font-size: 13px;
           font-weight: 700;
-          margin-bottom: 3px;
+          margin-bottom: 2px;
         }
         
         .header .date {
           font-size: 13px;
           font-weight: 700;
-          margin-bottom: 10px;
+          margin-bottom: 6px;
         }
         
         .divider {
           border-top: 1px dashed #000;
-          margin: 10px 0;
+          margin: 8px 0;
         }
         
         .section { 
-          margin: 12px 0; 
+          margin: 10px 0; 
           page-break-inside: avoid;
         }
         
         table { 
           width: 100%; 
           border-collapse: collapse; 
-          margin: 8px 0;
+          margin: 6px 0;
           font-size: 12px;
         }
         
         th, td { 
-          padding: 4px 6px; 
+          padding: 5px 8px; 
           text-align: left; 
           vertical-align: top;
           font-size: 12px;
-          white-space: nowrap;
           font-weight: 600;
           color: #000;
         }
@@ -393,8 +392,12 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           font-weight: 700;
           text-transform: uppercase;
           border-bottom: 1px dashed #000;
-          padding-bottom: 4px;
+          padding-bottom: 5px;
           font-size: 12px;
+        }
+        
+        td {
+          white-space: nowrap;
         }
         
         .right { 
@@ -403,14 +406,10 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         
         .total-row {
           border-top: 1px dashed #000;
-          padding-top: 4px;
-          margin-top: 4px;
+          padding-top: 5px;
+          margin-top: 5px;
           font-weight: 700;
           font-size: 12px;
-        }
-        
-        .total-row td {
-          white-space: nowrap;
         }
         
         .currency {

@@ -227,7 +227,7 @@ const SalesHistory = () => {
             address: settingsData.address || ''
           };
         }
-      } catch (err) {
+    } catch (err) {
         console.error("Failed to fetch company settings for print:", err);
         // Use existing state if fetch fails
       }
@@ -339,18 +339,13 @@ const SalesHistory = () => {
                     <i className="bi bi-calendar3 me-1"></i>
                     Select Date
                   </label>
-                  <div className="d-flex align-items-center gap-2">
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      className="form-control form-control-lg border-2"
-                      style={{ borderRadius: '10px', flex: 1 }}
-                    />
-                    <span className="text-muted small" style={{ whiteSpace: 'nowrap' }}>
-                      {formatDate(selectedDate)}
-                    </span>
-                  </div>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="form-control form-control-lg border-2"
+                    style={{ borderRadius: '10px' }}
+                  />
                 </div>
               </div>
             </div>

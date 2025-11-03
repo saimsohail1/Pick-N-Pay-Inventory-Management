@@ -336,30 +336,40 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         .header { 
           text-align: center; 
           margin-bottom: 8px;
+          width: 100%;
+        }
+        
+        .header > div {
+          text-align: center;
+          width: 100%;
         }
         
         .header .company-name {
           font-size: 13px;
           font-weight: 700;
           margin-bottom: 3px;
+          text-align: center;
         }
         
         .header .address {
           font-size: 13px;
           font-weight: 700;
           margin-bottom: 2px;
+          text-align: center;
         }
         
         .header .phone {
           font-size: 13px;
           font-weight: 700;
           margin-bottom: 2px;
+          text-align: center;
         }
         
         .header .date {
           font-size: 13px;
           font-weight: 700;
           margin-bottom: 6px;
+          text-align: center;
         }
         
         .divider {
@@ -380,7 +390,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         }
         
         th, td { 
-          padding: 5px 8px; 
+          padding: 5px 4px; 
           text-align: left; 
           vertical-align: top;
           font-size: 12px;
@@ -400,6 +410,14 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           white-space: nowrap;
         }
         
+        th.right, td.count, td.currency {
+          text-align: right;
+        }
+        
+        th.right:last-child, td.currency {
+          padding-right: 8px;
+        }
+        
         .right { 
           text-align: right; 
         }
@@ -410,6 +428,14 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           margin-top: 5px;
           font-weight: 700;
           font-size: 12px;
+        }
+        
+        .total-row td.currency {
+          padding-right: 10px;
+        }
+        
+        table tbody tr.total-row td:last-child {
+          padding-right: 10px;
         }
         
         .currency {
@@ -423,6 +449,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           white-space: nowrap;
           font-weight: 600;
         }
+        
         
         .section-title {
           font-weight: 700;

@@ -236,10 +236,26 @@ export const createReceiptHTML = (sale, companyName = 'PickNPay', companyAddress
  * @returns {string} HTML content
  */
 export const createZReportHTML = (reportData, companyName = 'PickNPay', startDate, companyAddress = '', companyPhone = '') => {
-  // Format date as DD/MM/YYYY
+  // Format date as DD/MM/YYYY or handle date range string
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
+    // If it's already a formatted date range (contains " to "), return as is
+    if (dateStr.includes(' to ')) {
+      // Try to format both dates in the range
+      const [start, end] = dateStr.split(' to ');
+      const formatSingleDate = (d) => {
+        const date = new Date(d);
+        if (isNaN(date.getTime())) return d; // Return original if invalid
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+      return `${formatSingleDate(start)} to ${formatSingleDate(end)}`;
+    }
+    // Single date - format it
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr; // Return original if invalid
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
@@ -279,22 +295,20 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
             margin: 0; 
             padding: 5mm; 
             font-family: 'Courier New', monospace; 
-            font-size: 12px; 
+            font-size: 13px; 
             line-height: 1.2;
             width: 70mm;
-            font-weight: bold;
           }
         }
         body { 
           font-family: 'Courier New', monospace; 
-          font-size: 12px; 
+          font-size: 13px; 
           line-height: 1.2; 
           margin: 0; 
           padding: 5mm; 
           width: 70mm;
           color: #000;
           background: white;
-          font-weight: bold;
         }
         
         .header { 
@@ -303,25 +317,25 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         }
         
         .header .company-name {
-          font-size: 12px;
+          font-size: 13px;
           font-weight: bold;
           margin-bottom: 5px;
         }
         
         .header .address {
-          font-size: 12px;
+          font-size: 13px;
           font-weight: bold;
           margin-bottom: 3px;
         }
         
         .header .phone {
-          font-size: 12px;
+          font-size: 13px;
           font-weight: bold;
           margin-bottom: 3px;
         }
         
         .header .date {
-          font-size: 12px;
+          font-size: 13px;
           font-weight: bold;
           margin-bottom: 10px;
         }
@@ -340,15 +354,15 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           width: 100%; 
           border-collapse: collapse; 
           margin: 8px 0;
-          font-size: 11px;
+          font-size: 12px;
         }
         
         th, td { 
           padding: 4px 6px; 
           text-align: left; 
           vertical-align: top;
-          font-size: 11px;
-          font-weight: bold;
+          font-size: 12px;
+          white-space: nowrap;
         }
         
         th { 
@@ -356,7 +370,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           text-transform: uppercase;
           border-bottom: 1px dashed #000;
           padding-bottom: 4px;
-          font-size: 11px;
+          font-size: 12px;
         }
         
         .right { 
@@ -368,23 +382,26 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           padding-top: 4px;
           margin-top: 4px;
           font-weight: bold;
-          font-size: 11px;
+          font-size: 12px;
+        }
+        
+        .total-row td {
+          white-space: nowrap;
         }
         
         .currency {
           text-align: right;
-          font-weight: bold;
+          white-space: nowrap;
         }
         
         .count {
           text-align: right;
-          font-weight: bold;
         }
         
         .section-title {
           font-weight: bold;
           margin-bottom: 6px;
-          font-size: 11px;
+          font-size: 12px;
         }
       </style>
     </head>
@@ -403,7 +420,6 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           <thead>
             <tr>
               <th>Label</th>
-              <th class="right">Count</th>
               <th class="right">Total</th>
             </tr>
           </thead>
@@ -411,7 +427,6 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
             ${(reportData.paymentMethods || []).map(payment => `
               <tr class="${payment.label === 'Total' ? 'total-row' : ''}">
                 <td>${payment.label}</td>
-                <td class="count">${payment.count || 0}</td>
                 <td class="currency">€ ${parseFloat(payment.total || 0).toFixed(2)}</td>
               </tr>
             `).join('')}
@@ -426,7 +441,6 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           <thead>
             <tr>
               <th>Category</th>
-              <th class="right">Count</th>
               <th class="right">Total</th>
             </tr>
           </thead>
@@ -434,7 +448,6 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
             ${(reportData.categories || []).map(category => `
               <tr class="${category.category === 'Total' ? 'total-row' : ''}">
                 <td>${category.category}</td>
-                <td class="count">${category.count || 0}</td>
                 <td class="currency">€ ${parseFloat(category.total || 0).toFixed(2)}</td>
               </tr>
             `).join('')}

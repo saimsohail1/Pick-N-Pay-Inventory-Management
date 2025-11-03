@@ -25,6 +25,25 @@ const DailyReport = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
 
+  // Helper function to format date as DD/MM/YYYY
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Format date range for display
+  const formatDateRange = () => {
+    if (startDate === endDate) {
+      return formatDate(startDate);
+    }
+    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  };
+
   const generateReport = async () => {
     setLoading(true);
     setError(null);
@@ -51,7 +70,7 @@ const DailyReport = () => {
           response = await salesAPI.getDailyReportByUserAndDateRange(startDate, endDate, selectedUserId);
         } else {
           console.log('Calling getDailyReportByUser with:', startDate, selectedUserId);
-          response = await salesAPI.getDailyReportByUser(startDate, selectedUserId);
+        response = await salesAPI.getDailyReportByUser(startDate, selectedUserId);
         }
       } else if (isAdmin() && (!selectedUserId || selectedUserId === '')) {
         // Admin viewing all users' report
@@ -71,7 +90,7 @@ const DailyReport = () => {
           response = await salesAPI.getDailyReportByUserAndDateRange(startDate, endDate, user?.id);
         } else {
           console.log('Calling getDailyReportByUser with:', startDate, user?.id);
-          response = await salesAPI.getDailyReportByUser(startDate, user?.id);
+        response = await salesAPI.getDailyReportByUser(startDate, user?.id);
         }
       }
       console.log('API response:', response);
@@ -294,7 +313,7 @@ const DailyReport = () => {
       {/* Print Header */}
       <div className="print-header text-center py-3">
         <h2>PickNPay Daily Report</h2>
-        <p>Period: {startDate === endDate ? startDate : `${startDate} to ${endDate}`}</p>
+        <p>Period: {formatDateRange()}</p>
         <p>Generated: {new Date().toLocaleString()}</p>
       </div>
 
@@ -302,9 +321,15 @@ const DailyReport = () => {
       <div className="flex-grow-1 p-4 report-container">
         {/* Title */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="mb-0 fw-bold text-primary">
-            {startDate === endDate ? 'Daily Report' : 'Date Range Report'}
-          </h2>
+          <div>
+            <h2 className="mb-1 fw-bold text-primary">
+              {startDate === endDate ? 'Daily Report' : 'Date Range Report'}
+            </h2>
+            <p className="mb-0 text-muted" style={{ fontSize: '0.95rem' }}>
+              <i className="bi bi-calendar3 me-1"></i>
+              {formatDateRange()}
+            </p>
+          </div>
           <Button
             variant="primary" 
             onClick={handlePrintReport}
@@ -324,19 +349,19 @@ const DailyReport = () => {
                     <i className="bi bi-person me-1"></i>
                     Select User
                   </label>
-                  <Form.Select
-                    value={selectedUserId}
-                    onChange={(e) => handleUserChange(e.target.value)}
+                    <Form.Select
+                      value={selectedUserId}
+                      onChange={(e) => handleUserChange(e.target.value)}
                     className="form-select-lg border-2"
                     style={{ borderRadius: '10px', width: '200px' }}
-                  >
+                    >
                     <option value="">All Users</option>
-                    {users.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.username}
-                      </option>
-                    ))}
-                  </Form.Select>
+                      {users.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.username}
+                        </option>
+                      ))}
+                    </Form.Select>
                 </div>
               )}
               <div>
@@ -344,26 +369,26 @@ const DailyReport = () => {
                   <i className="bi bi-calendar3 me-1"></i>
                   Period Start
                 </label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
                   className="form-control form-control-lg border-2"
                   style={{ borderRadius: '10px', width: '200px' }}
-                />
+                  />
               </div>
               <div>
                 <label className="form-label fw-semibold text-dark">
                   <i className="bi bi-calendar3 me-1"></i>
                   Period End
                 </label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
                   className="form-control form-control-lg border-2"
                   style={{ borderRadius: '10px', width: '200px' }}
-                />
+                  />
               </div>
             </div>
       </div>

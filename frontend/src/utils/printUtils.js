@@ -396,6 +396,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         
         .count {
           text-align: right;
+          white-space: nowrap;
         }
         
         .section-title {
@@ -420,6 +421,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           <thead>
             <tr>
               <th>Label</th>
+              <th class="right">Count</th>
               <th class="right">Total</th>
             </tr>
           </thead>
@@ -427,6 +429,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
             ${(reportData.paymentMethods || []).map(payment => `
               <tr class="${payment.label === 'Total' ? 'total-row' : ''}">
                 <td>${payment.label}</td>
+                <td class="count">${payment.count || 0}</td>
                 <td class="currency">€ ${parseFloat(payment.total || 0).toFixed(2)}</td>
               </tr>
             `).join('')}
@@ -441,6 +444,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           <thead>
             <tr>
               <th>Category</th>
+              <th class="right">Count</th>
               <th class="right">Total</th>
             </tr>
           </thead>
@@ -448,6 +452,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
             ${(reportData.categories || []).map(category => `
               <tr class="${category.category === 'Total' ? 'total-row' : ''}">
                 <td>${category.category}</td>
+                <td class="count">${category.count || 0}</td>
                 <td class="currency">€ ${parseFloat(category.total || 0).toFixed(2)}</td>
               </tr>
             `).join('')}

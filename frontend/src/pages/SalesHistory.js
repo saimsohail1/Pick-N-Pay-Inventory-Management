@@ -443,7 +443,7 @@ const SalesHistory = () => {
                     </td>
                     <td className="py-3 px-4">{getPaymentMethodBadge(sale.paymentMethod)}</td>
                     <td className="py-3 px-4">
-                      <span className="fw-bold text-success fs-5">€{sale.totalAmount}</span>
+                      <span className="fw-bold text-success fs-5">€{parseFloat(sale.totalAmount || 0).toFixed(2)}</span>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="btn-group" role="group">
@@ -539,7 +539,7 @@ const SalesHistory = () => {
                     <i className="bi bi-currency-euro text-primary me-2"></i>
                     <strong>Total Amount:</strong>
                   </div>
-                  <p className="ms-4 mb-0 fw-bold text-success fs-5">€{saleToEdit.totalAmount}</p>
+                  <p className="ms-4 mb-0 fw-bold text-success fs-5">€{parseFloat(saleToEdit.totalAmount || 0).toFixed(2)}</p>
                 </div>
               </div>
               
@@ -588,10 +588,10 @@ const SalesHistory = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="fw-medium">€{item.unitPrice}</span>
+                          <span className="fw-medium">€{parseFloat(item.unitPrice || 0).toFixed(2)}</span>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="fw-bold text-success">€{item.totalPrice}</span>
+                          <span className="fw-bold text-success">€{parseFloat(item.totalPrice || 0).toFixed(2)}</span>
                         </td>
                         <td className="py-3 px-4 text-center">
                           <Button

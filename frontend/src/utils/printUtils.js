@@ -283,75 +283,75 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         
         body { 
           font-family: 'Courier New', monospace; 
-          font-size: 18px; 
-          line-height: 1.6; 
+          font-size: 12px; 
+          line-height: 1.2; 
           margin: 0; 
-          padding: 10mm; 
+          padding: 5mm; 
           color: #000;
           background: white;
-          font-weight: 900;
+          font-weight: bold;
         }
         
         .header { 
           text-align: center; 
-          margin-bottom: 20px;
+          margin-bottom: 10px;
         }
         
         .header .company-name {
-          font-size: 26px;
-          font-weight: 900;
-          margin-bottom: 8px;
+          font-size: 12px;
+          font-weight: bold;
+          margin-bottom: 5px;
         }
         
         .header .address {
-          font-size: 18px;
-          font-weight: 900;
-          margin-bottom: 5px;
+          font-size: 12px;
+          font-weight: bold;
+          margin-bottom: 3px;
         }
         
         .header .phone {
-          font-size: 18px;
-          font-weight: 900;
-          margin-bottom: 5px;
+          font-size: 12px;
+          font-weight: bold;
+          margin-bottom: 3px;
         }
         
         .header .date {
-          font-size: 18px;
-          font-weight: 900;
-          margin-bottom: 15px;
+          font-size: 12px;
+          font-weight: bold;
+          margin-bottom: 10px;
         }
         
         .divider {
-          border-top: 2px dashed #000;
-          margin: 15px 0;
+          border-top: 1px dashed #000;
+          margin: 10px 0;
         }
         
         .section { 
-          margin: 18px 0; 
+          margin: 12px 0; 
           page-break-inside: avoid;
         }
         
         table { 
           width: 100%; 
           border-collapse: collapse; 
-          margin: 12px 0;
-          font-size: 18px;
+          margin: 8px 0;
+          font-size: 11px;
         }
         
         th, td { 
-          padding: 8px 10px; 
+          padding: 4px 6px; 
           text-align: left; 
           vertical-align: top;
-          font-size: 18px;
-          font-weight: 900;
+          font-size: 11px;
+          font-weight: bold;
         }
         
         th { 
-          font-weight: 900;
+          font-weight: bold;
           text-transform: uppercase;
-          border-bottom: 2px dashed #000;
-          padding-bottom: 8px;
-          font-size: 20px;
+          border-bottom: 1px dashed #000;
+          padding-bottom: 4px;
+          font-size: 11px;
         }
         
         .right { 
@@ -359,27 +359,27 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         }
         
         .total-row {
-          border-top: 2px dashed #000;
-          padding-top: 8px;
-          margin-top: 8px;
-          font-weight: 900;
-          font-size: 20px;
+          border-top: 1px dashed #000;
+          padding-top: 4px;
+          margin-top: 4px;
+          font-weight: bold;
+          font-size: 11px;
         }
         
         .currency {
           text-align: right;
-          font-weight: 900;
+          font-weight: bold;
         }
         
         .count {
           text-align: right;
-          font-weight: 900;
+          font-weight: bold;
         }
         
         .section-title {
-          font-weight: 900;
-          margin-bottom: 10px;
-          font-size: 20px;
+          font-weight: bold;
+          margin-bottom: 6px;
+          font-size: 11px;
         }
       </style>
     </head>

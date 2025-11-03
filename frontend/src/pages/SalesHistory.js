@@ -26,6 +26,17 @@ const SalesHistory = () => {
   const [removingItem, setRemovingItem] = useState(false);
   const [companySettings, setCompanySettings] = useState({ companyName: 'PickNPay', address: '' });
 
+  // Helper function to format date as DD/MM/YYYY
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   // ✅ Safe fetch with cleanup - now properly filters by date and user
   const fetchSales = useCallback(async (date, userId) => {
     console.log("[SalesHistory] fetchSales start", { date, userId, isAdminUser });
@@ -374,12 +385,7 @@ const SalesHistory = () => {
               <div className="text-end">
                 <small className="text-muted">
                   <i className="bi bi-calendar3 me-1"></i>
-                  {new Date(selectedDate).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
+                  {formatDate(selectedDate)}
                   {isAdminUser && selectedUserId && (
                     <span className="ms-2">
                       <i className="bi bi-person me-1"></i>
@@ -519,7 +525,7 @@ const SalesHistory = () => {
                     <i className="bi bi-calendar3 text-primary me-2"></i>
                     <strong>Sale Date:</strong>
                   </div>
-                  <p className="ms-4 mb-0">{new Date(saleToEdit.saleDate).toLocaleString()}</p>
+                  <p className="ms-4 mb-0">{formatDate(saleToEdit.saleDate)} {formatTime(saleToEdit.saleDate)}</p>
                 </div>
                 <div className="col-md-4">
                   <div className="d-flex align-items-center mb-2">

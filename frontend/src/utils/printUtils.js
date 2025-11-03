@@ -125,6 +125,17 @@ export const printWithElectron = (content, title = 'Print Document') => {
  * @returns {string} HTML content
  */
 export const createReceiptHTML = (sale, companyName = 'PickNPay', companyAddress = '') => {
+  // Helper function to format date as DD/MM/YYYY
+  const formatReceiptDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   const subtotalExcludingVat = sale.saleItems.reduce((sum, item) => 
     sum + parseFloat(item.priceExcludingVat || 0), 0
   );
@@ -177,7 +188,7 @@ export const createReceiptHTML = (sale, companyName = 'PickNPay', companyAddress
         <div class="center"><strong>${companyName.toUpperCase()}</strong></div>
         ${companyAddress ? `<div class="center">${companyAddress}</div>` : ''}
         <div class="center">SALE RECEIPT</div>
-        <div class="center">Date: ${new Date(sale.saleDate).toLocaleDateString()}</div>
+        <div class="center">Date: ${formatReceiptDate(sale.saleDate)}</div>
         <div class="center">Time: ${new Date(sale.saleDate).toLocaleTimeString()}</div>
         <div class="center">Sale ID: ${sale.id}</div>
         <div class="center">Cashier: ${sale.user?.username || 'Unknown'}</div>

@@ -121,9 +121,10 @@ export const printWithElectron = (content, title = 'Print Document') => {
  * Create optimized receipt HTML for thermal printers
  * @param {Object} sale - Sale data
  * @param {string} companyName - Company name
+ * @param {string} companyAddress - Company address
  * @returns {string} HTML content
  */
-export const createReceiptHTML = (sale, companyName = 'PickNPay') => {
+export const createReceiptHTML = (sale, companyName = 'PickNPay', companyAddress = '') => {
   const subtotalExcludingVat = sale.saleItems.reduce((sum, item) => 
     sum + parseFloat(item.priceExcludingVat || 0), 0
   );
@@ -174,6 +175,7 @@ export const createReceiptHTML = (sale, companyName = 'PickNPay') => {
     <body>
       <div class="header">
         <div class="center"><strong>${companyName.toUpperCase()}</strong></div>
+        ${companyAddress ? `<div class="center">${companyAddress}</div>` : ''}
         <div class="center">SALE RECEIPT</div>
         <div class="center">Date: ${new Date(sale.saleDate).toLocaleDateString()}</div>
         <div class="center">Time: ${new Date(sale.saleDate).toLocaleTimeString()}</div>

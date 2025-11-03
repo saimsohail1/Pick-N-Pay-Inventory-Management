@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Table, Button, Form, Alert, Modal, Spinner } from "react-bootstrap";
 import { format } from "date-fns";
-import { salesAPI, usersAPI } from "../services/api";
+import { salesAPI, usersAPI, companySettingsAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { directPrint, createReceiptHTML, createSalesHistoryHTML } from '../utils/printUtils';
 
@@ -24,6 +24,7 @@ const SalesHistory = () => {
   const [saleToDelete, setSaleToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [removingItem, setRemovingItem] = useState(false);
+  const [companySettings, setCompanySettings] = useState({ companyName: 'PickNPay', address: '' });
 
   // ✅ Safe fetch with cleanup - now properly filters by date and user
   const fetchSales = useCallback(async (date, userId) => {
@@ -77,9 +78,28 @@ const SalesHistory = () => {
     fetchSales(selectedDate, selectedUserId);
   }, [fetchSales, selectedDate, selectedUserId]);
 
+  // ✅ Fetch company settings on mount
+  const fetchCompanySettings = async () => {
+    try {
+      const response = await companySettingsAPI.get();
+      // Handle both response.data and direct response
+      const settingsData = response.data || response;
+      if (settingsData) {
+        setCompanySettings({
+          companyName: settingsData.companyName || 'PickNPay',
+          address: settingsData.address || ''
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch company settings:", err);
+      // Keep default values on error
+    }
+  };
+
   // ✅ Load users once for admin
   useEffect(() => {
     let isMounted = true;
+    fetchCompanySettings();
     if (isAdminUser) {
       usersAPI
         .getAll()
@@ -185,8 +205,27 @@ const SalesHistory = () => {
 
   const handlePrintSale = async (sale) => {
     try {
-      const companyName = 'PickNPay';
-      const receiptContent = createReceiptHTML(sale, companyName);
+      // Fetch latest company settings before printing
+      let currentCompanySettings = companySettings;
+      try {
+        const response = await companySettingsAPI.get();
+        const settingsData = response.data || response;
+        if (settingsData) {
+          currentCompanySettings = {
+            companyName: settingsData.companyName || 'PickNPay',
+            address: settingsData.address || ''
+          };
+        }
+      } catch (err) {
+        console.error("Failed to fetch company settings for print:", err);
+        // Use existing state if fetch fails
+      }
+      
+      const receiptContent = createReceiptHTML(
+        sale, 
+        currentCompanySettings.companyName, 
+        currentCompanySettings.address
+      );
       try {
         await directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
       } catch (printError) {

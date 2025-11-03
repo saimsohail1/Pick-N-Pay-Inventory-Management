@@ -161,7 +161,9 @@ export const createReceiptHTML = (sale, companyName = 'PickNPay', companyAddress
             font-size: 12px; 
             line-height: 1.2;
             width: 70mm;
-            font-weight: bold;
+            font-weight: 600;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
         }
         body { 
@@ -171,16 +173,20 @@ export const createReceiptHTML = (sale, companyName = 'PickNPay', companyAddress
           margin: 0; 
           padding: 5mm; 
           width: 70mm;
-          font-weight: bold;
+          font-weight: 600;
+          color: #000;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
         .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
-        .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
-        .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: bold; }
-        .vat-info { margin: 5px 0; font-size: 10px; }
-        .footer { text-align: center; margin-top: 15px; font-size: 10px; }
+        .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; font-weight: 600; }
+        .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: 700; }
+        .vat-info { margin: 5px 0; font-size: 10px; font-weight: 600; }
+        .footer { text-align: center; margin-top: 15px; font-size: 10px; font-weight: 600; }
         .divider { border-top: 1px dashed #000; margin: 5px 0; }
         .center { text-align: center; }
         .right { text-align: right; }
+        * { color: #000 !important; }
       </style>
     </head>
     <body>
@@ -308,6 +314,9 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
             font-size: 13px; 
             line-height: 1.2;
             width: 70mm;
+            font-weight: 600;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
         }
         body { 
@@ -319,6 +328,9 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           width: 70mm;
           color: #000;
           background: white;
+          font-weight: 600;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
         
         .header { 
@@ -328,25 +340,25 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         
         .header .company-name {
           font-size: 13px;
-          font-weight: bold;
+          font-weight: 700;
           margin-bottom: 5px;
         }
         
         .header .address {
           font-size: 13px;
-          font-weight: bold;
+          font-weight: 700;
           margin-bottom: 3px;
         }
         
         .header .phone {
           font-size: 13px;
-          font-weight: bold;
+          font-weight: 700;
           margin-bottom: 3px;
         }
         
         .header .date {
           font-size: 13px;
-          font-weight: bold;
+          font-weight: 700;
           margin-bottom: 10px;
         }
         
@@ -373,10 +385,12 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           vertical-align: top;
           font-size: 12px;
           white-space: nowrap;
+          font-weight: 600;
+          color: #000;
         }
         
         th { 
-          font-weight: bold;
+          font-weight: 700;
           text-transform: uppercase;
           border-bottom: 1px dashed #000;
           padding-bottom: 4px;
@@ -391,7 +405,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
           border-top: 1px dashed #000;
           padding-top: 4px;
           margin-top: 4px;
-          font-weight: bold;
+          font-weight: 700;
           font-size: 12px;
         }
         
@@ -402,15 +416,17 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
         .currency {
           text-align: right;
           white-space: nowrap;
+          font-weight: 600;
         }
         
         .count {
           text-align: right;
           white-space: nowrap;
+          font-weight: 600;
         }
         
         .section-title {
-          font-weight: bold;
+          font-weight: 700;
           margin-bottom: 6px;
           font-size: 12px;
         }

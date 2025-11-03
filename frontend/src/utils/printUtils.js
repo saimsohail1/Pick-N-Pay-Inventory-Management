@@ -239,27 +239,26 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
   // Format date as DD/MM/YYYY or handle date range string
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    // If it's already a formatted date range (contains " to "), return as is
+    
+    // Helper function to format a single date
+    const formatSingleDate = (d) => {
+      const date = new Date(d);
+      if (isNaN(date.getTime())) return d; // Return original if invalid
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+    
+    // Check if it's a date range (contains " to ")
     if (dateStr.includes(' to ')) {
-      // Try to format both dates in the range
       const [start, end] = dateStr.split(' to ');
-      const formatSingleDate = (d) => {
-        const date = new Date(d);
-        if (isNaN(date.getTime())) return d; // Return original if invalid
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-      };
-      return `${formatSingleDate(start)} to ${formatSingleDate(end)}`;
+      // Format both dates and use hyphen separator: "DD/MM/YYYY - DD/MM/YYYY"
+      return `${formatSingleDate(start)} - ${formatSingleDate(end)}`;
     }
-    // Single date - format it
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr; // Return original if invalid
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    
+    // Single date - format it as "DD/MM/YYYY"
+    return formatSingleDate(dateStr);
   };
 
   // Process VAT info into table format

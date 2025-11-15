@@ -104,12 +104,21 @@ const SalesPage = () => {
   // Broadcast cart updates to customer display window
   useEffect(() => {
     if (window.electron && window.electron.ipcRenderer) {
+      const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+      const discountAmount = appliedDiscount 
+        ? (appliedDiscount.type === 'percentage' 
+          ? (subtotal * appliedDiscount.value) / 100 
+          : Math.min(appliedDiscount.value, subtotal))
+        : 0;
+      const total = Math.max(0, subtotal - discountAmount);
+      
       const cartData = {
         cart: cart,
-        subtotal: calculateSubtotal(),
-        discountAmount: calculateDiscountAmount(),
-        total: calculateTotal()
+        subtotal: subtotal,
+        discountAmount: discountAmount,
+        total: total
       };
+      
       window.electron.ipcRenderer.send('cart-updated', cartData);
     }
   }, [cart, appliedDiscount, customDiscountAmount]);
@@ -348,15 +357,10 @@ const SalesPage = () => {
 
   // Helper function for quick sale items (special case)
   const addOrUpdateQuickSaleItem = (price) => {
-    console.log('addOrUpdateQuickSaleItem called with price:', price);
-    
     setCart(currentCart => {
-      console.log('Current cart before update:', currentCart);
       const existingItemIndex = currentCart.findIndex(
         item => item.itemId === null && item.unitPrice === price
       );
-
-      console.log('Existing item index:', existingItemIndex);
 
       if (existingItemIndex >= 0) {
         // Update quantity of existing quick sale item
@@ -364,7 +368,6 @@ const SalesPage = () => {
         updatedCart[existingItemIndex].quantity += 1;
         updatedCart[existingItemIndex].totalPrice = 
           updatedCart[existingItemIndex].unitPrice * updatedCart[existingItemIndex].quantity;
-        console.log('Updated existing item, new quantity:', updatedCart[existingItemIndex].quantity);
         return updatedCart;
       } else {
         // Add new quick sale item at the beginning (latest first)
@@ -377,7 +380,6 @@ const SalesPage = () => {
           unitPrice: price,
           totalPrice: price
         };
-        console.log('Adding new quick sale item:', quickSaleItem);
         return [quickSaleItem, ...currentCart];
       }
     });
@@ -650,7 +652,6 @@ const SalesPage = () => {
   const processCashPayment = async () => {
     // Prevent duplicate payment processing
     if (paymentInProgressRef.current) {
-      console.log('Payment already in progress, ignoring duplicate call');
       return;
     }
     
@@ -667,10 +668,6 @@ const SalesPage = () => {
     setCheckoutDialogOpen(false);
 
     try {
-      console.log('Processing cash payment...');
-      console.log('User object:', user);
-      console.log('Cart:', cart);
-      
       const saleItems = cart.map((item) => ({
         itemId: item.itemId,
         quantity: item.quantity,
@@ -691,9 +688,7 @@ const SalesPage = () => {
         changeDue: parseFloat(cashAmount || 0) > 0 ? calculateChange() : 0
       };
 
-      console.log('Sale data being sent:', saleData);
       const response = await salesAPI.create(saleData);
-      console.log('Sale created successfully:', response.data);
       
       // Store the last sale for printing
       setLastSale(response.data);
@@ -736,10 +731,6 @@ const SalesPage = () => {
     setCheckoutDialogOpen(false);
 
     try {
-      console.log('Processing card payment...');
-      console.log('User object:', user);
-      console.log('Cart:', cart);
-      
       const saleItems = cart.map((item) => ({
         itemId: item.itemId,
         quantity: item.quantity,
@@ -758,9 +749,7 @@ const SalesPage = () => {
         userId: user?.id || null,
       };
 
-      console.log('Sale data being sent:', saleData);
       const response = await salesAPI.create(saleData);
-      console.log('Sale created successfully:', response.data);
       
       // Store the last sale for printing
       setLastSale(response.data);
@@ -800,7 +789,6 @@ const SalesPage = () => {
       e.stopPropagation();
     }
     
-    console.log('handleQuickPriceSale called with price:', price);
     addOrUpdateQuickSaleItem(price);
     setSuccess(`Quick sale of €${price.toFixed(2)} added to cart.`);
     setTimeout(() => setSuccess(null), 2000);
@@ -848,7 +836,6 @@ const SalesPage = () => {
     const clickKey = `item_${item.id}`;
     const now = Date.now();
     if (lastClickRef.current[clickKey] && now - lastClickRef.current[clickKey] < 500) {
-      console.log('Duplicate click detected, ignoring');
       return; // Ignore this click
     }
     lastClickRef.current[clickKey] = now;
@@ -885,16 +872,12 @@ const SalesPage = () => {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('Increment button clicked');
-    console.log('Selected cart item:', selectedCartItem);
-    
     if (!selectedCartItem) {
       setError('Please select an item from the cart first.');
       addTimeout(() => setError(null), 3000);
       return;
     }
     
-    console.log('Incrementing item with ID:', selectedCartItem.id);
     updateCartItemQuantity(selectedCartItem.id, 1);
     setSuccess(`Increased quantity for ${selectedCartItem.itemName}`);
     setTimeout(() => setSuccess(null), 2000);
@@ -1350,19 +1333,15 @@ const SalesPage = () => {
                 style={{ cursor: 'pointer' }} 
                 title="Close Application"
                 onClick={() => {
-                  console.log('Power button clicked');
                   // Check if running in Electron
                   if (window && window.require) {
-                    console.log('Running in Electron, sending app-closing message');
                     try {
                       const { ipcRenderer } = window.require('electron');
                       ipcRenderer.send('app-closing');
-                      console.log('app-closing message sent successfully');
                     } catch (error) {
                       console.error('Error closing app:', error);
                     }
                   } else {
-                    console.log('Not in Electron, logging out and navigating to login');
                     // If not in Electron, just logout
                     logout();
                     navigate('/login');
@@ -1713,19 +1692,15 @@ const SalesPage = () => {
                     className="fw-bold" 
                       style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px' }}
                     onClick={() => {
-                      console.log('Exit button clicked');
                       // Check if running in Electron
                       if (window && window.require) {
-                        console.log('Running in Electron, sending app-closing message');
                         try {
                           const { ipcRenderer } = window.require('electron');
                           ipcRenderer.send('app-closing');
-                          console.log('app-closing message sent successfully');
                         } catch (error) {
                           console.error('Error closing app:', error);
                         }
                       } else {
-                        console.log('Not in Electron, logging out and navigating to login');
                         // If not in Electron, just logout
                         logout();
                         navigate('/login');

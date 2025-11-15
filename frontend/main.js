@@ -191,6 +191,15 @@ function createCustomerDisplayWindow() {
     customerDisplayWindow.show();
     customerDisplayWindow.setFullScreen(true);
     customerDisplayWindow.setMenuBarVisibility(false);
+    
+    // Send current cart state when window is ready
+    setTimeout(() => {
+      try {
+        customerDisplayWindow.webContents.send('cart-updated', currentCartState);
+      } catch (error) {
+        console.error('Error sending initial cart state:', error);
+      }
+    }, 500); // Small delay to ensure window is fully ready
   });
 
   customerDisplayWindow.on('closed', () => {

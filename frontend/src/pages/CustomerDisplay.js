@@ -14,20 +14,26 @@ const CustomerDisplay = () => {
     
     // Listen for cart updates from main window
     if (window.electron && window.electron.ipcRenderer) {
-      const handleCartUpdate = (event, cartData) => {
-        setCart(cartData.cart || []);
-        setSubtotal(cartData.subtotal || 0);
-        setDiscountAmount(cartData.discountAmount || 0);
-        setTotal(cartData.total || 0);
+      const handleCartUpdate = (cartData) => {
+        if (cartData) {
+          setCart(Array.isArray(cartData.cart) ? cartData.cart : []);
+          setSubtotal(cartData.subtotal || 0);
+          setDiscountAmount(cartData.discountAmount || 0);
+          setTotal(cartData.total || 0);
+        }
       };
 
       window.electron.ipcRenderer.on('cart-updated', handleCartUpdate);
 
-      // Request initial cart state
-      window.electron.ipcRenderer.send('request-cart-state');
+      // Request initial cart state after a short delay to ensure IPC is ready
+      setTimeout(() => {
+        window.electron.ipcRenderer.send('request-cart-state');
+      }, 1000);
 
       return () => {
-        window.electron.ipcRenderer.removeListener('cart-updated', handleCartUpdate);
+        if (window.electron && window.electron.ipcRenderer) {
+          window.electron.ipcRenderer.removeListener('cart-updated', handleCartUpdate);
+        }
       };
     }
   }, []);
@@ -35,11 +41,23 @@ const CustomerDisplay = () => {
   const fetchCompanyName = async () => {
     try {
       const response = await companySettingsAPI.get();
-      setCompanyName(response.data.companyName);
+      const settingsData = response.data || response;
+      if (settingsData && settingsData.companyName) {
+        setCompanyName(settingsData.companyName);
+      }
     } catch (error) {
       console.error('Failed to fetch company name:', error);
     }
   };
+  
+  // Refresh company name periodically in case it changes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchCompanyName();
+    }, 5000); // Refresh every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div style={{
@@ -51,7 +69,7 @@ const CustomerDisplay = () => {
       flexDirection: 'column'
     }}>
       <Container fluid style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Header */}
+        {/* Header - Just Company Name */}
         <div style={{
           textAlign: 'center',
           marginBottom: '3rem',
@@ -69,14 +87,6 @@ const CustomerDisplay = () => {
           }}>
             {companyName}
           </h1>
-          <p style={{
-            fontSize: '2rem',
-            color: '#6c757d',
-            margin: '1rem 0 0 0',
-            fontWeight: '500'
-          }}>
-            Your Cart
-          </p>
         </div>
 
         {/* Cart Items */}
@@ -192,17 +202,6 @@ const CustomerDisplay = () => {
           </div>
         )}
 
-        {/* Footer */}
-        <div style={{
-          textAlign: 'center',
-          marginTop: '3rem',
-          padding: '1.5rem',
-          color: '#6c757d',
-          fontSize: '1.5rem',
-          fontWeight: '500'
-        }}>
-          <p style={{ margin: 0 }}>Thank you for shopping with us!</p>
-        </div>
       </Container>
     </div>
   );

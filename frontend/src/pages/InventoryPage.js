@@ -461,9 +461,9 @@ const InventoryPage = () => {
           Inventory
         </h1>
         <div className="d-flex align-items-center">
-          <span className="badge bg-primary me-2 fs-6">
-            {items.length} Items
-          </span>
+          <Button variant="primary" className="me-3" disabled style={{ backgroundColor: '#0d47a1', borderColor: '#0d47a1' }}>
+            Items: {totalElements}
+          </Button>
           <span className="badge bg-warning fs-6">
             {items.filter(item => item.stockQuantity <= 10).length} Low Stock
           </span>

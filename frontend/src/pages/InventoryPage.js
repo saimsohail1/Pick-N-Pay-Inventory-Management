@@ -10,7 +10,8 @@ import {
   Spinner,
   Form,
   Badge,
-  InputGroup
+  InputGroup,
+  Pagination
 } from 'react-bootstrap';
 import { itemsAPI, categoriesAPI } from '../services/api';
 import EditItemDialog from '../components/EditItemDialog';
@@ -25,8 +26,14 @@ const InventoryPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [sortBy, setSortBy] = useState('stockQuantity'); // Default sort by stock quantity
-  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' for ascending (lowest first)
+  const [sortBy, setSortBy] = useState('id'); // Default sort by id
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' for descending (newest first)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize] = useState(100); // 100 items per page
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [filters, setFilters] = useState({
     stockFilter: 'all', // 'all', 'low', 'out', 'normal'
     expiryFilter: 'all', // 'all', 'expired', 'expiring', 'valid'
@@ -50,27 +57,46 @@ const InventoryPage = () => {
       setLoading(true);
       try {
         const [itemsResponse, categoriesResponse] = await Promise.all([
-          itemsAPI.getAll(),
+          itemsAPI.getAllPaginated(currentPage, pageSize, sortBy, sortOrder),
           categoriesAPI.getAll()
         ]);
-        setItems(itemsResponse.data);
+        
+        // Handle paginated response
+        if (itemsResponse.data.content) {
+          setItems(itemsResponse.data.content);
+          setTotalPages(itemsResponse.data.totalPages);
+          setTotalElements(itemsResponse.data.totalElements);
+        } else {
+          // Fallback for non-paginated response
+          setItems(itemsResponse.data);
+        }
+        
         setCategories(categoriesResponse.data);
       } catch (err) {
         setError('Failed to fetch data');
-        console.error('Failed to fetch categories:', err);
+        console.error('Failed to fetch data:', err);
       } finally {
         setLoading(false);
       }
     };
     
     fetchData();
-  }, []);
+  }, [currentPage, pageSize, sortBy, sortOrder]);
 
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const response = await itemsAPI.getAll();
-      setItems(response.data);
+      const response = await itemsAPI.getAllPaginated(currentPage, pageSize, sortBy, sortOrder);
+      
+      // Handle paginated response
+      if (response.data.content) {
+        setItems(response.data.content);
+        setTotalPages(response.data.totalPages);
+        setTotalElements(response.data.totalElements);
+      } else {
+        // Fallback for non-paginated response
+        setItems(response.data);
+      }
     } catch (err) {
       setError('Failed to fetch items');
     } finally {
@@ -129,6 +155,8 @@ const InventoryPage = () => {
         batchId: '',
         generalExpiryDate: ''
       });
+      // Reset to first page and refresh
+      setCurrentPage(0);
       fetchItems();
     } catch (err) {
       const errorMessage = err.response?.data || 'Failed to save item';
@@ -159,6 +187,7 @@ const InventoryPage = () => {
       setSuccess('Item updated successfully');
       setShowEditModal(false);
       setEditingItem(null);
+      // Refresh current page
       fetchItems();
     } catch (err) {
       setError('Failed to update item');
@@ -173,6 +202,7 @@ const InventoryPage = () => {
       try {
         await itemsAPI.delete(id);
         setSuccess('Item deleted successfully');
+        // Refresh current page
         fetchItems();
       } catch (err) {
         const errorMessage = err.response?.data || 'Failed to delete item';
@@ -192,8 +222,8 @@ const InventoryPage = () => {
         const canvas = document.createElement('canvas');
         JsBarcode(canvas, item.barcode, {
           format: 'CODE128',
-          width: 1,
-          height: 40,
+          width: 0.7,
+          height: 30,
           displayValue: false,
           margin: 0
         });
@@ -219,7 +249,7 @@ const InventoryPage = () => {
           @media print {
             @page { 
               size: 2in 4in;
-              margin: 0.05in;
+              margin: 0.01in;
             }
             body {
               margin: 0;
@@ -234,7 +264,7 @@ const InventoryPage = () => {
             justify-content: center;
             align-items: center;
             min-height: 4in;
-            padding: 0.05in;
+            padding: 0.01in;
             font-weight: bold;
           }
           
@@ -245,7 +275,7 @@ const InventoryPage = () => {
           }
           
           .item-name {
-            font-size: 16px;
+            font-size: 22px;
             font-weight: bold;
             margin-bottom: 8px;
             word-wrap: break-word;
@@ -401,6 +431,14 @@ const InventoryPage = () => {
       setSortBy(column);
       setSortOrder('asc');
     }
+    // Reset to first page when sorting changes
+    setCurrentPage(0);
+  };
+  
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
 
@@ -719,6 +757,58 @@ const InventoryPage = () => {
               ))}
             </tbody>
           </Table>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="d-flex justify-content-between align-items-center p-3 border-top">
+              <div className="text-muted">
+                Showing {currentPage * pageSize + 1} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} items
+              </div>
+              <Pagination className="mb-0">
+                <Pagination.First 
+                  onClick={() => handlePageChange(0)} 
+                  disabled={currentPage === 0}
+                />
+                <Pagination.Prev 
+                  onClick={() => handlePageChange(currentPage - 1)} 
+                  disabled={currentPage === 0}
+                />
+                
+                {/* Show page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i;
+                  } else if (currentPage < 3) {
+                    pageNum = i;
+                  } else if (currentPage > totalPages - 4) {
+                    pageNum = totalPages - 5 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <Pagination.Item
+                      key={pageNum}
+                      active={pageNum === currentPage}
+                      onClick={() => handlePageChange(pageNum)}
+                    >
+                      {pageNum + 1}
+                    </Pagination.Item>
+                  );
+                })}
+                
+                <Pagination.Next 
+                  onClick={() => handlePageChange(currentPage + 1)} 
+                  disabled={currentPage >= totalPages - 1}
+                />
+                <Pagination.Last 
+                  onClick={() => handlePageChange(totalPages - 1)} 
+                  disabled={currentPage >= totalPages - 1}
+                />
+              </Pagination>
+            </div>
+          )}
         </Card.Body>
       </Card>
 

@@ -46,7 +46,7 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="min-vh-100 bg-light">
+    <div className="min-vh-100 bg-light" style={{ paddingTop: 0 }}>
       <style>{`
         .navbar-nav {
           flex-wrap: nowrap;
@@ -66,13 +66,24 @@ const Layout = ({ children }) => {
           padding-left: 1rem;
           padding-right: 1rem;
         }
+        .layout-content-container {
+          margin-top: 80px;
+          min-height: calc(100vh - 80px);
+        }
+        @media (max-width: 991px) {
+          .layout-content-container {
+            margin-top: 80px;
+          }
+        }
       `}</style>
-      <Navbar bg="dark" variant="dark" expand="lg" className="shadow-modern-lg" style={{ 
+      {/* Navbar Container - Fixed at top */}
+      <Navbar bg="dark" variant="dark" expand="lg" fixed="top" className="shadow-modern-lg" style={{ 
         background: 'linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%)',
         minHeight: '80px',
         boxShadow: 'var(--shadow-xl)',
         backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        zIndex: 1030
       }}>
         <Container fluid>
           <Navbar.Brand 
@@ -205,9 +216,12 @@ const Layout = ({ children }) => {
         </Container>
       </Navbar>
       
-      <Container className="py-4">
-        {children}
-      </Container>
+      {/* Content Container - Separate from navbar, starts below it */}
+      <div className="layout-content-container">
+        <Container fluid className="py-4" style={{ paddingTop: '2rem', paddingBottom: '2rem' }}>
+          {children}
+        </Container>
+      </div>
       
       {/* Fullscreen indicator */}
       <FullscreenIndicator />

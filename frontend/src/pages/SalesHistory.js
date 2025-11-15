@@ -70,7 +70,20 @@ const SalesHistory = () => {
       
       if (isMounted) {
         // Handle both direct array and response.data structure
-        const salesData = Array.isArray(response) ? response : (response.data || []);
+        let salesData = Array.isArray(response) ? response : (response.data || []);
+        
+        // Ensure sales are sorted by date descending (most recent first)
+        salesData = salesData.sort((a, b) => {
+          const dateA = new Date(a.saleDate);
+          const dateB = new Date(b.saleDate);
+          return dateB - dateA; // Descending order (newest first)
+        });
+        
+        // For normal users, limit to last 5 transactions (most recent)
+        if (!isAdminUser && salesData.length > 5) {
+          salesData = salesData.slice(0, 5);
+        }
+        
         setSales(salesData);
         console.log("[SalesHistory] fetchSales success", salesData);
       }
@@ -284,7 +297,11 @@ const SalesHistory = () => {
         </div>
         <div>
           <h2 className="mb-0 fw-bold text-primary">Sales History</h2>
-          <p className="text-muted mb-0">View and manage your sales transactions</p>
+          <p className="text-muted mb-0">
+            {isAdminUser 
+              ? "View and manage your sales transactions" 
+              : "View your last 5 sales transactions"}
+          </p>
         </div>
       </div>
 

@@ -1,11 +1,16 @@
 package com.picknpay.service;
 
 import com.picknpay.dto.ItemDTO;
+import com.picknpay.dto.PaginatedResponse;
 import com.picknpay.entity.Item;
 import com.picknpay.entity.Category;
 import com.picknpay.repository.ItemRepository;
 import com.picknpay.repository.CategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +34,30 @@ public class ItemService {
         return itemRepository.findAll().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+    
+    public PaginatedResponse<ItemDTO> getAllItemsPaginated(int page, int size, String sortBy, String sortDir) {
+        // Default sorting by id descending (newest first)
+        Sort sort = sortDir != null && sortDir.equalsIgnoreCase("asc") 
+            ? Sort.by(sortBy != null ? sortBy : "id").ascending()
+            : Sort.by(sortBy != null ? sortBy : "id").descending();
+        
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Item> itemPage = itemRepository.findAll(pageable);
+        
+        List<ItemDTO> content = itemPage.getContent().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        
+        return new PaginatedResponse<>(
+            content,
+            itemPage.getNumber(),
+            itemPage.getSize(),
+            itemPage.getTotalElements(),
+            itemPage.getTotalPages(),
+            itemPage.isFirst(),
+            itemPage.isLast()
+        );
     }
     
     public Optional<ItemDTO> getItemById(Long id) {

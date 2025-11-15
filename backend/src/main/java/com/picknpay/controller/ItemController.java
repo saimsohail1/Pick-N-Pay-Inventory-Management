@@ -1,6 +1,7 @@
 package com.picknpay.controller;
 
 import com.picknpay.dto.ItemDTO;
+import com.picknpay.dto.PaginatedResponse;
 import com.picknpay.service.ItemService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,20 @@ public class ItemController {
     private ItemService itemService;
     
     @GetMapping
-    public ResponseEntity<List<ItemDTO>> getAllItems() {
+    public ResponseEntity<?> getAllItems(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir) {
+        
+        // If pagination parameters are provided, return paginated response
+        if (page != null && size != null) {
+            PaginatedResponse<ItemDTO> paginatedItems = itemService.getAllItemsPaginated(
+                page, size, sortBy != null ? sortBy : "id", sortDir != null ? sortDir : "desc");
+            return ResponseEntity.ok(paginatedItems);
+        }
+        
+        // Otherwise, return all items (for backward compatibility)
         List<ItemDTO> items = itemService.getAllItems();
         return ResponseEntity.ok(items);
     }

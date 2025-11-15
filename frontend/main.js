@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
 const path = require('path');
@@ -10,7 +10,14 @@ if (process.platform !== 'win32') {
 }
 
 let mainWindow;
+let customerDisplayWindow;
 let backendProcess;
+let currentCartState = {
+  cart: [],
+  subtotal: 0,
+  discountAmount: 0,
+  total: 0
+};
 
 /**
  * Start backend Java process
@@ -118,6 +125,10 @@ function createWindow() {
     } catch (err) {
       console.error('Error sending app-closing event:', err);
     }
+    // Close customer display window when main window closes
+    if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+      customerDisplayWindow.close();
+    }
     stopBackend();
   });
 
@@ -128,6 +139,71 @@ function createWindow() {
   if (isDev) {
     mainWindow.webContents.openDevTools();
   }
+}
+
+/**
+ * Create the customer display window on second monitor
+ * Only creates the window if there are 2 or more displays
+ */
+function createCustomerDisplayWindow() {
+  if (customerDisplayWindow) return;
+
+  // Get all displays
+  const displays = screen.getAllDisplays();
+  
+  // Only create customer display if there are 2 or more displays
+  if (displays.length < 2) {
+    console.log('📺 Only one display detected. Customer display window will not be created.');
+    return;
+  }
+  
+  // Use the second display (index 1)
+  const secondDisplay = displays[1];
+  
+  console.log(`📺 Creating customer display window on display 2 (second monitor)`);
+  console.log(`📐 Display bounds:`, secondDisplay.bounds);
+
+  customerDisplayWindow = new BrowserWindow({
+    width: 1920,
+    height: 1080,
+    x: secondDisplay.bounds.x + (secondDisplay.bounds.width - 1920) / 2,
+    y: secondDisplay.bounds.y + (secondDisplay.bounds.height - 1080) / 2,
+    fullscreen: true,
+    frame: false,
+    autoHideMenuBar: true,
+    alwaysOnTop: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true
+    },
+    show: false,
+    backgroundColor: '#f8f9fa'
+  });
+
+  const startUrl = isDev
+    ? 'http://localhost:3000/#/customer-display'
+    : `file://${path.join(__dirname, 'build', 'index.html')}#/customer-display`;
+
+  customerDisplayWindow.loadURL(startUrl);
+
+  customerDisplayWindow.once('ready-to-show', () => {
+    customerDisplayWindow.show();
+    customerDisplayWindow.setFullScreen(true);
+    customerDisplayWindow.setMenuBarVisibility(false);
+  });
+
+  customerDisplayWindow.on('closed', () => {
+    customerDisplayWindow = null;
+  });
+
+  // Prevent closing customer display window
+  customerDisplayWindow.on('close', (event) => {
+    if (!app.isQuitting) {
+      event.preventDefault();
+      customerDisplayWindow.hide();
+    }
+  });
 }
 
 /**
@@ -146,9 +222,46 @@ ipcMain.on('app-closing', () => {
   }, 100);
 });
 
+/**
+ * IPC handlers for cart synchronization
+ */
+ipcMain.on('cart-updated', (event, cartData) => {
+  // Store current cart state
+  currentCartState = {
+    cart: cartData.cart || [],
+    subtotal: cartData.subtotal || 0,
+    discountAmount: cartData.discountAmount || 0,
+    total: cartData.total || 0
+  };
+
+  // Send to customer display window if it exists and is not destroyed
+  if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+    try {
+      customerDisplayWindow.webContents.send('cart-updated', currentCartState);
+    } catch (error) {
+      console.error('Error sending cart update to customer display:', error);
+    }
+  }
+});
+
+ipcMain.on('request-cart-state', (event) => {
+  // Send current cart state to requesting window if customer display exists
+  if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+    try {
+      customerDisplayWindow.webContents.send('cart-updated', currentCartState);
+    } catch (error) {
+      console.error('Error sending cart state to customer display:', error);
+    }
+  }
+});
+
 app.whenReady().then(() => {
   startBackend();
   createWindow();
+  // Create customer display window after a short delay to ensure main window is ready
+  setTimeout(() => {
+    createCustomerDisplayWindow();
+  }, 1000);
 });
 
 app.on('before-quit', stopBackend);

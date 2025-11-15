@@ -40,6 +40,8 @@ api.interceptors.response.use(
 // Items API
 export const itemsAPI = {
   getAll: () => api.get('/items'),
+  getAllPaginated: (page = 0, size = 100, sortBy = 'id', sortDir = 'desc') => 
+    api.get(`/items?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`),
   getById: (id) => api.get(`/items/${id}`),
   getByBarcode: (barcode) => api.get(`/items/barcode/${barcode}`),
   getItemsByCategory: (categoryId) => api.get(`/items/category/${categoryId}`),

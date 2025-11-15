@@ -23,12 +23,15 @@ import FullscreenIndicator from '../components/FullscreenIndicator';
 import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
 import EditItemDialog from '../components/EditItemDialog';
 import JsBarcode from 'jsbarcode';
+import { directPrint, createReceiptHTML } from '../utils/printUtils';
 
 const SalesPage = () => {
   const [cart, setCart] = useState([]);
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [companyName, setCompanyName] = useState('PickNPay');
+  const [companyAddress, setCompanyAddress] = useState('');
+  const [lastSale, setLastSale] = useState(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -41,6 +44,8 @@ const SalesPage = () => {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const barcodeInputRef = useRef(null);
+  const paymentInProgressRef = useRef(false);
+  const cashPaymentTimeoutRef = useRef(null);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [cashAmount, setCashAmount] = useState('');
   const [selectedNotes, setSelectedNotes] = useState({});
@@ -88,13 +93,26 @@ const SalesPage = () => {
   });
 
   const selectedItemId = watch('itemId');
-  const quickSalePrices = [0.10, 0.20, 0.50, 1, 2, 3, 4, 5, 6, 7, 8, 10, 13, 15, 20, 40];
+  const quickSalePrices = [0.05, 0.10, 0.20, 0.50, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 13, 15, 20, 40];
 
   useEffect(() => {
     fetchItems();
     fetchCategories();
     fetchCompanyName();
   }, []);
+
+  // Broadcast cart updates to customer display window
+  useEffect(() => {
+    if (window.electron && window.electron.ipcRenderer) {
+      const cartData = {
+        cart: cart,
+        subtotal: calculateSubtotal(),
+        discountAmount: calculateDiscountAmount(),
+        total: calculateTotal()
+      };
+      window.electron.ipcRenderer.send('cart-updated', cartData);
+    }
+  }, [cart, appliedDiscount, customDiscountAmount]);
 
   // Auto-focus barcode input on mount and keep it focused
   useEffect(() => {
@@ -246,10 +264,63 @@ const SalesPage = () => {
   const fetchCompanyName = async () => {
     try {
       const response = await companySettingsAPI.get();
-      setCompanyName(response.data.companyName);
+      setCompanyName(response.data.companyName || 'PickNPay');
+      setCompanyAddress(response.data.address || '');
     } catch (error) {
       console.error('Failed to fetch company name:', error);
       // Keep default name if fetch fails
+    }
+  };
+  
+  const handlePrintLastSale = async () => {
+    if (!lastSale) {
+      setError('No recent sale to print');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    
+    try {
+      // Fetch latest company settings before printing
+      let currentCompanySettings = { companyName: companyName, address: companyAddress };
+      try {
+        const response = await companySettingsAPI.get();
+        const settingsData = response.data || response;
+        if (settingsData) {
+          currentCompanySettings = {
+            companyName: settingsData.companyName || 'PickNPay',
+            address: settingsData.address || ''
+          };
+        }
+      } catch (err) {
+        console.error("Failed to fetch company settings for print:", err);
+        // Use existing state if fetch fails
+      }
+      
+      const receiptContent = createReceiptHTML(
+        lastSale, 
+        currentCompanySettings.companyName, 
+        currentCompanySettings.address
+      );
+      try {
+        await directPrint(receiptContent, `Receipt - Sale #${lastSale.id}`);
+      } catch (printError) {
+        console.log('Direct print failed, trying Safari-compatible method');
+        const printWindow = window.open('', '_blank', 'width=600,height=600');
+        if (printWindow) {
+          printWindow.document.write(receiptContent);
+          printWindow.document.close();
+          printWindow.focus();
+          setTimeout(() => {
+            printWindow.print();
+            setTimeout(() => printWindow.close(), 1000);
+          }, 500);
+        } else {
+          throw new Error('Popup blocked. Please allow popups for this site.');
+        }
+      }
+    } catch (error) {
+      console.error('Print error:', error);
+      alert('Printing failed. Please check your printer connection and allow popups for this site.');
     }
   };
 
@@ -484,7 +555,27 @@ const SalesPage = () => {
     setCheckoutDialogOpen(true);
   };
 
+  const handleCloseCheckoutDialog = () => {
+    // Clear any pending payment timeout
+    if (cashPaymentTimeoutRef.current) {
+      clearTimeout(cashPaymentTimeoutRef.current);
+      cashPaymentTimeoutRef.current = null;
+    }
+    // Reset payment state if not in progress
+    if (!paymentInProgressRef.current) {
+      setCashAmount('');
+      setSelectedNotes({});
+    }
+    setCheckoutDialogOpen(false);
+    setCashConfirmDialogOpen(false);
+  };
+
   const handleNoteSelection = (noteValue) => {
+    // Prevent note selection from triggering checkout if payment is in progress
+    if (paymentInProgressRef.current) {
+      return;
+    }
+    
     setSelectedNotes(prev => ({
       ...prev,
       [noteValue]: (prev[noteValue] || 0) + 1
@@ -522,6 +613,11 @@ const SalesPage = () => {
   };
 
   const handleConfirmCheckout = async (selectedPaymentMethod) => {
+              // Prevent double-click or multiple submissions
+              if (paymentInProgressRef.current || loading) {
+                return;
+              }
+              
               if (selectedPaymentMethod === 'CASH') {
                 // For cash payment, show confirmation dialog with change calculation
                 const change = calculateChange();
@@ -531,8 +627,14 @@ const SalesPage = () => {
                 if (change > 0) {
                   setCashConfirmDialogOpen(true);
                   
+                  // Clear any existing timeout
+                  if (cashPaymentTimeoutRef.current) {
+                    clearTimeout(cashPaymentTimeoutRef.current);
+                  }
+                  
                   // Auto-close after 5 seconds
-                  setTimeout(() => {
+                  cashPaymentTimeoutRef.current = setTimeout(() => {
+                    cashPaymentTimeoutRef.current = null;
                     setCashConfirmDialogOpen(false);
                     processCashPayment();
                   }, 5000);
@@ -546,6 +648,19 @@ const SalesPage = () => {
             };
 
   const processCashPayment = async () => {
+    // Prevent duplicate payment processing
+    if (paymentInProgressRef.current) {
+      console.log('Payment already in progress, ignoring duplicate call');
+      return;
+    }
+    
+    // Clear any pending timeout
+    if (cashPaymentTimeoutRef.current) {
+      clearTimeout(cashPaymentTimeoutRef.current);
+      cashPaymentTimeoutRef.current = null;
+    }
+    
+    paymentInProgressRef.current = true;
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -580,6 +695,9 @@ const SalesPage = () => {
       const response = await salesAPI.create(saleData);
       console.log('Sale created successfully:', response.data);
       
+      // Store the last sale for printing
+      setLastSale(response.data);
+      
       setCart([]);
       setCashAmount('');
       setSelectedNotes({});
@@ -607,6 +725,7 @@ const SalesPage = () => {
       }, 200);
     } finally {
       setLoading(false);
+      paymentInProgressRef.current = false;
     }
   };
 
@@ -642,6 +761,9 @@ const SalesPage = () => {
       console.log('Sale data being sent:', saleData);
       const response = await salesAPI.create(saleData);
       console.log('Sale created successfully:', response.data);
+      
+      // Store the last sale for printing
+      setLastSale(response.data);
       
       setCart([]);
       setAppliedDiscount(null); // Clear discount after sale
@@ -1528,6 +1650,18 @@ const SalesPage = () => {
                     <i className="bi bi-cart-x me-2"></i>
                   CLEAR CART
                 </Button>
+                {lastSale && (
+                  <Button 
+                    variant="outline-primary" 
+                    size="lg" 
+                    onClick={handlePrintLastSale}
+                    title={`Print last sale #${lastSale.id}`}
+                    style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}
+                  >
+                    <i className="bi bi-printer me-2"></i>
+                    PRINT LAST SALE
+                  </Button>
+                )}
                 </div>
               </div>
             </div>
@@ -1937,7 +2071,7 @@ const SalesPage = () => {
       />
 
       {/* Unified Payment Dialog */}
-      <Modal show={checkoutDialogOpen} onHide={() => setCheckoutDialogOpen(false)} centered size="xl" style={{ maxWidth: '90vw', width: '1200px', transform: 'translateX(8%)' }}>
+      <Modal show={checkoutDialogOpen} onHide={handleCloseCheckoutDialog} centered size="xl" style={{ maxWidth: '90vw', width: '1200px', transform: 'translateX(8%)' }}>
         <Modal.Body className="p-0">
           <div className="row g-0">
             {/* Top Section - Transaction Summary */}
@@ -1971,7 +2105,12 @@ const SalesPage = () => {
                         key={amount}
                         variant="outline-secondary"
                         className="p-4 d-flex flex-column align-items-center"
-                        onClick={() => handleNoteSelection(amount)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleNoteSelection(amount);
+                        }}
+                        disabled={paymentInProgressRef.current || loading}
                         style={{ 
                           height: '100px',
                           background: '#f8f9fa',
@@ -2046,7 +2185,12 @@ const SalesPage = () => {
                         key={amount}
                         variant="outline-secondary"
                         className="p-4 d-flex flex-column align-items-center"
-                        onClick={() => handleNoteSelection(amount)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleNoteSelection(amount);
+                        }}
+                        disabled={paymentInProgressRef.current || loading}
                         style={{ 
                           height: '100px',
                           background: '#f8f9fa',
@@ -2071,7 +2215,7 @@ const SalesPage = () => {
                   <Button
                     variant="danger"
                     className="w-100 py-3 rounded-0"
-                    onClick={() => setCheckoutDialogOpen(false)}
+                    onClick={handleCloseCheckoutDialog}
                     style={{ fontSize: '1.2rem', fontWeight: 'bold' }}
                   >
                     CANCEL
@@ -2081,10 +2225,12 @@ const SalesPage = () => {
             <Button
               variant="success"
                     className="w-100 py-3 rounded-0"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       handleConfirmCheckout('CASH');
                     }}
-              disabled={loading}
+              disabled={loading || paymentInProgressRef.current}
                     style={{ fontSize: '1.2rem', fontWeight: 'bold' }}
             >
                     CASH €{calculateTotal().toFixed(2)}
@@ -2360,10 +2506,16 @@ const SalesPage = () => {
             variant="success" 
             size="lg" 
             onClick={() => {
+              // Clear the auto-close timeout if user manually clicks OK
+              if (cashPaymentTimeoutRef.current) {
+                clearTimeout(cashPaymentTimeoutRef.current);
+                cashPaymentTimeoutRef.current = null;
+              }
               setCashConfirmDialogOpen(false);
               processCashPayment();
             }}
             className="px-5"
+            disabled={paymentInProgressRef.current || loading}
           >
             OK
           </Button>

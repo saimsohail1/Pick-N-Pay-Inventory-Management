@@ -14,6 +14,7 @@ import DailyReport from './pages/DailyReport';
 import CompanyPage from './pages/CompanyPage';
 import CategoryPage from './pages/CategoryPage';
 import UserPage from './pages/UserPage';
+import CustomerDisplay from './pages/CustomerDisplay';
 
 function App() {
   return (
@@ -48,7 +49,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/sales-history" element={
-            <ProtectedRoute requireAdmin={true}>
+            <ProtectedRoute>
               <Layout>
                 <SalesHistory />
               </Layout>
@@ -82,6 +83,7 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
+          <Route path="/customer-display" element={<CustomerDisplay />} />
         </Routes>
       </Router>
     </AuthProvider>

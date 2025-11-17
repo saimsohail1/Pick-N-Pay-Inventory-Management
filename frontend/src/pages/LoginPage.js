@@ -49,11 +49,57 @@ const LoginPage = () => {
     }
   };
 
+  const handleCloseApp = () => {
+    // Check if running in Electron
+    if (window && window.require) {
+      try {
+        const { ipcRenderer } = window.require('electron');
+        ipcRenderer.send('app-closing');
+      } catch (error) {
+        console.error('Error closing app:', error);
+      }
+    } else {
+      // If not in Electron, just navigate away or close window
+      if (window.close) {
+        window.close();
+      }
+    }
+  };
+
   return (
     <div className="min-vh-100 d-flex align-items-center" style={{ 
       background: 'linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%)',
       position: 'relative'
     }}>
+      {/* Close Button - Top Right */}
+      <div style={{
+        position: 'absolute',
+        top: '1rem',
+        right: '1rem',
+        zIndex: 1000
+      }}>
+        <i 
+          className="bi bi-power fs-4 text-white" 
+          style={{ 
+            cursor: 'pointer',
+            padding: '0.5rem',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(0, 0, 0, 0.2)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
+            e.target.style.transform = 'scale(1.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+            e.target.style.transform = 'scale(1)';
+          }}
+          onClick={handleCloseApp}
+          title="Close Application"
+        ></i>
+      </div>
+
       {/* Background Pattern */}
       <div style={{
         position: 'absolute',

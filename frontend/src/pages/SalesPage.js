@@ -1060,7 +1060,7 @@ const SalesPage = () => {
           @media print {
             @page { 
               size: 2in 4in;
-              margin: 0.05in;
+              margin: 0.01in;
             }
             body {
               margin: 0;
@@ -1075,7 +1075,7 @@ const SalesPage = () => {
             justify-content: center;
             align-items: center;
             min-height: 4in;
-            padding: 0.05in;
+            padding: 0.01in;
             font-weight: bold;
           }
           
@@ -1086,7 +1086,7 @@ const SalesPage = () => {
           }
           
           .item-name {
-            font-size: 16px;
+            font-size: 22px;
             font-weight: bold;
             margin-bottom: 8px;
             word-wrap: break-word;
@@ -1114,6 +1114,7 @@ const SalesPage = () => {
           
           .price-symbol {
             font-size: 18px;
+            font-weight: bold;
           }
         </style>
       </head>
@@ -1235,13 +1236,38 @@ const SalesPage = () => {
   };
 
   return (
-    <div className="sales-page-container d-flex flex-column vh-100" style={{ backgroundColor: '#e9ecef', margin: 0, padding: 0 }}>
+    <div className="sales-page-container d-flex flex-column vh-100" style={{ backgroundColor: '#e9ecef', margin: 0, padding: 0, overflow: 'auto', minWidth: 0, minHeight: 0 }}>
       <style>{`
         .sales-page-container {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          overflow-x: auto;
+          overflow-y: auto;
+          width: 100%;
+          height: 100vh;
         }
+        
+        /* Enable scrolling for all child containers when zoomed */
+        .sales-page-container > * {
+          min-width: 0;
+        }
+        
+        /* Make tables and cards scrollable when content overflows */
+        .sales-page-container .table-responsive,
+        .sales-page-container .table {
+          overflow-x: auto;
+          overflow-y: visible;
+        }
+        
+        /* Ensure containers don't prevent scrolling */
+        .sales-page-container .container-fluid,
+        .sales-page-container .row {
+          min-width: 0;
+          overflow: visible;
+        }
+        
         .sales-header {
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          flex-shrink: 0;
         }
         .table th {
           background-color: #e9ecef !important;

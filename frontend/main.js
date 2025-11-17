@@ -164,14 +164,15 @@ function createCustomerDisplayWindow() {
   console.log(`📐 Display bounds:`, secondDisplay.bounds);
 
   customerDisplayWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
-    x: secondDisplay.bounds.x + (secondDisplay.bounds.width - 1920) / 2,
-    y: secondDisplay.bounds.y + (secondDisplay.bounds.height - 1080) / 2,
-    fullscreen: true,
+    width: 1024,
+    height: 600,
+    x: secondDisplay.bounds.x + (secondDisplay.bounds.width - 1024) / 2,
+    y: secondDisplay.bounds.y + (secondDisplay.bounds.height - 600) / 2,
+    fullscreen: false,
     frame: false,
     autoHideMenuBar: true,
     alwaysOnTop: false,
+    resizable: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -189,7 +190,6 @@ function createCustomerDisplayWindow() {
 
   customerDisplayWindow.once('ready-to-show', () => {
     customerDisplayWindow.show();
-    customerDisplayWindow.setFullScreen(true);
     customerDisplayWindow.setMenuBarVisibility(false);
     
     // Send current cart state when window is ready

@@ -61,29 +61,31 @@ const CustomerDisplay = () => {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
       backgroundColor: '#f8f9fa',
-      padding: '3rem',
+      padding: '0.5rem',
       fontFamily: 'Arial, sans-serif',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      overflow: 'hidden'
     }}>
-      <Container fluid style={{ maxWidth: '1400px', margin: '0 auto' }}>
+      <Container fluid style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: 0 }}>
         {/* Header - Just Company Name */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '3rem',
-          padding: '2rem',
+          marginBottom: '0.5rem',
+          padding: '0.5rem',
           backgroundColor: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          flexShrink: 0
         }}>
           <h1 style={{
-            fontSize: '4rem',
+            fontSize: '1.8rem',
             fontWeight: 'bold',
             color: '#0d6efd',
             margin: 0,
-            textShadow: '2px 2px 4px rgba(0,0,0,0.1)'
+            textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
           }}>
             {companyName}
           </h1>
@@ -92,63 +94,68 @@ const CustomerDisplay = () => {
         {/* Cart Items */}
         <div style={{
           backgroundColor: '#fff',
-          borderRadius: '12px',
-          padding: '2rem',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          marginBottom: '2rem',
-          minHeight: '500px',
-          flex: 1
+          borderRadius: '8px',
+          padding: '0.5rem',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          marginBottom: '0.5rem',
+          flex: 1,
+          overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
           {cart.length === 0 ? (
             <div style={{
               textAlign: 'center',
-              padding: '6rem 2rem',
-              color: '#6c757d'
+              padding: '2rem',
+              color: '#6c757d',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100%'
             }}>
-              <i className="bi bi-cart" style={{ fontSize: '6rem', display: 'block', marginBottom: '2rem', color: '#dee2e6' }}></i>
-              <h3 style={{ fontSize: '2.5rem', margin: 0, fontWeight: '600' }}>Cart is Empty</h3>
-              <p style={{ fontSize: '1.8rem', marginTop: '1rem', color: '#adb5bd' }}>Items will appear here when added</p>
+              <i className="bi bi-cart" style={{ fontSize: '3rem', display: 'block', marginBottom: '1rem', color: '#dee2e6' }}></i>
+              <h3 style={{ fontSize: '1.5rem', margin: 0, fontWeight: '600' }}>Cart is Empty</h3>
+              <p style={{ fontSize: '1rem', marginTop: '0.5rem', color: '#adb5bd' }}>Items will appear here when added</p>
             </div>
           ) : (
-            <>
-              <Table striped hover responsive style={{ marginBottom: 0 }}>
-                <thead style={{ backgroundColor: '#0d6efd', color: '#fff' }}>
-                  <tr>
-                    <th style={{ padding: '1.5rem', fontSize: '1.8rem', fontWeight: 'bold' }}>#</th>
-                    <th style={{ padding: '1.5rem', fontSize: '1.8rem', fontWeight: 'bold' }}>Item</th>
-                    <th style={{ padding: '1.5rem', fontSize: '1.8rem', fontWeight: 'bold', textAlign: 'right' }}>Price</th>
-                    <th style={{ padding: '1.5rem', fontSize: '1.8rem', fontWeight: 'bold', textAlign: 'center' }}>Qty</th>
-                    <th style={{ padding: '1.5rem', fontSize: '1.8rem', fontWeight: 'bold', textAlign: 'right' }}>Total</th>
+            <Table striped hover responsive style={{ marginBottom: 0, fontSize: '0.9rem' }}>
+              <thead style={{ backgroundColor: '#0d6efd', color: '#fff', position: 'sticky', top: 0, zIndex: 10 }}>
+                <tr>
+                  <th style={{ padding: '0.4rem', fontSize: '0.9rem', fontWeight: 'bold' }}>#</th>
+                  <th style={{ padding: '0.4rem', fontSize: '0.9rem', fontWeight: 'bold' }}>Item</th>
+                  <th style={{ padding: '0.4rem', fontSize: '0.9rem', fontWeight: 'bold', textAlign: 'right' }}>Price</th>
+                  <th style={{ padding: '0.4rem', fontSize: '0.9rem', fontWeight: 'bold', textAlign: 'center' }}>Qty</th>
+                  <th style={{ padding: '0.4rem', fontSize: '0.9rem', fontWeight: 'bold', textAlign: 'right' }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cart.map((item, index) => (
+                  <tr key={index} style={{ fontSize: '0.85rem' }}>
+                    <td style={{ padding: '0.4rem', verticalAlign: 'middle', fontSize: '0.9rem' }}>{index + 1}</td>
+                    <td style={{ padding: '0.4rem', verticalAlign: 'middle' }}>
+                      <div>
+                        <strong style={{ fontSize: '0.9rem', display: 'block' }}>{item.itemName}</strong>
+                        {item.itemBarcode && item.itemBarcode !== 'N/A' && (
+                          <div style={{ fontSize: '0.7rem', color: '#6c757d' }}>
+                            <i className="bi bi-upc"></i> {item.itemBarcode}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.4rem', textAlign: 'right', verticalAlign: 'middle', fontSize: '0.9rem' }}>
+                      €{item.unitPrice?.toFixed(2) || '0.00'}
+                    </td>
+                    <td style={{ padding: '0.4rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#0d6efd' }}>{item.quantity}</span>
+                    </td>
+                    <td style={{ padding: '0.4rem', textAlign: 'right', verticalAlign: 'middle', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                      €{item.totalPrice?.toFixed(2) || '0.00'}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {cart.map((item, index) => (
-                    <tr key={index} style={{ fontSize: '1.6rem' }}>
-                      <td style={{ padding: '1.5rem', verticalAlign: 'middle', fontSize: '1.8rem' }}>{index + 1}</td>
-                      <td style={{ padding: '1.5rem', verticalAlign: 'middle' }}>
-                        <div>
-                          <strong style={{ fontSize: '1.8rem', display: 'block', marginBottom: '0.5rem' }}>{item.itemName}</strong>
-                          {item.itemBarcode && item.itemBarcode !== 'N/A' && (
-                            <div style={{ fontSize: '1.2rem', color: '#6c757d', marginTop: '0.25rem' }}>
-                              <i className="bi bi-upc"></i> {item.itemBarcode}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ padding: '1.5rem', textAlign: 'right', verticalAlign: 'middle', fontSize: '1.8rem' }}>
-                        €{item.unitPrice?.toFixed(2) || '0.00'}
-                      </td>
-                      <td style={{ padding: '1.5rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                        <span style={{ fontSize: '2rem', fontWeight: 'bold', color: '#0d6efd' }}>{item.quantity}</span>
-                      </td>
-                      <td style={{ padding: '1.5rem', textAlign: 'right', verticalAlign: 'middle', fontWeight: 'bold', fontSize: '1.8rem' }}>
-                        €{item.totalPrice?.toFixed(2) || '0.00'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </>
+                ))}
+              </tbody>
+            </Table>
           )}
         </div>
 
@@ -157,47 +164,48 @@ const CustomerDisplay = () => {
           <div style={{
             backgroundColor: '#0d6efd',
             color: '#fff',
-            borderRadius: '12px',
-            padding: '3rem',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+            borderRadius: '8px',
+            padding: '0.5rem',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            flexShrink: 0
           }}>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '1.5rem',
-              fontSize: '2rem',
+              marginBottom: '0.3rem',
+              fontSize: '0.9rem',
               fontWeight: '500'
             }}>
               <span>Subtotal:</span>
-              <span style={{ fontWeight: 'bold', fontSize: '2.2rem' }}>€{subtotal.toFixed(2)}</span>
+              <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>€{subtotal.toFixed(2)}</span>
             </div>
             {discountAmount > 0 && (
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '1.5rem',
-                fontSize: '2rem',
+                marginBottom: '0.3rem',
+                fontSize: '0.9rem',
                 color: '#90ee90',
                 fontWeight: '500'
               }}>
                 <span>Discount:</span>
-                <span style={{ fontWeight: 'bold', fontSize: '2.2rem' }}>-€{discountAmount.toFixed(2)}</span>
+                <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>-€{discountAmount.toFixed(2)}</span>
               </div>
             )}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              paddingTop: '2rem',
-              borderTop: '3px solid rgba(255,255,255,0.3)',
-              fontSize: '3rem',
+              paddingTop: '0.5rem',
+              borderTop: '2px solid rgba(255,255,255,0.3)',
+              fontSize: '1.3rem',
               fontWeight: 'bold',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+              textShadow: '1px 1px 2px rgba(0,0,0,0.2)'
             }}>
               <span>TOTAL:</span>
-              <span style={{ fontSize: '3.5rem' }}>€{total.toFixed(2)}</span>
+              <span style={{ fontSize: '1.5rem' }}>€{total.toFixed(2)}</span>
             </div>
           </div>
         )}

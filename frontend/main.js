@@ -221,6 +221,22 @@ function createCustomerDisplayWindow() {
 ipcMain.on('app-closing', () => {
   console.log('📩 Received app-closing from renderer');
   
+  // Set quitting flag so windows can close properly
+  app.isQuitting = true;
+  
+  // Close customer display window if it exists
+  if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+    console.log('🔄 Closing customer display window...');
+    customerDisplayWindow.removeAllListeners('close'); // Remove prevent-close handler
+    customerDisplayWindow.close();
+  }
+  
+  // Close main window
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    console.log('🔄 Closing main window...');
+    mainWindow.close();
+  }
+  
   // Stop backend gracefully
   stopBackend();
   
@@ -228,7 +244,7 @@ ipcMain.on('app-closing', () => {
   setTimeout(() => {
     console.log('🔄 Quitting application...');
     app.quit();
-  }, 100);
+  }, 200);
 });
 
 /**

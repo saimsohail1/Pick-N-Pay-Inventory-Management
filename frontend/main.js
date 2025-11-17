@@ -119,17 +119,24 @@ function createWindow() {
     }
   });
 
-  mainWindow.on('close', () => {
-    try {
-      mainWindow.webContents.send('app-closing');
-    } catch (err) {
-      console.error('Error sending app-closing event:', err);
+  mainWindow.on('close', (event) => {
+    // If app is not quitting, prevent default and send IPC message
+    if (!app.isQuitting) {
+      event.preventDefault();
+      try {
+        mainWindow.webContents.send('app-closing');
+      } catch (err) {
+        console.error('Error sending app-closing event:', err);
+      }
+    } else {
+      // If app is quitting, force destroy customer display window
+      if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+        customerDisplayWindow.removeAllListeners();
+        customerDisplayWindow.destroy();
+        customerDisplayWindow = null;
+      }
+      stopBackend();
     }
-    // Close customer display window when main window closes
-    if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
-      customerDisplayWindow.close();
-    }
-    stopBackend();
   });
 
   mainWindow.on('closed', () => {
@@ -224,11 +231,14 @@ ipcMain.on('app-closing', () => {
   // Set quitting flag so windows can close properly
   app.isQuitting = true;
   
-  // Close customer display window if it exists
+  // Force destroy customer display window if it exists
   if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
-    console.log('🔄 Closing customer display window...');
-    customerDisplayWindow.removeAllListeners('close'); // Remove prevent-close handler
-    customerDisplayWindow.close();
+    console.log('🔄 Destroying customer display window...');
+    // Remove all event listeners to prevent interference
+    customerDisplayWindow.removeAllListeners();
+    // Force destroy the window
+    customerDisplayWindow.destroy();
+    customerDisplayWindow = null;
   }
   
   // Close main window
@@ -243,8 +253,18 @@ ipcMain.on('app-closing', () => {
   // Give a moment for cleanup, then quit
   setTimeout(() => {
     console.log('🔄 Quitting application...');
-    app.quit();
-  }, 200);
+    // Force quit - exit all processes
+    app.exit(0);
+  }, 300);
+});
+
+/**
+ * IPC handler for app minimize
+ */
+ipcMain.on('app-minimize', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.minimize();
+  }
 });
 
 /**
@@ -292,9 +312,8 @@ app.whenReady().then(() => {
 app.on('before-quit', stopBackend);
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  // Force quit on all platforms when all windows are closed
+  app.exit(0);
 });
 
 app.on('activate', () => {

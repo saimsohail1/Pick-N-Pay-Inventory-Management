@@ -1355,6 +1355,24 @@ const SalesPage = () => {
               <i className="bi bi-gear fs-5 text-white hover-lift" style={{ cursor: 'pointer' }} onClick={() => navigate('/company')} title="Settings"></i>
               <i className="bi bi-box-arrow-right fs-5 text-white hover-lift" style={{ cursor: 'pointer' }} onClick={() => { localStorage.removeItem('token'); navigate('/login'); }} title="Logout"></i>
               <i 
+                className="bi bi-dash-lg fs-5 text-white hover-lift" 
+                style={{ cursor: 'pointer' }} 
+                title="Minimize Application"
+                onClick={() => {
+                  // Check if running in Electron
+                  if (window && window.require) {
+                    try {
+                      const { ipcRenderer } = window.require('electron');
+                      ipcRenderer.send('app-minimize');
+                    } catch (error) {
+                      console.error('Error minimizing app:', error);
+                    }
+                  } else if (window.electron && window.electron.ipcRenderer) {
+                    window.electron.ipcRenderer.send('app-minimize');
+                  }
+                }}
+              ></i>
+              <i 
                 className="bi bi-power fs-5 text-white hover-lift" 
                 style={{ cursor: 'pointer' }} 
                 title="Close Application"

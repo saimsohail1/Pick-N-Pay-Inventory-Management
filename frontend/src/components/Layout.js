@@ -169,6 +169,36 @@ const Layout = ({ children }) => {
                 </Dropdown>
               )}
 
+              {/* Minimize App Button */}
+              <button
+                className="btn btn-outline-light d-flex align-items-center hover-lift ms-3"
+                onClick={() => {
+                  // Check if running in Electron
+                  if (window && window.require) {
+                    try {
+                      const { ipcRenderer } = window.require('electron');
+                      ipcRenderer.send('app-minimize');
+                    } catch (error) {
+                      console.error('Error minimizing app:', error);
+                    }
+                  } else if (window.electron && window.electron.ipcRenderer) {
+                    window.electron.ipcRenderer.send('app-minimize');
+                  }
+                }}
+                style={{
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '0.75rem 1.25rem',
+                  fontWeight: '500',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  backdropFilter: 'blur(10px)'
+                }}
+                title="Minimize Application"
+              >
+                <i className="bi bi-dash-lg" style={{ fontSize: '1.25rem' }}></i>
+              </button>
+
               {/* Close App Button */}
               <button
                 className="btn btn-outline-light d-flex align-items-center hover-lift ms-3"

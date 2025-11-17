@@ -119,37 +119,37 @@ const CustomerDisplay = () => {
               <p style={{ fontSize: '1rem', marginTop: '0.5rem', color: '#adb5bd' }}>Items will appear here when added</p>
             </div>
           ) : (
-            <Table striped hover responsive style={{ marginBottom: 0, fontSize: '0.9rem' }}>
+            <Table striped hover responsive style={{ marginBottom: 0, fontSize: '1.1rem' }}>
               <thead style={{ backgroundColor: '#0d6efd', color: '#fff', position: 'sticky', top: 0, zIndex: 10 }}>
                 <tr>
-                  <th style={{ padding: '0.4rem', fontSize: '0.9rem', fontWeight: 'bold' }}>#</th>
-                  <th style={{ padding: '0.4rem', fontSize: '0.9rem', fontWeight: 'bold' }}>Item</th>
-                  <th style={{ padding: '0.4rem', fontSize: '0.9rem', fontWeight: 'bold', textAlign: 'right' }}>Price</th>
-                  <th style={{ padding: '0.4rem', fontSize: '0.9rem', fontWeight: 'bold', textAlign: 'center' }}>Qty</th>
-                  <th style={{ padding: '0.4rem', fontSize: '0.9rem', fontWeight: 'bold', textAlign: 'right' }}>Total</th>
+                  <th style={{ padding: '0.8rem', fontSize: '1.1rem', fontWeight: 'bold' }}>#</th>
+                  <th style={{ padding: '0.8rem', fontSize: '1.1rem', fontWeight: 'bold' }}>Item</th>
+                  <th style={{ padding: '0.8rem', fontSize: '1.1rem', fontWeight: 'bold', textAlign: 'right' }}>Price</th>
+                  <th style={{ padding: '0.8rem', fontSize: '1.1rem', fontWeight: 'bold', textAlign: 'center' }}>Qty</th>
+                  <th style={{ padding: '0.8rem', fontSize: '1.1rem', fontWeight: 'bold', textAlign: 'right' }}>Total</th>
                 </tr>
               </thead>
               <tbody>
                 {cart.map((item, index) => (
-                  <tr key={index} style={{ fontSize: '0.85rem' }}>
-                    <td style={{ padding: '0.4rem', verticalAlign: 'middle', fontSize: '0.9rem' }}>{index + 1}</td>
-                    <td style={{ padding: '0.4rem', verticalAlign: 'middle' }}>
+                  <tr key={index} style={{ fontSize: '1rem', minHeight: '50px' }}>
+                    <td style={{ padding: '0.8rem', verticalAlign: 'middle', fontSize: '1.1rem' }}>{index + 1}</td>
+                    <td style={{ padding: '0.8rem', verticalAlign: 'middle' }}>
                       <div>
-                        <strong style={{ fontSize: '0.9rem', display: 'block' }}>{item.itemName}</strong>
+                        <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '0.2rem' }}>{item.itemName}</strong>
                         {item.itemBarcode && item.itemBarcode !== 'N/A' && (
-                          <div style={{ fontSize: '0.7rem', color: '#6c757d' }}>
+                          <div style={{ fontSize: '0.85rem', color: '#6c757d' }}>
                             <i className="bi bi-upc"></i> {item.itemBarcode}
                           </div>
                         )}
                       </div>
                     </td>
-                    <td style={{ padding: '0.4rem', textAlign: 'right', verticalAlign: 'middle', fontSize: '0.9rem' }}>
+                    <td style={{ padding: '0.8rem', textAlign: 'right', verticalAlign: 'middle', fontSize: '1.1rem' }}>
                       €{item.unitPrice?.toFixed(2) || '0.00'}
                     </td>
-                    <td style={{ padding: '0.4rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#0d6efd' }}>{item.quantity}</span>
+                    <td style={{ padding: '0.8rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#0d6efd' }}>{item.quantity}</span>
                     </td>
-                    <td style={{ padding: '0.4rem', textAlign: 'right', verticalAlign: 'middle', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                    <td style={{ padding: '0.8rem', textAlign: 'right', verticalAlign: 'middle', fontWeight: 'bold', fontSize: '1.1rem' }}>
                       €{item.totalPrice?.toFixed(2) || '0.00'}
                     </td>
                   </tr>

@@ -10,10 +10,13 @@ const CustomerDisplay = () => {
     
     // Listen for cart updates from main window
     if (window.electron && window.electron.ipcRenderer) {
-      const handleCartUpdate = (event, cartData) => {
+      const handleCartUpdate = (cartData) => {
         console.log('CustomerDisplay: Received cart update', cartData);
         if (cartData) {
+          console.log('CustomerDisplay: Setting total to', cartData.total);
           setTotal(cartData.total || 0);
+        } else {
+          console.log('CustomerDisplay: No cart data received');
         }
       };
 

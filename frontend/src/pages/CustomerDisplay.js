@@ -87,7 +87,7 @@ const CustomerDisplay = () => {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
         <h2 style={{
-          fontSize: '1rem',
+          fontSize: '1.75rem',
           fontWeight: '600',
           color: '#aaaaaa',
           margin: 0

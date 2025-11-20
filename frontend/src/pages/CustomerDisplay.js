@@ -10,17 +10,22 @@ const CustomerDisplay = () => {
     
     // Listen for cart updates from main window
     if (window.electron && window.electron.ipcRenderer) {
-      const handleCartUpdate = (cartData) => {
+      const handleCartUpdate = (event, cartData) => {
+        console.log('CustomerDisplay: Received cart update', cartData);
         if (cartData) {
           setTotal(cartData.total || 0);
         }
       };
 
       window.electron.ipcRenderer.on('cart-updated', handleCartUpdate);
+      console.log('CustomerDisplay: Listening for cart-updated events');
 
       // Request initial cart state after a short delay to ensure IPC is ready
       setTimeout(() => {
-        window.electron.ipcRenderer.send('request-cart-state');
+        if (window.electron && window.electron.ipcRenderer) {
+          window.electron.ipcRenderer.send('request-cart-state');
+          console.log('CustomerDisplay: Requested initial cart state');
+        }
       }, 1000);
 
       return () => {

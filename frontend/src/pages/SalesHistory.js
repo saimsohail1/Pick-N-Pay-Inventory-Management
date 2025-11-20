@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Table, Button, Form, Alert, Modal, Spinner } from "react-bootstrap";
+import { Table, Button, Form, Alert, Modal, Spinner, Card } from "react-bootstrap";
 import { format } from "date-fns";
 import { salesAPI, usersAPI, companySettingsAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -24,7 +24,7 @@ const SalesHistory = () => {
   const [saleToDelete, setSaleToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [removingItem, setRemovingItem] = useState(false);
-  const [companySettings, setCompanySettings] = useState({ companyName: 'PickNPay', address: '' });
+  const [companySettings, setCompanySettings] = useState({ companyName: 'ADAMS GREEN', address: '' });
 
   // Helper function to format date as DD/MM/YYYY
   const formatDate = (dateStr) => {
@@ -110,7 +110,7 @@ const SalesHistory = () => {
       const settingsData = response.data || response;
       if (settingsData) {
         setCompanySettings({
-          companyName: settingsData.companyName || 'PickNPay',
+          companyName: settingsData.companyName || 'ADAMS GREEN',
           address: settingsData.address || ''
         });
       }
@@ -236,7 +236,7 @@ const SalesHistory = () => {
         const settingsData = response.data || response;
         if (settingsData) {
           currentCompanySettings = {
-            companyName: settingsData.companyName || 'PickNPay',
+            companyName: settingsData.companyName || 'ADAMS GREEN',
             address: settingsData.address || ''
           };
         }
@@ -280,8 +280,8 @@ const SalesHistory = () => {
     const isCash = method === 'CASH';
     return (
       <span 
-        className={`badge ${isCash ? 'bg-success' : 'bg-primary'} px-3 py-2 rounded-pill fw-semibold`}
-        style={{ fontSize: '0.85rem' }}
+        className={`badge px-3 py-2 rounded-pill fw-semibold`}
+        style={{ fontSize: '0.85rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}
       >
         <i className={`bi ${isCash ? 'bi-cash' : 'bi-credit-card'} me-1`}></i>
         {method}
@@ -290,42 +290,29 @@ const SalesHistory = () => {
   };
 
   return (
-    <div className="p-4" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
-      <div className="d-flex align-items-center mb-4">
-        <div className="bg-primary rounded-circle p-3 me-3">
-          <i className="bi bi-graph-up text-white fs-4"></i>
-        </div>
-        <div>
-          <h2 className="mb-0 fw-bold text-primary">Sales History</h2>
-          <p className="text-muted mb-0">
-            {isAdminUser 
-              ? "View and manage your sales transactions" 
-              : "View your last 5 sales transactions"}
-          </p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="row g-3 mb-4">
-        <div className="col-12">
-          <div className="card shadow-sm border-0">
-            <div className="card-body">
-              <h6 className="card-title text-muted mb-3">
-                <i className="bi bi-funnel me-2"></i>
-                Filter Sales
-              </h6>
-              <div className="row g-3">
+    <div style={{ backgroundColor: '#1a1a1a', minHeight: '100vh' }}>
+      <Card className="shadow-sm" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+        <Card.Header style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
+          <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
+            <i className="bi bi-graph-up me-2" style={{ color: '#ffffff' }}></i>
+            Sales History
+          </h1>
+        </Card.Header>
+        <Card.Body className="p-0">
+          {/* Filters */}
+          <div className="p-3 border-bottom" style={{ backgroundColor: '#2a2a2a' }}>
+            <div className="row g-3">
                 {isAdminUser && (
                   <div className="col-md-4">
-                    <label className="form-label fw-semibold text-dark">
+                    <label className="form-label fw-semibold" style={{ color: '#ffffff' }}>
                       <i className="bi bi-person me-1"></i>
                       Select User
                     </label>
                     <Form.Select
                       value={selectedUserId}
                       onChange={(e) => handleUserChange(e.target.value)}
-                      className="form-select-lg border-2"
-                      style={{ borderRadius: '10px' }}
+                      className="form-select-lg"
+                      style={{ borderRadius: '10px', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                     >
                       <option value="">All Users</option>
                       {Array.isArray(users) && users.map((u) => (
@@ -338,21 +325,21 @@ const SalesHistory = () => {
                 )}
                 {!isAdminUser && (
                   <div className="col-md-4">
-                    <label className="form-label fw-semibold text-dark">
+                    <label className="form-label fw-semibold" style={{ color: '#ffffff' }}>
                       <i className="bi bi-person me-1"></i>
                       User
                     </label>
                     <Form.Control
                       type="text"
                       value={user?.username || "Current User"}
-                      className="form-control-lg border-2"
-                      style={{ borderRadius: '10px' }}
+                      className="form-control-lg"
+                      style={{ borderRadius: '10px', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                       disabled
                     />
                   </div>
                 )}
                 <div className="col-md-4">
-                  <label className="form-label fw-semibold text-dark">
+                  <label className="form-label fw-semibold" style={{ color: '#ffffff' }}>
                     <i className="bi bi-calendar3 me-1"></i>
                     Select Date
                   </label>
@@ -360,47 +347,40 @@ const SalesHistory = () => {
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="form-control form-control-lg border-2"
-                    style={{ borderRadius: '10px' }}
+                    className="form-control form-control-lg"
+                    style={{ borderRadius: '10px', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                   />
                 </div>
               </div>
+          </div>
+
+          {/* Error */}
+          {error && <Alert variant="danger" className="m-3" style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>{error}</Alert>}
+
+          {/* Loading */}
+          {loading && <div className="text-center p-3"><Spinner animation="border" style={{ color: '#ffffff' }} /></div>}
+
+
+          {/* No Sales Message */}
+          {!loading && sales.length === 0 && (
+            <div className="text-center py-5" style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+              <i className="bi bi-inbox" style={{ fontSize: '4rem', color: '#aaaaaa' }}></i>
+              <h5 className="mt-3 mb-2" style={{ color: '#aaaaaa' }}>No Sales Found</h5>
+              <p className="mb-0" style={{ color: '#aaaaaa' }}>
+                No sales transactions found for the selected date and user.
+              </p>
             </div>
-          </div>
-        </div>
-      </div>
+          )}
 
-      {/* Error */}
-      {error && <Alert variant="danger">{error}</Alert>}
-
-      {/* Loading */}
-      {loading && <Spinner animation="border" />}
-
-
-      {/* No Sales Message */}
-      {!loading && sales.length === 0 && (
-        <div className="card shadow-sm border-0">
-          <div className="card-body text-center py-5">
-            <i className="bi bi-inbox text-muted" style={{ fontSize: '4rem' }}></i>
-            <h5 className="text-muted mt-3 mb-2">No Sales Found</h5>
-            <p className="text-muted mb-0">
-              No sales transactions found for the selected date and user.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Table */}
-      <div className="card shadow-sm border-0">
-        <div className="card-header bg-white border-0 pb-0">
-          <div className="d-flex justify-content-between align-items-center">
-            <h6 className="card-title text-muted mb-0">
-              <i className="bi bi-list-ul me-2"></i>
-              Sales Transactions
-            </h6>
-            <div className="d-flex align-items-center gap-3">
+          {/* Table */}
+          <div className="p-3" style={{ backgroundColor: '#2a2a2a' }}>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h6 className="mb-0" style={{ color: '#ffffff' }}>
+                <i className="bi bi-list-ul me-2"></i>
+                Sales Transactions
+              </h6>
               <div className="text-end">
-                <small className="text-muted">
+                <small style={{ color: '#aaaaaa' }}>
                   <i className="bi bi-calendar3 me-1"></i>
                   {formatDate(selectedDate)}
                   {isAdminUser && selectedUserId && (
@@ -418,27 +398,24 @@ const SalesHistory = () => {
                 </small>
               </div>
             </div>
-          </div>
-        </div>
-        <div className="card-body p-0">
-          <div className="table-responsive">
+            <div className="table-responsive">
             <Table hover className="mb-0">
-              <thead className="table-light">
+              <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                 <tr>
-                  <th className="border-0 py-3 px-4 fw-semibold text-dark">#</th>
-                  <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                  <th className="border-0 py-3 px-4 fw-semibold" style={{ color: '#ffffff' }}>#</th>
+                  <th className="border-0 py-3 px-4 fw-semibold" style={{ color: '#ffffff' }}>
                     <i className="bi bi-clock me-1"></i>
                     Time
                   </th>
-                  <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                  <th className="border-0 py-3 px-4 fw-semibold" style={{ color: '#ffffff' }}>
                     <i className="bi bi-credit-card me-1"></i>
                     Payment
                   </th>
-                  <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                  <th className="border-0 py-3 px-4 fw-semibold" style={{ color: '#ffffff' }}>
                     <i className="bi bi-currency-euro me-1"></i>
                     Total
                   </th>
-                  <th className="border-0 py-3 px-4 fw-semibold text-dark text-center">
+                  <th className="border-0 py-3 px-4 fw-semibold text-center" style={{ color: '#ffffff' }}>
                     <i className="bi bi-gear me-1"></i>
                     Actions
                   </th>
@@ -446,27 +423,26 @@ const SalesHistory = () => {
               </thead>
               <tbody>
                 {Array.isArray(sales) && sales.map((sale, index) => (
-                  <tr key={sale.id} className="border-bottom">
+                  <tr key={sale.id} className="border-bottom" style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                     <td className="py-3 px-4">
-                      <span className="badge bg-light text-dark rounded-pill px-3 py-2 fw-semibold">
+                      <span className="badge rounded-pill px-3 py-2 fw-semibold" style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
                         {index + 1}
                       </span>
                     </td>
                     <td className="py-3 px-4">
                       <div className="d-flex align-items-center">
-                        <i className="bi bi-clock text-muted me-2"></i>
-                        <span className="fw-medium">{formatTime(sale.saleDate)}</span>
+                        <i className="bi bi-clock me-2" style={{ color: '#aaaaaa' }}></i>
+                        <span className="fw-medium" style={{ color: '#ffffff' }}>{formatTime(sale.saleDate)}</span>
                       </div>
                     </td>
                     <td className="py-3 px-4">{getPaymentMethodBadge(sale.paymentMethod)}</td>
                     <td className="py-3 px-4">
-                      <span className="fw-bold text-success fs-5">€{parseFloat(sale.totalAmount || 0).toFixed(2)}</span>
+                      <span className="fw-bold fs-5" style={{ color: '#ffffff' }}>€{parseFloat(sale.totalAmount || 0).toFixed(2)}</span>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="btn-group" role="group">
                         {isAdminUser && (
                           <Button 
-                            variant="outline-primary"
                             onClick={() => handleEditSale(sale)}
                             className="me-1"
                             style={{ 
@@ -475,7 +451,10 @@ const SalesHistory = () => {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              padding: '0'
+                              padding: '0',
+                              backgroundColor: '#3a3a3a',
+                              border: '1px solid #ffffff',
+                              color: '#ffffff'
                             }}
                             title="Edit Sale"
                           >
@@ -483,7 +462,6 @@ const SalesHistory = () => {
                           </Button>
                         )}
                         <Button 
-                          variant="outline-success"
                           onClick={() => handlePrintSale(sale)}
                           className="me-1"
                           style={{ 
@@ -492,7 +470,10 @@ const SalesHistory = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '0'
+                            padding: '0',
+                            backgroundColor: '#3a3a3a',
+                            border: '1px solid #ffffff',
+                            color: '#ffffff'
                           }}
                           title="Print Receipt"
                         >
@@ -500,7 +481,6 @@ const SalesHistory = () => {
                         </Button>
                         {isAdminUser && (
                           <Button 
-                            variant="outline-danger"
                             onClick={() => handleDeleteSale(sale)}
                             style={{ 
                               width: '60px',
@@ -508,7 +488,10 @@ const SalesHistory = () => {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              padding: '0'
+                              padding: '0',
+                              backgroundColor: '#3a3a3a',
+                              border: '1px solid #ffffff',
+                              color: '#ffffff'
                             }}
                             title="Delete Sale"
                           >
@@ -522,69 +505,70 @@ const SalesHistory = () => {
               </tbody>
             </Table>
           </div>
-        </div>
-      </div>
+          </div>
+        </Card.Body>
+      </Card>
 
       {/* Edit Modal */}
       <Modal show={editDialogOpen} onHide={cancelEditSale} size="lg">
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className="bi bi-pencil-square me-2"></i>
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className="bi bi-pencil-square me-2" style={{ color: '#ffffff' }}></i>
             Edit Sale #{saleToEdit?.id}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           {saleToEdit && (
             <div>
               <div className="row mb-4">
                 <div className="col-md-4">
                   <div className="d-flex align-items-center mb-2">
-                    <i className="bi bi-calendar3 text-primary me-2"></i>
-                    <strong>Sale Date:</strong>
+                    <i className="bi bi-calendar3 me-2" style={{ color: '#ffffff' }}></i>
+                    <strong style={{ color: '#ffffff' }}>Sale Date:</strong>
                   </div>
-                  <p className="ms-4 mb-0">{formatDate(saleToEdit.saleDate)} {formatTime(saleToEdit.saleDate)}</p>
+                  <p className="ms-4 mb-0" style={{ color: '#ffffff' }}>{formatDate(saleToEdit.saleDate)} {formatTime(saleToEdit.saleDate)}</p>
                 </div>
                 <div className="col-md-4">
                   <div className="d-flex align-items-center mb-2">
-                    <i className="bi bi-credit-card text-primary me-2"></i>
-                    <strong>Payment Method:</strong>
+                    <i className="bi bi-credit-card me-2" style={{ color: '#ffffff' }}></i>
+                    <strong style={{ color: '#ffffff' }}>Payment Method:</strong>
                   </div>
-                  <p className="ms-4 mb-0">{saleToEdit.paymentMethod}</p>
+                  <p className="ms-4 mb-0" style={{ color: '#ffffff' }}>{saleToEdit.paymentMethod}</p>
                 </div>
                 <div className="col-md-4">
                   <div className="d-flex align-items-center mb-2">
-                    <i className="bi bi-currency-euro text-primary me-2"></i>
-                    <strong>Total Amount:</strong>
+                    <i className="bi bi-currency-euro me-2" style={{ color: '#ffffff' }}></i>
+                    <strong style={{ color: '#ffffff' }}>Total Amount:</strong>
                   </div>
-                  <p className="ms-4 mb-0 fw-bold text-success fs-5">€{parseFloat(saleToEdit.totalAmount || 0).toFixed(2)}</p>
+                  <p className="ms-4 mb-0 fw-bold fs-5" style={{ color: '#ffffff' }}>€{parseFloat(saleToEdit.totalAmount || 0).toFixed(2)}</p>
                 </div>
               </div>
               
               <div className="d-flex align-items-center mb-3">
-                <i className="bi bi-list-ul text-primary me-2"></i>
-                <h6 className="mb-0">Items in this sale:</h6>
+                <i className="bi bi-list-ul me-2" style={{ color: '#ffffff' }}></i>
+                <h6 className="mb-0" style={{ color: '#ffffff' }}>Items in this sale:</h6>
               </div>
               <div className="table-responsive">
                 <Table striped hover size="sm">
-                  <thead className="table-light">
+                  <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                     <tr>
-                      <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                      <th className="border-0 py-3 px-4 fw-semibold" style={{ color: '#ffffff' }}>
                         <i className="bi bi-box me-1"></i>
                         Item
                       </th>
-                      <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                      <th className="border-0 py-3 px-4 fw-semibold" style={{ color: '#ffffff' }}>
                         <i className="bi bi-hash me-1"></i>
                         Quantity
                       </th>
-                      <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                      <th className="border-0 py-3 px-4 fw-semibold" style={{ color: '#ffffff' }}>
                         <i className="bi bi-tag me-1"></i>
                         Price
                       </th>
-                      <th className="border-0 py-3 px-4 fw-semibold text-dark">
+                      <th className="border-0 py-3 px-4 fw-semibold" style={{ color: '#ffffff' }}>
                         <i className="bi bi-currency-euro me-1"></i>
                         Total
                       </th>
-                      <th className="border-0 py-3 px-4 fw-semibold text-dark text-center">
+                      <th className="border-0 py-3 px-4 fw-semibold text-center" style={{ color: '#ffffff' }}>
                         <i className="bi bi-gear me-1"></i>
                         Action
                       </th>
@@ -592,28 +576,27 @@ const SalesHistory = () => {
                   </thead>
                   <tbody>
                     {Array.isArray(saleToEdit.saleItems) && saleToEdit.saleItems.map((item) => (
-                      <tr key={item.id} className="border-bottom">
+                      <tr key={item.id} className="border-bottom" style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                         <td className="py-3 px-4">
                           <div className="d-flex align-items-center">
-                            <i className="bi bi-box text-muted me-2"></i>
-                            <span className="fw-medium">{item.itemName}</span>
+                            <i className="bi bi-box me-2" style={{ color: '#aaaaaa' }}></i>
+                            <span className="fw-medium" style={{ color: '#ffffff' }}>{item.itemName}</span>
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="badge bg-light text-dark rounded-pill px-3 py-2 fw-semibold">
+                          <span className="badge rounded-pill px-3 py-2 fw-semibold" style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
                             {item.quantity}
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="fw-medium">€{parseFloat(item.unitPrice || 0).toFixed(2)}</span>
+                          <span className="fw-medium" style={{ color: '#ffffff' }}>€{parseFloat(item.unitPrice || 0).toFixed(2)}</span>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="fw-bold text-success">€{parseFloat(item.totalPrice || 0).toFixed(2)}</span>
+                          <span className="fw-bold" style={{ color: '#ffffff' }}>€{parseFloat(item.totalPrice || 0).toFixed(2)}</span>
                         </td>
                         <td className="py-3 px-4 text-center">
                           <Button
                             size="sm"
-                            variant="danger"
                             onClick={() => handleRemoveItem(saleToEdit.id, item.id)}
                             disabled={removingItem}
                             style={{ 
@@ -624,7 +607,10 @@ const SalesHistory = () => {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              padding: '0'
+                              padding: '0',
+                              backgroundColor: '#3a3a3a',
+                              border: '1px solid #ffffff',
+                              color: '#ffffff'
                             }}
                             title="Remove Item"
                           >
@@ -642,16 +628,16 @@ const SalesHistory = () => {
               </div>
               
               {Array.isArray(saleToEdit.saleItems) && saleToEdit.saleItems.length === 0 && (
-                <div className="text-center text-muted py-4">
-                  <i className="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
-                  <p className="mb-0">No items in this sale</p>
+                <div className="text-center py-4" style={{ color: '#aaaaaa' }}>
+                  <i className="bi bi-inbox fs-1 mb-3 d-block" style={{ color: '#aaaaaa' }}></i>
+                  <p className="mb-0" style={{ color: '#aaaaaa' }}>No items in this sale</p>
                 </div>
               )}
             </div>
           )}
         </Modal.Body>
-        <Modal.Footer className="bg-light">
-          <Button onClick={cancelEditSale} variant="secondary">
+        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+          <Button onClick={cancelEditSale} style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
             <i className="bi bi-x-circle me-1"></i>
             Close
           </Button>
@@ -660,13 +646,15 @@ const SalesHistory = () => {
 
       {/* Delete Modal */}
       <Modal show={deleteDialogOpen} onHide={cancelDeleteSale}>
-        <Modal.Header closeButton>Delete Sale</Modal.Header>
-        <Modal.Body>
-          {saleToDelete && <div>Delete sale #{saleToDelete.id}?</div>}
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>Delete Sale</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          {saleToDelete && <div style={{ color: '#ffffff' }}>Delete sale #{saleToDelete.id}?</div>}
         </Modal.Body>
-        <Modal.Footer>
-          <Button onClick={cancelDeleteSale}>Cancel</Button>
-          <Button onClick={confirmDeleteSale} disabled={deleting}>
+        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+          <Button onClick={cancelDeleteSale} style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>Cancel</Button>
+          <Button onClick={confirmDeleteSale} disabled={deleting} style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
             Delete
           </Button>
         </Modal.Footer>

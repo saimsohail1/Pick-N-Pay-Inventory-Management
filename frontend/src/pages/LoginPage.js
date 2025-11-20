@@ -68,7 +68,9 @@ const LoginPage = () => {
 
   return (
     <div className="min-vh-100 d-flex align-items-center" style={{ 
-      background: 'linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%)',
+      background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+      borderBottom: '2px solid #22c55e',
       position: 'relative'
     }}>
       {/* Close Button - Top Right */}
@@ -128,7 +130,7 @@ const LoginPage = () => {
                     <i className="bi bi-shield-lock"></i>
                   </div>
                   <h2 className="fw-bold text-primary mb-2 gradient-text">
-                    PickNPay
+                    ADAMS GREEN
                   </h2>
                   <p className="text-muted fs-5">Sign in to your account</p>
                 </div>

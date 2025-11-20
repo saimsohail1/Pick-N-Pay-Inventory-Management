@@ -21,7 +21,7 @@ public class CompanySettingsService {
         
         if (settingsOpt.isEmpty()) {
             // Create default settings if none exist
-            settings = new CompanySettings("PickNPay", "");
+            settings = new CompanySettings("ADAMS GREEN", "");
             settings = companySettingsRepository.save(settings);
         } else {
             settings = settingsOpt.get();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Row,
   Col,
@@ -68,7 +68,10 @@ const InventoryPage = () => {
           setTotalElements(itemsResponse.data.totalElements);
         } else {
           // Fallback for non-paginated response
-          setItems(itemsResponse.data);
+        setItems(itemsResponse.data);
+          if (Array.isArray(itemsResponse.data)) {
+            setTotalElements(itemsResponse.data.length);
+          }
         }
         
         setCategories(categoriesResponse.data);
@@ -83,6 +86,7 @@ const InventoryPage = () => {
     fetchData();
   }, [currentPage, pageSize, sortBy, sortOrder]);
 
+
   const fetchItems = async () => {
     setLoading(true);
     try {
@@ -95,7 +99,7 @@ const InventoryPage = () => {
         setTotalElements(response.data.totalElements);
       } else {
         // Fallback for non-paginated response
-        setItems(response.data);
+      setItems(response.data);
       }
     } catch (err) {
       setError('Failed to fetch items');
@@ -453,22 +457,53 @@ const InventoryPage = () => {
     );
   }
 
+  // Calculate low stock count from current page items
+  const lowStockCount = items.filter(item => item.stockQuantity <= 10).length;
+
   return (
-    <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="mb-0 fw-bold">
-          <i className="bi bi-box-seam me-2"></i>
-          Inventory
-        </h1>
-        <div className="d-flex align-items-center">
-          <Button variant="primary" className="me-3" disabled style={{ backgroundColor: '#0d47a1', borderColor: '#0d47a1' }}>
-            Items: {totalElements}
-          </Button>
-          <span className="badge bg-warning fs-6">
-            {items.filter(item => item.stockQuantity <= 10).length} Low Stock
-          </span>
-        </div>
-      </div>
+    <div style={{ backgroundColor: '#1a1a1a', minHeight: '100vh' }}>
+      <style>{`
+        /* 3D Button Effect - Similar to Dashboard stats-card */
+        .btn-3d {
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+          transition: all 0.3s ease;
+          border: 1px solid #333333 !important;
+        }
+        
+        .btn-3d::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #4a4a4a 0%, #3a3a3a 100%);
+          z-index: 1;
+        }
+        
+        .btn-3d:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 16px rgba(255, 255, 255, 0.15), 0 4px 8px rgba(0, 0, 0, 0.3);
+          border-color: #4a4a4a !important;
+        }
+        
+        .btn-3d:hover::before {
+          background: linear-gradient(90deg, #5a5a5a 0%, #4a4a4a 100%);
+        }
+        
+        .btn-3d:active {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-3d:disabled {
+          transform: none;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+          opacity: 0.5;
+        }
+      `}</style>
 
       {error && (
         <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-3">
@@ -482,12 +517,14 @@ const InventoryPage = () => {
         </Alert>
       )}
 
-      <Card className="shadow-sm">
-        <Card.Header className="bg-primary text-white">
-          <div className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-0 fw-bold">Inventory Items</h5>
+      <Card className="shadow-sm" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+        <Card.Header style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
+              <i className="bi bi-box-seam me-2" style={{ color: '#ffffff' }}></i>
+              Inventory
+            </h1>
             <Button 
-              variant="light" 
               onClick={() => {
                 setFormData({
                   name: '',
@@ -502,20 +539,35 @@ const InventoryPage = () => {
                 });
                 setShowAddModal(true);
               }}
+              style={{ backgroundColor: '#3a3a3a', border: '1px solid #333333', color: '#ffffff' }}
               className="fw-bold"
             >
               <i className="bi bi-plus-circle me-2"></i>
               Add Item
             </Button>
           </div>
+          <div className="d-flex gap-2 align-items-center">
+            <Button className="btn-3d" disabled style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+              <i className="bi bi-box me-2"></i>
+              Items on Page: {items.length}
+            </Button>
+            <Button className="btn-3d" disabled style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+              <i className="bi bi-archive me-2"></i>
+              Total Items: {totalElements}
+            </Button>
+            <Button className="btn-3d" disabled style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+              <i className="bi bi-exclamation-triangle me-2"></i>
+              Low Stock: {lowStockCount}
+            </Button>
+          </div>
         </Card.Header>
         <Card.Body className="p-0">
           {/* Filters */}
-          <div className="p-3 bg-light border-bottom">
+          <div className="p-3 border-bottom" style={{ backgroundColor: '#2a2a2a' }}>
             {/* Search Bar */}
             <div className="row mb-3">
               <div className="col-md-6">
-                <label className="form-label small fw-bold">
+                <label className="form-label small fw-bold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-search me-1"></i>Search by Name or Barcode
                 </label>
                 <InputGroup>
@@ -525,13 +577,14 @@ const InventoryPage = () => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     size="sm"
+                    style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                   />
                   {searchTerm && (
                     <Button
-                      variant="outline-secondary"
                       size="sm"
                       onClick={() => setSearchTerm('')}
                       title="Clear search"
+                      style={{ backgroundColor: 'transparent', border: '1px solid #ffffff', color: '#ffffff' }}
                     >
                       <i className="bi bi-x"></i>
                     </Button>
@@ -541,11 +594,12 @@ const InventoryPage = () => {
             </div>
             <div className="row g-3">
               <div className="col-md-3">
-                <label className="form-label small fw-bold">Stock Filter</label>
+                <label className="form-label small fw-bold" style={{ color: '#ffffff' }}>Stock Filter</label>
                 <Form.Select 
                   size="sm" 
                   value={filters.stockFilter}
                   onChange={(e) => setFilters(prev => ({ ...prev, stockFilter: e.target.value }))}
+                  style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                 >
                   <option value="all">All Items</option>
                   <option value="out">Out of Stock (0)</option>
@@ -554,11 +608,12 @@ const InventoryPage = () => {
                 </Form.Select>
               </div>
               <div className="col-md-3">
-                <label className="form-label small fw-bold">Expiry Filter</label>
+                <label className="form-label small fw-bold" style={{ color: '#ffffff' }}>Expiry Filter</label>
                 <Form.Select 
                   size="sm" 
                   value={filters.expiryFilter}
                   onChange={(e) => setFilters(prev => ({ ...prev, expiryFilter: e.target.value }))}
+                  style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                 >
                   <option value="all">All Items</option>
                   <option value="expired">Expired</option>
@@ -567,11 +622,12 @@ const InventoryPage = () => {
                 </Form.Select>
               </div>
               <div className="col-md-3">
-                <label className="form-label small fw-bold">Category Filter</label>
+                <label className="form-label small fw-bold" style={{ color: '#ffffff' }}>Category Filter</label>
                 <Form.Select 
                   size="sm" 
                   value={filters.categoryFilter}
                   onChange={(e) => setFilters(prev => ({ ...prev, categoryFilter: e.target.value }))}
+                  style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                 >
                   <option value="all">All Categories</option>
                   {categories.map(category => (
@@ -580,7 +636,7 @@ const InventoryPage = () => {
                 </Form.Select>
               </div>
               <div className="col-md-3">
-                <label className="form-label small fw-bold">Sort By</label>
+                <label className="form-label small fw-bold" style={{ color: '#ffffff' }}>Sort By</label>
                 <Form.Select 
                   size="sm" 
                   value={sortBy}
@@ -588,6 +644,7 @@ const InventoryPage = () => {
                     setSortBy(e.target.value);
                     setSortOrder('asc');
                   }}
+                  style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                 >
                   <option value="stockQuantity">Stock Quantity</option>
                   <option value="name">Name</option>
@@ -617,7 +674,7 @@ const InventoryPage = () => {
             </div>
           </div>
           <Table responsive hover className="mb-0">
-            <thead className="table-light">
+            <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
               <tr>
                 <th 
                   className="cursor-pointer" 
@@ -707,7 +764,6 @@ const InventoryPage = () => {
                   <td className="text-center">
                     <div className="d-flex justify-content-center gap-2">
                       <Button
-                        variant="outline-primary"
                         onClick={() => handleEdit(item)}
                         title="Edit Item"
                         style={{
@@ -716,13 +772,15 @@ const InventoryPage = () => {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          padding: '0'
+                          padding: '0',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #ffffff',
+                          color: '#ffffff'
                         }}
                       >
                         <i className="bi bi-pencil" style={{ fontSize: '18px' }}></i>
                       </Button>
                       <Button
-                        variant="outline-success"
                         onClick={() => handlePrintLabel(item)}
                         title="Print Label"
                         style={{
@@ -731,13 +789,15 @@ const InventoryPage = () => {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          padding: '0'
+                          padding: '0',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #ffffff',
+                          color: '#ffffff'
                         }}
                       >
                         <i className="bi bi-printer" style={{ fontSize: '18px' }}></i>
                       </Button>
                       <Button
-                        variant="outline-danger"
                         onClick={() => handleDelete(item.id)}
                         title="Delete Item"
                         style={{
@@ -746,7 +806,10 @@ const InventoryPage = () => {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          padding: '0'
+                          padding: '0',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #ffffff',
+                          color: '#ffffff'
                         }}
                       >
                         <i className="bi bi-trash" style={{ fontSize: '18px' }}></i>
@@ -814,44 +877,47 @@ const InventoryPage = () => {
 
       {/* Add Item Modal */}
       <Modal show={showAddModal} onHide={() => setShowAddModal(false)} size="lg">
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className="bi bi-plus-circle me-2"></i>
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className="bi bi-plus-circle me-2" style={{ color: '#ffffff' }}></i>
             Add New Item
           </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSubmit}>
-          <Modal.Body>
+          <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Item Name *</Form.Label>
+                  <Form.Label style={{ color: '#ffffff' }}>Item Name *</Form.Label>
                   <Form.Control
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                   />
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Barcode</Form.Label>
+                  <Form.Label style={{ color: '#ffffff' }}>Barcode</Form.Label>
                   <Form.Control
                     type="text"
                     name="barcode"
                     value={formData.barcode}
                     onChange={handleInputChange}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                   />
                 </Form.Group>
               </Col>
             </Row>
             <Form.Group className="mb-3">
-              <Form.Label>Category</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>Category</Form.Label>
               <Form.Select
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleInputChange}
+                style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
               >
                 <option value="">Select a category (optional)</option>
                 {categories.map((category) => (
@@ -862,39 +928,42 @@ const InventoryPage = () => {
               </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>Description</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={3}
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
+                style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
               />
             </Form.Group>
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Price (€) *</Form.Label>
+                  <Form.Label style={{ color: '#ffffff' }}>Price (€) *</Form.Label>
                   <InputGroup>
-                    <InputGroup.Text>€</InputGroup.Text>
+                    <InputGroup.Text style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>€</InputGroup.Text>
                     <Form.Control
                       type="number"
                       step="0.01"
                       name="price"
                       value={formData.price}
                       onChange={handleInputChange}
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     />
                   </InputGroup>
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Stock Quantity *</Form.Label>
+                  <Form.Label style={{ color: '#ffffff' }}>Stock Quantity *</Form.Label>
                   <Form.Control
                     type="number"
                     name="stockQuantity"
                     value={formData.stockQuantity}
                     onChange={handleInputChange}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                   />
                 </Form.Group>
               </Col>
@@ -902,7 +971,7 @@ const InventoryPage = () => {
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>VAT Rate (%) *</Form.Label>
+                  <Form.Label style={{ color: '#ffffff' }}>VAT Rate (%) *</Form.Label>
                   <InputGroup>
                     <Form.Control
                       type="number"
@@ -911,8 +980,9 @@ const InventoryPage = () => {
                       value={formData.vatRate}
                       onChange={handleInputChange}
                       placeholder="23.00"
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     />
-                    <InputGroup.Text>%</InputGroup.Text>
+                    <InputGroup.Text style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>%</InputGroup.Text>
                   </InputGroup>
                 </Form.Group>
               </Col>
@@ -920,22 +990,24 @@ const InventoryPage = () => {
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Batch ID</Form.Label>
+                  <Form.Label style={{ color: '#ffffff' }}>Batch ID</Form.Label>
                   <Form.Control
                     type="text"
                     name="batchId"
                     value={formData.batchId}
                     onChange={handleInputChange}
                     placeholder="Enter batch ID (optional)"
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                   />
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Expiry Date</Form.Label>
+                  <Form.Label style={{ color: '#ffffff' }}>Expiry Date</Form.Label>
                   <Form.Control
                     type="date"
                     name="generalExpiryDate"
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     value={formData.generalExpiryDate}
                     onChange={handleInputChange}
                   />
@@ -943,11 +1015,11 @@ const InventoryPage = () => {
               </Col>
             </Row>
           </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowAddModal(false)}>
+          <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+            <Button onClick={() => setShowAddModal(false)} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
               Cancel
             </Button>
-            <Button variant="primary" type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
               {loading ? (
                 <>
                   <Spinner size="sm" className="me-2" />

@@ -29,7 +29,7 @@ const SalesPage = () => {
   const [cart, setCart] = useState([]);
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [companyName, setCompanyName] = useState('PickNPay');
+  const [companyName, setCompanyName] = useState('ADAMS GREEN');
   const [companyAddress, setCompanyAddress] = useState('');
   const [lastSale, setLastSale] = useState(null);
   const { user, logout } = useAuth();
@@ -273,7 +273,7 @@ const SalesPage = () => {
   const fetchCompanyName = async () => {
     try {
       const response = await companySettingsAPI.get();
-      setCompanyName(response.data.companyName || 'PickNPay');
+      setCompanyName(response.data.companyName || 'ADAMS GREEN');
       setCompanyAddress(response.data.address || '');
     } catch (error) {
       console.error('Failed to fetch company name:', error);
@@ -296,7 +296,7 @@ const SalesPage = () => {
         const settingsData = response.data || response;
         if (settingsData) {
           currentCompanySettings = {
-            companyName: settingsData.companyName || 'PickNPay',
+            companyName: settingsData.companyName || 'ADAMS GREEN',
             address: settingsData.address || ''
           };
         }
@@ -1236,19 +1236,22 @@ const SalesPage = () => {
   };
 
   return (
-    <div className="sales-page-container d-flex flex-column vh-100" style={{ backgroundColor: '#e9ecef', margin: 0, padding: 0, overflow: 'auto', minWidth: 0, minHeight: 0 }}>
+    <div className="sales-page-container" style={{ backgroundColor: '#000000', margin: 0, padding: 0, width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}>
       <style>{`
         .sales-page-container {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
           overflow-x: auto;
           overflow-y: auto;
-          width: 100%;
+          width: 100vw;
           height: 100vh;
+          position: relative;
+          box-sizing: border-box;
         }
         
         /* Enable scrolling for all child containers when zoomed */
         .sales-page-container > * {
           min-width: 0;
+          box-sizing: border-box;
         }
         
         /* Make tables and cards scrollable when content overflows */
@@ -1268,19 +1271,23 @@ const SalesPage = () => {
         .sales-header {
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           flex-shrink: 0;
+          position: relative;
         }
         .table th {
-          background-color: #e9ecef !important;
-          border-bottom: 2px solid #dee2e6;
+          background-color: #2a2a2a !important;
+          border-bottom: 2px solid #333333;
           font-weight: 600;
+          color: #ffffff !important;
         }
         .btn-outline-primary {
-          border-color: #0d6efd;
-          color: #0d6efd;
+          border-color: #ffffff;
+          color: #ffffff;
+          background-color: transparent;
         }
         .btn-outline-primary:hover {
-          background-color: #0d6efd;
-          border-color: #0d6efd;
+          background: #3a3a3a;
+          border-color: #ffffff;
+          color: #ffffff;
         }
         .numeric-keypad .btn {
           min-height: 40px;
@@ -1305,59 +1312,136 @@ const SalesPage = () => {
           font-size: 0.9rem;
         }
         .cart-item-selected {
-          background-color: #b8dacc !important;
-          border-left: 5px solid #198754 !important;
-          box-shadow: 0 3px 6px rgba(25, 135, 84, 0.4) !important;
+          background-color: #3a3a3a !important;
+          border-left: 5px solid #ffffff !important;
+          box-shadow: 0 3px 6px rgba(255, 255, 255, 0.2) !important;
           font-weight: bold !important;
         }
         .cart-item-row:hover {
-          background-color: #f8f9fa !important;
+          background-color: #3a3a3a !important;
         }
         .cart-item-row:hover.cart-item-selected {
-          background-color: #a8d5ba !important;
-          box-shadow: 0 4px 8px rgba(25, 135, 84, 0.5) !important;
+          background-color: #4a4a4a !important;
+          box-shadow: 0 4px 8px rgba(255, 255, 255, 0.3) !important;
+        }
+        
+        /* 3D Button Effect - Similar to Dashboard stats-card */
+        .btn-3d {
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+          transition: all 0.3s ease;
+          border: 1px solid #333333 !important;
+        }
+        
+        .btn-3d::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #4a4a4a 0%, #3a3a3a 100%);
+          z-index: 1;
+        }
+        
+        .btn-3d:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 16px rgba(255, 255, 255, 0.15), 0 4px 8px rgba(0, 0, 0, 0.3);
+          border-color: #4a4a4a !important;
+        }
+        
+        .btn-3d:hover::before {
+          background: linear-gradient(90deg, #5a5a5a 0%, #4a4a4a 100%);
+        }
+        
+        .btn-3d:active {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-3d:disabled {
+          transform: none;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+          opacity: 0.5;
         }
       `}</style>
       {/* Compact Header */}
-      <div className="bg-gradient-primary text-white py-2 px-3" style={{ minHeight: '60px', margin: 0, padding: '0.5rem 1rem' }}>
+      <div className="text-white py-2 px-3" style={{ minHeight: '60px', margin: 0, padding: '0.5rem 1rem', backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a' }}>
         <div className="d-flex align-items-center justify-content-between w-100">
         <div className="d-flex align-items-center">
-            <div 
-              className="icon-lg me-2" 
-              style={{ 
-                background: 'rgba(255, 255, 255, 0.2)',
-                color: 'white',
-                cursor: 'pointer'
-              }}
+            <button
               onClick={() => navigate('/')}
+              className="btn btn-3d fw-bold text-white d-flex align-items-center"
+              style={{
+                fontSize: '1.2rem',
+                padding: '0.75rem 1.25rem',
+                fontWeight: '500',
+                background: '#3a3a3a',
+                color: 'white',
+                border: 'none'
+              }}
               title="Go to Dashboard"
             >
-              <i className="bi bi-shop"></i>
-          </div>
-            <div>
-              <h4 className="mb-0 fw-bold">{companyName} Sales Terminal</h4>
-              <small className="opacity-75">Quick & Easy Sales Management</small>
-        </div>
+              <i className="bi bi-house me-2" style={{ fontSize: '1rem' }}></i>
+              {companyName}
+            </button>
           </div>
           <div className="d-flex align-items-center gap-2">
             <div className="d-flex align-items-center gap-2">
               <Button 
-                variant="outline-light" 
                 size="sm" 
+                className="btn-3d"
                 onClick={() => setShowHeldTransactions(!showHeldTransactions)}
-                style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem' }}
+                style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                 title="Hold Transactions"
               >
                 <i className="bi bi-pause-circle me-1"></i>
                 Hold ({heldTransactions.length})
               </Button>
-              <i className="bi bi-tablet fs-5 text-white hover-lift" style={{ cursor: 'pointer' }} title="Tablet Mode"></i>
-              <i className="bi bi-gear fs-5 text-white hover-lift" style={{ cursor: 'pointer' }} onClick={() => navigate('/company')} title="Settings"></i>
-              <i className="bi bi-box-arrow-right fs-5 text-white hover-lift" style={{ cursor: 'pointer' }} onClick={() => { localStorage.removeItem('token'); navigate('/login'); }} title="Logout"></i>
-              <i 
-                className="bi bi-dash-lg fs-5 text-white hover-lift" 
-                style={{ cursor: 'pointer' }} 
-                title="Minimize Application"
+              <Button
+                className="btn-3d d-flex align-items-center justify-content-center"
+                style={{ 
+                  width: '40px', 
+                  height: '40px', 
+                  padding: '0',
+                  backgroundColor: '#3a3a3a', 
+                  color: '#ffffff'
+                }}
+                title="Tablet Mode"
+              >
+                <i className="bi bi-tablet" style={{ fontSize: '1.1rem' }}></i>
+              </Button>
+              <Button
+                className="btn-3d d-flex align-items-center justify-content-center"
+                onClick={() => navigate('/company')}
+                style={{ 
+                  width: '40px', 
+                  height: '40px', 
+                  padding: '0',
+                  backgroundColor: '#3a3a3a', 
+                  color: '#ffffff'
+                }}
+                title="Settings"
+              >
+                <i className="bi bi-gear" style={{ fontSize: '1.1rem' }}></i>
+              </Button>
+              <Button
+                className="btn-3d d-flex align-items-center justify-content-center"
+                onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}
+                style={{ 
+                  width: '40px', 
+                  height: '40px', 
+                  padding: '0',
+                  backgroundColor: '#3a3a3a', 
+                  color: '#ffffff'
+                }}
+                title="Logout"
+              >
+                <i className="bi bi-box-arrow-right" style={{ fontSize: '1.1rem' }}></i>
+              </Button>
+              <Button
+                className="btn-3d d-flex align-items-center justify-content-center"
                 onClick={() => {
                   // Check if running in Electron
                   if (window && window.require) {
@@ -1371,11 +1455,19 @@ const SalesPage = () => {
                     window.electron.ipcRenderer.send('app-minimize');
                   }
                 }}
-              ></i>
-              <i 
-                className="bi bi-power fs-5 text-white hover-lift" 
-                style={{ cursor: 'pointer' }} 
-                title="Close Application"
+                style={{ 
+                  width: '40px', 
+                  height: '40px', 
+                  padding: '0',
+                  backgroundColor: '#3a3a3a', 
+                  color: '#ffffff'
+                }}
+                title="Minimize Application"
+              >
+                <i className="bi bi-dash-lg" style={{ fontSize: '1.1rem' }}></i>
+              </Button>
+              <Button
+                className="btn-3d d-flex align-items-center justify-content-center"
                 onClick={() => {
                   // Check if running in Electron
                   if (window && window.require) {
@@ -1391,7 +1483,17 @@ const SalesPage = () => {
                     navigate('/login');
                   }
                 }}
-              ></i>
+                style={{ 
+                  width: '40px', 
+                  height: '40px', 
+                  padding: '0',
+                  backgroundColor: '#3a3a3a', 
+                  color: '#ffffff'
+                }}
+                title="Close Application"
+              >
+                <i className="bi bi-power" style={{ fontSize: '1.1rem' }}></i>
+              </Button>
             </div>
           </div>
         </div>
@@ -1400,7 +1502,6 @@ const SalesPage = () => {
       {/* Success and Error Messages - Fixed Position */}
       {success && (
         <Alert 
-          variant="success" 
           onClose={() => setSuccess(null)} 
           dismissible
           style={{
@@ -1411,7 +1512,10 @@ const SalesPage = () => {
             zIndex: 9999,
             minWidth: '400px',
             maxWidth: '600px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            backgroundColor: '#3a3a3a',
+            border: '1px solid #ffffff',
+            color: '#ffffff'
           }}
         >
           <i className="bi bi-check-circle me-2"></i>
@@ -1420,7 +1524,6 @@ const SalesPage = () => {
       )}
       {error && (
         <Alert 
-          variant="danger" 
           onClose={() => setError(null)} 
           dismissible
           style={{
@@ -1431,7 +1534,10 @@ const SalesPage = () => {
             zIndex: 9999,
             minWidth: '400px',
             maxWidth: '600px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            backgroundColor: '#3a3a3a',
+            border: '1px solid #ffffff',
+            color: '#ffffff'
           }}
         >
           <i className="bi bi-exclamation-triangle me-2"></i>
@@ -1439,16 +1545,16 @@ const SalesPage = () => {
         </Alert>
       )}
 
-      {/* Main Content */}
-      <div className="flex-grow-1 d-flex" style={{ overflow: 'hidden', margin: 0, padding: 0 }}>
-          {/* Main Content Area */}
-        <div className="d-flex flex-column" style={{ width: '65%', padding: 0 }}>
+      {/* Main Content - Two Column Layout */}
+      <div className="d-flex" style={{ margin: 0, padding: '0.5rem', gap: '0.5rem', minWidth: 'fit-content', minHeight: 'fit-content' }}>
+          {/* Left Panel - Items Grid (70%) */}
+        <div className="d-flex flex-column" style={{ width: '70%', padding: 0, backgroundColor: '#2a2a2a', borderRadius: '8px', overflow: 'hidden', color: '#ffffff', border: '1px solid #333333' }}>
           {showHeldTransactions ? (
             /* Held Transactions View */
-            <div className="bg-white" style={{ height: '100%', overflowY: 'auto', padding: '1rem' }}>
+            <div className="bg-dark" style={{ height: '100%', overflowY: 'auto', padding: '1rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h4 className="mb-0">Held Transactions ({heldTransactions.length})</h4>
-                <Button variant="outline-secondary" onClick={() => setShowHeldTransactions(false)}>
+                <Button onClick={() => setShowHeldTransactions(false)} style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
                   <i className="bi bi-x-circle me-1"></i>
                   Back to Sales
                 </Button>
@@ -1456,58 +1562,58 @@ const SalesPage = () => {
               
               {heldTransactions.length === 0 ? (
                 <div className="text-center py-5">
-                  <i className="bi bi-pause-circle fs-1 text-muted"></i>
-                  <h5 className="text-muted mt-3">No Held Transactions</h5>
-                  <p className="text-muted">Transactions you hold will appear here</p>
+                  <i className="bi bi-pause-circle fs-1" style={{ color: '#aaaaaa' }}></i>
+                  <h5 className="mt-3" style={{ color: '#aaaaaa' }}>No Held Transactions</h5>
+                  <p style={{ color: '#aaaaaa' }}>Transactions you hold will appear here</p>
                 </div>
               ) : (
                 <div className="row g-3">
                   {heldTransactions.map((transaction) => (
                     <div key={transaction.id} className="col-md-6 col-lg-4">
-                      <div className="card h-100">
-                        <div className="card-header d-flex justify-content-between align-items-center">
-                          <small className="text-muted">{transaction.timestamp}</small>
+                      <div className="card h-100" style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
+                        <div className="card-header d-flex justify-content-between align-items-center" style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
+                          <small style={{ color: '#aaaaaa' }}>{transaction.timestamp}</small>
                           <Button 
-                            variant="outline-danger" 
                             size="sm" 
                             onClick={() => handleDeleteHeldTransaction(transaction.id)}
                             title="Delete Transaction"
+                            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
                           >
                             <i className="bi bi-trash"></i>
                           </Button>
                         </div>
-                        <div className="card-body">
-                          <h6 className="card-title">{transaction.customerName}</h6>
-                          <p className="card-text">
+                        <div className="card-body" style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+                          <h6 className="card-title" style={{ color: '#ffffff' }}>{transaction.customerName}</h6>
+                          <p className="card-text" style={{ color: '#ffffff' }}>
                             <strong>{transaction.items.length}</strong> items
                           </p>
                           <div className="mb-2">
                             {transaction.items.slice(0, 2).map((item, index) => (
-                              <div key={index} className="small text-muted">
+                              <div key={index} className="small" style={{ color: '#aaaaaa' }}>
                                 {item.itemName} x{item.quantity}
                               </div>
                             ))}
                             {transaction.items.length > 2 && (
-                              <div className="small text-muted">
+                              <div className="small" style={{ color: '#aaaaaa' }}>
                                 +{transaction.items.length - 2} more items
                               </div>
                             )}
                           </div>
-                          <h5 className="text-primary mb-3">€{transaction.total.toFixed(2)}</h5>
+                          <h5 className="mb-3" style={{ color: '#ffffff' }}>€{transaction.total.toFixed(2)}</h5>
                         </div>
-                        <div className="card-footer d-grid gap-2">
+                        <div className="card-footer d-grid gap-2" style={{ backgroundColor: '#2a2a2a', borderTop: '1px solid #333333' }}>
                           <Button 
-                            variant="outline-primary" 
                             size="sm"
                             onClick={() => handleLoadHeldTransaction(transaction)}
+                            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
                           >
                             <i className="bi bi-arrow-clockwise me-1"></i>
                             Load
                           </Button>
                           <Button 
-                            variant="success" 
                             size="sm"
                             onClick={() => handleCheckoutHeldTransaction(transaction)}
+                            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
                           >
                             <i className="bi bi-credit-card me-1"></i>
                             Checkout
@@ -1525,16 +1631,16 @@ const SalesPage = () => {
             {/* Sales Cart Table with Control Buttons */}
             <div className="d-flex">
               {/* Cart Table */}
-              <div className="bg-white flex-grow-1" style={{ height: '350px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#ffffff', border: '1px solid #dee2e6', borderRadius: '8px' }}>
+              <div className="bg-dark flex-grow-1" style={{ height: '350px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333', borderRadius: '8px', color: '#ffffff' }}>
               {cart.length === 0 ? (
                   <div className="text-center py-2">
-                    <i className="bi bi-cart fs-3 text-muted"></i>
-                    <p className="text-muted mt-1 mb-0" style={{ fontSize: '0.7rem' }}>Cart is empty</p>
+                    <i className="bi bi-cart fs-3" style={{ color: '#aaaaaa' }}></i>
+                    <p className="mt-1 mb-0" style={{ fontSize: '0.7rem', color: '#aaaaaa' }}>Cart is empty</p>
                 </div>
               ) : (
                 <div className="table-responsive">
                   <Table striped hover className="mb-0" size="sm">
-                      <thead className="table-primary" style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                      <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                         <tr>
                           <th style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>ID</th>
                           <th style={{ width: '40%', fontSize: '1rem', padding: '0.6rem' }}>Item</th>
@@ -1550,19 +1656,19 @@ const SalesPage = () => {
                           key={index} 
                           onClick={() => handleCartItemClick(item)}
                           className={`cart-item-row ${selectedCartItem && selectedCartItem.id === item.id ? 'cart-item-selected' : ''}`}
-                          style={{ cursor: 'pointer' }}
+                          style={{ cursor: 'pointer', backgroundColor: '#2a2a2a', color: '#ffffff' }}
                         >
                             <td style={{ fontSize: '1rem', padding: '0.6rem' }}>{index + 1}</td>
                             <td style={{ fontSize: '1rem', padding: '0.6rem' }}>
                             <div>
                                 <strong style={{ fontSize: '1.1rem' }}>{item.itemName}</strong>
                                 {item.itemBarcode && item.itemBarcode !== 'N/A' && (
-                                  <small className="d-block text-muted" style={{ fontSize: '0.8rem' }}>
+                                  <small className="d-block" style={{ fontSize: '0.8rem', color: '#aaaaaa' }}>
                                     <i className="bi bi-upc" style={{ fontSize: '0.7rem' }}></i> {item.itemBarcode}
                                 </small>
                               )}
                                 {item.discountApplied && (
-                                  <small className="d-block text-success" style={{ fontSize: '0.8rem' }}>
+                                  <small className="d-block" style={{ fontSize: '0.8rem', color: '#ffffff' }}>
                                     <i className="bi bi-percent" style={{ fontSize: '0.7rem' }}></i> Discount Applied
                                 </small>
                               )}
@@ -1571,10 +1677,10 @@ const SalesPage = () => {
                             <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
                               {item.discountApplied ? (
                                 <div>
-                                  <div className="text-decoration-line-through text-muted" style={{ fontSize: '0.9rem' }}>
+                                  <div className="text-decoration-line-through" style={{ fontSize: '0.9rem', color: '#aaaaaa' }}>
                                     €{item.originalPrice.toFixed(2)}
                                   </div>
-                                  <div className="text-success fw-bold">
+                                  <div className="fw-bold" style={{ color: '#ffffff' }}>
                                     €{item.unitPrice.toFixed(2)}
                                   </div>
                                 </div>
@@ -1593,7 +1699,7 @@ const SalesPage = () => {
                                 value={item.discountAmount || ''}
                                 onChange={(e) => handleItemDiscountChange(item.id, e.target.value)}
                                 onClick={(e) => e.stopPropagation()}
-                                style={{ width: '60px', fontSize: '0.9rem' }}
+                                style={{ width: '60px', fontSize: '0.9rem', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                               />
                             </td>
                             <td className="text-end fw-bold" style={{ fontSize: '1rem', padding: '0.6rem' }}>€{item.totalPrice.toFixed(2)}</td>
@@ -1606,37 +1712,34 @@ const SalesPage = () => {
               </div>
               
               {/* Fixed Control Buttons */}
-              <div className="bg-white d-flex flex-column" style={{ width: '90px', padding: '0.3rem', borderLeft: '1px solid #dee2e6', backgroundColor: '#ffffff', borderRadius: '0 8px 8px 0' }}>
+              <div className="bg-dark d-flex flex-column" style={{ width: '90px', padding: '0.3rem', borderLeft: '1px solid #333333', backgroundColor: '#2a2a2a', borderRadius: '0 8px 8px 0', color: '#ffffff' }}>
                 <div className="d-flex flex-column h-100">
                               <Button
-                    variant={selectedCartItem ? "success" : "outline-secondary"}
                     size="lg"
                     onClick={handleIncrementSelectedItem}
                     disabled={!selectedCartItem}
-                    className="flex-fill"
-                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px' }}
+                    className="flex-fill btn-3d"
+                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px', backgroundColor: selectedCartItem ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}
                     title="Increase quantity"
                   >
                     <i className="bi bi-plus"></i>
                   </Button>
                   <Button
-                    variant={selectedCartItem ? "warning" : "outline-secondary"}
                     size="lg"
                     onClick={handleDecrementSelectedItem}
                     disabled={!selectedCartItem}
-                    className="flex-fill"
-                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px' }}
+                    className="flex-fill btn-3d"
+                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px', backgroundColor: selectedCartItem ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}
                     title="Decrease quantity"
                               >
                                 <i className="bi bi-dash"></i>
                               </Button>
                               <Button
-                    variant={selectedCartItem ? "info" : "outline-secondary"}
                     size="lg"
                     onClick={handleEditSelectedItem}
                     disabled={!selectedCartItem}
-                    className="flex-fill"
-                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px' }}
+                    className="flex-fill btn-3d"
+                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px', backgroundColor: selectedCartItem ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}
                     title="Edit item"
                   >
                     <i className="bi bi-pencil"></i>
@@ -1646,19 +1749,19 @@ const SalesPage = () => {
             </div>
 
             {/* Action Buttons Row */}
-            <div className="bg-white" style={{ padding: '0.4rem', border: '1px solid #dee2e6', borderRadius: '8px', marginTop: '0.5rem' }}>
+            <div className="bg-dark" style={{ padding: '0.4rem', border: '1px solid #333333', borderRadius: '8px', marginTop: '0.5rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
               <div className="d-flex gap-2 justify-content-between">
               <div className="d-flex gap-2">
                   <Button 
-                    variant="outline-primary" 
                     size="lg" 
+                    className="btn-3d"
                     onClick={() => navigate('/inventory')}
-                    style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}
+                    style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     <i className="bi bi-eye me-2"></i>
                   STOCK
                 </Button>
-                  <Button variant="outline-danger" size="lg" onClick={() => { 
+                  <Button size="lg" className="btn-3d" onClick={() => {
                     setCart([]); 
                     setAppliedDiscount(null); 
                     setCustomDiscountAmount(''); 
@@ -1669,17 +1772,17 @@ const SalesPage = () => {
                         barcodeInputRef.current.focus();
                       }
                     }, 100);
-                  }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}>
+                  }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px', backgroundColor: '#3a3a3a', color: '#ffffff' }}>
                     <i className="bi bi-cart-x me-2"></i>
                   CLEAR CART
                 </Button>
                 {lastSale && (
                   <Button 
-                    variant="outline-primary" 
                     size="lg" 
+                    className="btn-3d"
                     onClick={handlePrintLastSale}
                     title={`Print last sale #${lastSale.id}`}
-                    style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px' }}
+                    style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     <i className="bi bi-printer me-2"></i>
                     PRINT LAST SALE
@@ -1691,7 +1794,7 @@ const SalesPage = () => {
 
 
             {/* Sales Summary */}
-            <div className="bg-secondary text-white" style={{ padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem' }}>
+            <div className="bg-dark text-white" style={{ padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333' }}>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <div className="d-block" style={{ fontSize: '0.9rem' }}>Subtotal: €{calculateSubtotal().toFixed(2)}</div>
@@ -1711,30 +1814,28 @@ const SalesPage = () => {
             </div>
 
             {/* Bottom Control Panel */}
-            <div className="bg-light text-dark" style={{ padding: '0.8rem', borderRadius: '8px', marginTop: '0.5rem' }}>
+            <div className="bg-dark text-white" style={{ padding: '0.8rem', borderRadius: '8px', marginTop: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333' }}>
               <div className="d-flex align-items-center justify-content-between gap-3">
                   {/* Discount and Exit Buttons - Moved up and made more prominent */}
                   <div className="d-flex flex-column gap-3" style={{ width: '25%' }}>
                     <Button 
-                      variant={appliedDiscount ? "success" : "primary"} 
                       size="lg" 
-                      className="fw-bold" 
-                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', marginTop: '-1rem' }}
+                      className="fw-bold btn-3d" 
+                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', marginTop: '-1rem', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                       onClick={() => setDiscountDialogOpen(true)}
                     >
                       <i className="bi bi-percent me-2"></i>
                       Discount
                         {appliedDiscount && (
-                          <Badge bg="light" text="dark" className="ms-2" style={{ fontSize: '0.8rem' }}>
+                          <Badge className="ms-2" style={{ fontSize: '0.8rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                             {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
                           </Badge>
                         )}
                     </Button>
                   <Button 
-                      variant="danger" 
                     size="lg" 
-                    className="fw-bold" 
-                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px' }}
+                    className="fw-bold btn-3d" 
+                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                     onClick={() => {
                       // Check if running in Electron
                       if (window && window.require) {
@@ -1759,28 +1860,28 @@ const SalesPage = () => {
                   {/* Numeric Keypad - Centered and optimized */}
                   <div className="d-grid gap-2 numeric-keypad" style={{ gridTemplateColumns: 'repeat(3, 1fr)', width: '35%', maxWidth: '300px' }}>
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                      <Button key={num} variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev + num.toString())}>
+                      <Button key={num} size="lg" className="fw-bold btn-3d" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={() => setBarcodeInput(prev => prev + num.toString())}>
                         {num}
                       </Button>
                     ))}
-                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput('')}>C</Button>
-                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev + '0')}>0</Button>
-                    <Button variant="outline-secondary" size="lg" className="fw-bold" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px' }} onClick={() => setBarcodeInput(prev => prev.slice(0, -1))}>
+                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={() => setBarcodeInput('')}>C</Button>
+                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={() => setBarcodeInput(prev => prev + '0')}>0</Button>
+                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={() => setBarcodeInput(prev => prev.slice(0, -1))}>
                       <i className="bi bi-backspace"></i>
                     </Button>
                   </div>
                   
                   {/* Action Buttons - Right side, optimized */}
                   <div className="d-flex flex-column gap-2" style={{ width: '40%' }}>
-                    <Button variant="success" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }} onClick={handleCheckout} disabled={loading}>
+                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={handleCheckout} disabled={loading}>
                       {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
                       Checkout
                     </Button>
-                    <Button variant="warning" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }} onClick={handleHoldTransaction}>
+                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={handleHoldTransaction}>
                       <i className="bi bi-pause-circle me-2"></i>
                       On Hold
                     </Button>
-                    <Button variant="info" size="lg" className="fw-bold" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px' }}>
+                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }}>
                       <i className="bi bi-cash-stack me-2"></i>
                       Open Till
                     </Button>
@@ -1792,22 +1893,22 @@ const SalesPage = () => {
         </div>
 
           {/* Right Sidebar */}
-        <div className="d-flex flex-column" style={{ width: '35%', padding: 0, borderRadius: '8px', border: '1px solid #dee2e6', backgroundColor: '#f8f9fa' }}>
+        <div className="d-flex flex-column" style={{ width: '35%', padding: 0, borderRadius: '8px', border: '1px solid #333333', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
             {/* Selected Item Display */}
             {selectedCartItem && (
-              <div className="mb-1 p-1 bg-light rounded border">
-                <h6 className="mb-1 fw-bold text-primary small">Selected Item:</h6>
+              <div className="mb-1 p-1 bg-dark rounded border" style={{ backgroundColor: '#2a2a2a', borderColor: '#333333', color: '#ffffff' }}>
+                <h6 className="mb-1 fw-bold small" style={{ color: '#ffffff' }}>Selected Item:</h6>
                 <p className="mb-1 small">{selectedCartItem.itemName}</p>
-                <p className="mb-0 small text-muted">Qty: {selectedCartItem.quantity} × €{selectedCartItem.unitPrice.toFixed(2)}</p>
+                <p className="mb-0 small" style={{ color: '#aaaaaa' }}>Qty: {selectedCartItem.quantity} × €{selectedCartItem.unitPrice.toFixed(2)}</p>
               </div>
             )}
 
             {/* Barcode Input */}
             <div className="mb-2" style={{ padding: '0.5rem' }}>
-              <h5 className="fw-bold mb-2 text-center">Barcode Read</h5>
+              <h5 className="fw-bold mb-2 text-center" style={{ color: '#ffffff' }}>Barcode Read</h5>
               <InputGroup size="lg">
-                <InputGroup.Text style={{ backgroundColor: '#e9ecef', borderColor: '#dee2e6' }}>
-                  <i className="bi bi-upc-scan fs-5 text-primary"></i>
+                <InputGroup.Text style={{ backgroundColor: '#2a2a2a', borderColor: '#333333', color: '#ffffff' }}>
+                  <i className="bi bi-upc-scan fs-5" style={{ color: '#ffffff' }}></i>
                 </InputGroup.Text>
                 <Form.Control
                   ref={barcodeInputRef}
@@ -1828,7 +1929,7 @@ const SalesPage = () => {
                     }
                   }}
                   autoFocus
-                  style={{ fontSize: '1rem', borderColor: '#dee2e6' }}
+                  style={{ fontSize: '1rem', borderColor: '#333333', backgroundColor: '#2a2a2a', color: '#ffffff' }}
                 />
               </InputGroup>
             </div>
@@ -1838,7 +1939,7 @@ const SalesPage = () => {
               {currentView === 'categories' ? (
                 <>
                   {/* Categories Header with Blue Background */}
-                  <div className="bg-primary text-white text-center py-2 mb-3 rounded" style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
+                  <div className="text-center py-2 mb-3 rounded" style={{ fontSize: '1.1rem', fontWeight: 'bold', backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
                     Categories
                   </div>
                   {/* Scrollable Categories Container */}
@@ -1854,17 +1955,15 @@ const SalesPage = () => {
                 {categories.map((category) => (
                   <Button 
                     key={category.id} 
-                          variant={category.name === 'Quick Sale' ? 'secondary' : 'outline-primary'} 
                     size="lg"
-                    className="fw-bold category-btn"
+                    className="fw-bold category-btn btn-3d"
                         onClick={() => handleCategoryClick(category)}
                           style={{ 
                             padding: '1rem', 
                             fontSize: '1.1rem', 
                             minHeight: '60px',
-                            backgroundColor: category.name === 'Quick Sale' ? '#6c757d' : '#f8f9fa',
-                            color: category.name === 'Quick Sale' ? '#ffffff' : '#495057',
-                            borderColor: category.name === 'Quick Sale' ? '#6c757d' : '#dee2e6'
+                            backgroundColor: category.name === 'Quick Sale' ? '#1a1a1a' : '#3a3a3a',
+                            color: '#ffffff'
                           }}
                   >
                     {category.name}
@@ -1878,11 +1977,10 @@ const SalesPage = () => {
                   <div className="d-flex align-items-center justify-content-between mb-2">
                     <h5 className="fw-bold mb-0">Quick Sale</h5>
                     <Button 
-                      variant="outline-secondary" 
                       size="lg" 
                       onClick={handleBackToCategories}
                       title="Back to Categories"
-                      style={{ fontSize: '0.9rem', padding: '0.4rem' }}
+                    style={{ fontSize: '0.9rem', padding: '0.4rem', backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
                     >
                       <i className="bi bi-x-circle me-2"></i>
                       Back
@@ -1901,17 +1999,15 @@ const SalesPage = () => {
                 {quickSalePrices.map((price, index) => (
                   <Button
                     key={`quick-sale-${price}`}
-                    variant="outline-primary"
                     onClick={(e) => handleQuickPriceSale(price, e)}
-                        className="fw-bold quick-sale-btn"
+                        className="fw-bold quick-sale-btn btn-3d"
                     size="lg"
                           style={{ 
                             padding: '1rem', 
                             fontSize: '1.2rem', 
                             minHeight: '65px',
-                            backgroundColor: '#f8f9fa',
-                            color: '#495057',
-                            borderColor: '#dee2e6'
+                            backgroundColor: '#3a3a3a',
+                            color: '#ffffff'
                           }}
                   >
                     €{price.toFixed(2)}
@@ -1923,13 +2019,13 @@ const SalesPage = () => {
               ) : (
                 <>
                   <div className="d-flex align-items-center justify-content-between mb-1">
-                    <h6 className="fw-bold small mb-0">{selectedCategory?.name}</h6>
+                    <h6 className="fw-bold small mb-0" style={{ color: '#ffffff' }}>{selectedCategory?.name}</h6>
                     <Button 
-                      variant="outline-secondary" 
                       size="sm" 
                       className="py-1 px-2"
                       onClick={handleBackToCategories}
                       title="Back to Categories"
+                    style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
                     >
                       <i className="bi bi-x-circle me-1"></i>
                       Back
@@ -1954,21 +2050,19 @@ const SalesPage = () => {
                       {categoryItems.map((item) => (
                         <Button
                           key={item.id}
-                          variant="outline-primary"
                           onClick={() => handleCategoryItemClick(item)}
-                          className="py-2 fw-bold category-item-btn"
+                          className="py-2 fw-bold category-item-btn btn-3d"
                           size="lg"
                             style={{ 
                               minHeight: '70px', 
                               fontSize: '1.1rem',
-                              backgroundColor: '#f8f9fa',
-                              color: '#495057',
-                              borderColor: '#dee2e6'
+                              backgroundColor: '#3a3a3a',
+                              color: '#ffffff'
                             }}
                         >
                           <div className="text-start">
                             <div className="fw-bold">{item.name}</div>
-                            <div className="small text-muted">€{parseFloat(item.price).toFixed(2)}</div>
+                            <div className="small" style={{ color: '#aaaaaa' }}>€{parseFloat(item.price).toFixed(2)}</div>
                           </div>
                         </Button>
                       ))}
@@ -1984,9 +2078,9 @@ const SalesPage = () => {
       {/* Modals */}
       {/* Add Item Dialog */}
       <Modal show={addItemDialogOpen} onHide={() => setAddItemDialogOpen(false)} centered>
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className="bi bi-plus-circle me-2"></i>
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className="bi bi-plus-circle me-2" style={{ color: '#ffffff' }}></i>
             Add Item to Cart
           </Modal.Title>
         </Modal.Header>
@@ -2066,10 +2160,10 @@ const SalesPage = () => {
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setAddItemDialogOpen(false)}>
+            <Button onClick={() => setAddItemDialogOpen(false)} style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
               Cancel
             </Button>
-            <Button variant="primary" type="submit" disabled={loading}>
+            <Button style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }} type="submit" disabled={loading}>
               {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-plus-circle me-2"></i>}
               Add to Cart
             </Button>
@@ -2091,22 +2185,22 @@ const SalesPage = () => {
 
       {/* Unified Payment Dialog */}
       <Modal show={checkoutDialogOpen} onHide={handleCloseCheckoutDialog} centered size="xl" style={{ maxWidth: '90vw', width: '1200px', transform: 'translateX(8%)' }}>
-        <Modal.Body className="p-0">
+        <Modal.Body className="p-0" style={{ backgroundColor: '#1a1a1a' }}>
           <div className="row g-0">
             {/* Top Section - Transaction Summary */}
             <div className="col-12">
-              <div className="row g-0 bg-light border-bottom p-4">
+              <div className="row g-0 border-bottom p-4" style={{ backgroundColor: '#2a2a2a' }}>
                 <div className="col-4 text-center">
-                  <h5 className="mb-2 text-muted">Balance Due</h5>
-                  <h1 className="fw-bold text-primary">€{calculateTotal().toFixed(2)}</h1>
+                  <h5 className="mb-2" style={{ color: '#aaaaaa' }}>Balance Due</h5>
+                  <h1 className="fw-bold" style={{ color: '#ffffff' }}>€{calculateTotal().toFixed(2)}</h1>
           </div>
                 <div className="col-4 text-center">
-                  <h5 className="mb-2 text-muted">Paid</h5>
-                  <h3 className="fw-bold text-success">€{parseFloat(cashAmount || 0).toFixed(2)}</h3>
+                  <h5 className="mb-2" style={{ color: '#aaaaaa' }}>Paid</h5>
+                  <h3 className="fw-bold" style={{ color: '#ffffff' }}>€{parseFloat(cashAmount || 0).toFixed(2)}</h3>
                 </div>
                 <div className="col-4 text-center">
-                  <h5 className="mb-2 text-muted">Change Due</h5>
-                  <h1 className={`fw-bold ${calculateChange() >= 0 ? 'text-success' : 'text-danger'}`}>
+                  <h5 className="mb-2" style={{ color: '#aaaaaa' }}>Change Due</h5>
+                  <h1 className="fw-bold" style={{ color: '#ffffff' }}>
                     €{calculateChange().toFixed(2)}
                   </h1>
                 </div>
@@ -2122,8 +2216,7 @@ const SalesPage = () => {
                     {[5, 10, 20].map(amount => (
                       <Button
                         key={amount}
-                        variant="outline-secondary"
-                        className="p-4 d-flex flex-column align-items-center"
+                        className="p-4 d-flex flex-column align-items-center btn-3d"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -2132,9 +2225,8 @@ const SalesPage = () => {
                         disabled={paymentInProgressRef.current || loading}
                         style={{ 
                           height: '100px',
-                          background: '#f8f9fa',
-                          color: '#212529',
-                          border: '2px solid #dee2e6',
+                          background: '#3a3a3a',
+                          color: '#ffffff',
                           fontSize: '1.2rem'
                         }}
                       >
@@ -2151,10 +2243,9 @@ const SalesPage = () => {
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                       <div className="col-4" key={num}>
                         <Button
-                          variant="outline-secondary"
-                          className="w-100 py-4"
+                          className="w-100 py-4 btn-3d"
                           onClick={() => setCashAmount(prev => prev + num.toString())}
-                          style={{ fontSize: '1.5rem', fontWeight: 'bold' }}
+                          style={{ fontSize: '1.5rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                         >
                           {num}
                         </Button>
@@ -2162,33 +2253,30 @@ const SalesPage = () => {
                     ))}
                     <div className="col-4">
                       <Button
-                        variant="outline-secondary"
-                        className="w-100 py-4"
+                        className="w-100 py-4 btn-3d"
                         onClick={() => setCashAmount(prev => prev + '0')}
-                        style={{ fontSize: '1.5rem', fontWeight: 'bold' }}
+                        style={{ fontSize: '1.5rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                       >
                         0
                       </Button>
                     </div>
                     <div className="col-4">
                       <Button
-                        variant="outline-secondary"
-                        className="w-100 py-4"
+                        className="w-100 py-4 btn-3d"
                         onClick={() => setCashAmount(prev => prev + '.')}
-                        style={{ fontSize: '1.5rem', fontWeight: 'bold' }}
+                        style={{ fontSize: '1.5rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                       >
                         .
                       </Button>
                     </div>
                     <div className="col-4">
                       <Button
-                        variant="outline-danger"
-                        className="w-100 py-4"
+                        className="w-100 py-4 btn-3d"
                         onClick={() => {
                           setCashAmount('');
                           setSelectedNotes({});
                         }}
-                        style={{ fontSize: '1.5rem', fontWeight: 'bold' }}
+                        style={{ fontSize: '1.5rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                       >
                         C
                       </Button>
@@ -2202,8 +2290,7 @@ const SalesPage = () => {
                     {[50, 100, 200].map(amount => (
                       <Button
                         key={amount}
-                        variant="outline-secondary"
-                        className="p-4 d-flex flex-column align-items-center"
+                        className="p-4 d-flex flex-column align-items-center btn-3d"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -2212,9 +2299,8 @@ const SalesPage = () => {
                         disabled={paymentInProgressRef.current || loading}
                         style={{ 
                           height: '100px',
-                          background: '#f8f9fa',
-                          color: '#212529',
-                          border: '2px solid #dee2e6',
+                          background: '#3a3a3a',
+                          color: '#ffffff',
                           fontSize: '1.2rem'
                         }}
                       >
@@ -2232,52 +2318,48 @@ const SalesPage = () => {
               <div className="row g-0">
                 <div className="col-3">
                   <Button
-                    variant="danger"
-                    className="w-100 py-3 rounded-0"
+                    className="w-100 py-3 rounded-0 btn-3d"
                     onClick={handleCloseCheckoutDialog}
-                    style={{ fontSize: '1.2rem', fontWeight: 'bold' }}
+                    style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     CANCEL
                   </Button>
                 </div>
                 <div className="col-3">
             <Button
-              variant="success"
-                    className="w-100 py-3 rounded-0"
+                    className="w-100 py-3 rounded-0 btn-3d"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       handleConfirmCheckout('CASH');
                     }}
               disabled={loading || paymentInProgressRef.current}
-                    style={{ fontSize: '1.2rem', fontWeight: 'bold' }}
+                    style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
             >
                     CASH €{calculateTotal().toFixed(2)}
             </Button>
                 </div>
                 <div className="col-3">
             <Button
-                    variant="warning"
-                    className="w-100 py-3 rounded-0"
+                    className="w-100 py-3 rounded-0 btn-3d"
                     onClick={() => {
                       handleConfirmCheckout('CARD');
                       setCheckoutDialogOpen(false);
                     }}
               disabled={loading}
-                    style={{ fontSize: '1.2rem', fontWeight: 'bold' }}
+                    style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
             >
                     CARD €{calculateTotal().toFixed(2)}
             </Button>
                 </div>
                 <div className="col-3">
                   <Button
-                    variant="danger"
-                    className="w-100 py-3 rounded-0"
+                    className="w-100 py-3 rounded-0 btn-3d"
                     onClick={() => {
                       setCashAmount('');
                       setSelectedNotes({});
                     }}
-                    style={{ fontSize: '1.2rem', fontWeight: 'bold' }}
+                    style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     CLEAR PAYMENTS
                   </Button>
@@ -2290,23 +2372,23 @@ const SalesPage = () => {
 
       {/* Item Not Found Dialog */}
       <Modal show={itemNotFoundDialogOpen} onHide={() => setItemNotFoundDialogOpen(false)} centered>
-        <Modal.Body className="text-center p-4">
+        <Modal.Body className="text-center p-4" style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           <div className="mb-3">
-            <i className="bi bi-barcode text-primary" style={{ fontSize: '2.5rem' }}></i>
+            <i className="bi bi-barcode" style={{ fontSize: '2.5rem', color: '#ffffff' }}></i>
           </div>
-          <h5 className="mb-3 text-primary">Register this item?</h5>
-          <p className="text-muted mb-4">Barcode: {scannedBarcode}</p>
+          <h5 className="mb-3" style={{ color: '#ffffff' }}>Register this item?</h5>
+          <p className="mb-4" style={{ color: '#aaaaaa' }}>Barcode: {scannedBarcode}</p>
           <div className="d-flex gap-3 justify-content-center">
             <Button 
-              variant="outline-secondary" 
               size="lg" 
               onClick={() => setItemNotFoundDialogOpen(false)}
               className="px-4"
+              style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             >
               No
             </Button>
             <Button
-              variant="primary"
+              style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
               size="lg"
               onClick={() => {
                 setItemNotFoundDialogOpen(false);
@@ -2350,16 +2432,16 @@ const SalesPage = () => {
 
       {/* Register New Item Dialog */}
       <Modal show={registerItemDialogOpen} onHide={() => setRegisterItemDialogOpen(false)} centered size="lg">
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className="bi bi-plus-circle me-2"></i>
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className="bi bi-plus-circle me-2" style={{ color: '#ffffff' }}></i>
             Register New Item
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label>Item Name *</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>Item Name *</Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Enter item name"
@@ -2370,11 +2452,12 @@ const SalesPage = () => {
                   saveFormToCache(newItem.barcode, updatedItem);
                 }}
                 required
+                style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Barcode *</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>Barcode *</Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Enter barcode"
@@ -2385,11 +2468,12 @@ const SalesPage = () => {
                   saveFormToCache(e.target.value, updatedItem);
                 }}
                 required
+                style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Price (€) *</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>Price (€) *</Form.Label>
               <Form.Control
                 type="number"
                 step="0.01"
@@ -2401,11 +2485,12 @@ const SalesPage = () => {
                   saveFormToCache(newItem.barcode, updatedItem);
                 }}
                 required
+                style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Stock Quantity *</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>Stock Quantity *</Form.Label>
               <Form.Control
                 type="number"
                 placeholder="Enter stock quantity"
@@ -2416,11 +2501,12 @@ const SalesPage = () => {
                   saveFormToCache(newItem.barcode, updatedItem);
                 }}
                 required
+                style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>VAT Rate (%) *</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>VAT Rate (%) *</Form.Label>
               <InputGroup>
                 <Form.Control
                   type="number"
@@ -2433,13 +2519,14 @@ const SalesPage = () => {
                     saveFormToCache(newItem.barcode, updatedItem);
                   }}
                   required
+                  style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                 />
-                <InputGroup.Text>%</InputGroup.Text>
+                <InputGroup.Text style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}>%</InputGroup.Text>
               </InputGroup>
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Category</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>Category</Form.Label>
               <Form.Select
                 value={newItem.categoryId}
                 onChange={(e) => {
@@ -2447,6 +2534,7 @@ const SalesPage = () => {
                   setNewItem(updatedItem);
                   saveFormToCache(newItem.barcode, updatedItem);
                 }}
+                style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
               >
                 <option value="">Select a category</option>
                 {categories.map((category) => (
@@ -2458,12 +2546,12 @@ const SalesPage = () => {
             </Form.Group>
           </Form>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setRegisterItemDialogOpen(false)}>
+        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+          <Button onClick={() => setRegisterItemDialogOpen(false)} style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
             Cancel
           </Button>
             <Button 
-              variant="primary" 
+              style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }} 
               onClick={async () => {
               try {
                 const itemData = {
@@ -2510,19 +2598,18 @@ const SalesPage = () => {
 
       {/* Cash Payment Confirmation Dialog */}
       <Modal show={cashConfirmDialogOpen} onHide={() => setCashConfirmDialogOpen(false)} centered>
-        <Modal.Body className="text-center p-4">
+        <Modal.Body className="text-center p-4" style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           <div className="mb-4">
-            <i className="bi bi-cash-coin text-success" style={{ fontSize: '3rem' }}></i>
+            <i className="bi bi-cash-coin" style={{ fontSize: '3rem', color: '#ffffff' }}></i>
           </div>
-          <h4 className="mb-3 text-success">Cash Payment</h4>
-          <p className="mb-3">Payment received successfully!</p>
-          <div className="alert alert-info mb-4">
-            <h5 className="mb-2">Change Due</h5>
-            <h3 className="text-primary mb-0">€{changeDue.toFixed(2)}</h3>
+          <h4 className="mb-3" style={{ color: '#ffffff' }}>Cash Payment</h4>
+          <p className="mb-3" style={{ color: '#ffffff' }}>Payment received successfully!</p>
+          <div className="mb-4" style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', padding: '1rem', borderRadius: '8px' }}>
+            <h5 className="mb-2" style={{ color: '#ffffff' }}>Change Due</h5>
+            <h3 className="mb-0" style={{ color: '#ffffff' }}>€{changeDue.toFixed(2)}</h3>
           </div>
-          <p className="text-muted mb-4">This dialog will close automatically in 5 seconds...</p>
+          <p className="mb-4" style={{ color: '#aaaaaa' }}>This dialog will close automatically in 5 seconds...</p>
           <Button 
-            variant="success" 
             size="lg" 
             onClick={() => {
               // Clear the auto-close timeout if user manually clicks OK
@@ -2533,6 +2620,7 @@ const SalesPage = () => {
               setCashConfirmDialogOpen(false);
               processCashPayment();
             }}
+            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             className="px-5"
             disabled={paymentInProgressRef.current || loading}
           >
@@ -2543,30 +2631,30 @@ const SalesPage = () => {
 
       {/* Delete Confirmation Modal */}
       <Modal show={deleteConfirmOpen} onHide={handleCancelDelete} centered>
-        <Modal.Body className="text-center p-4">
+        <Modal.Body className="text-center p-4" style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           <div className="mb-3">
-            <i className="bi bi-exclamation-triangle text-warning" style={{ fontSize: '2.5rem' }}></i>
+            <i className="bi bi-exclamation-triangle" style={{ fontSize: '2.5rem', color: '#ffffff' }}></i>
           </div>
-          <h5 className="mb-3">Remove Item from Cart?</h5>
+          <h5 className="mb-3" style={{ color: '#ffffff' }}>Remove Item from Cart?</h5>
           {itemToDelete && (
-            <p className="text-muted mb-4">
-                    <strong>{itemToDelete.itemName}</strong>
+            <p className="mb-4" style={{ color: '#aaaaaa' }}>
+                    <strong style={{ color: '#ffffff' }}>{itemToDelete.itemName}</strong>
               <br />
               <small>€{itemToDelete.totalPrice.toFixed(2)}</small>
             </p>
           )}
           <div className="d-flex gap-3 justify-content-center">
             <Button 
-              variant="outline-secondary" 
               onClick={handleCancelDelete}
               className="px-4"
+              style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             >
             Cancel
           </Button>
             <Button 
-              variant="danger" 
               onClick={handleConfirmDelete}
               className="px-4"
+              style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             >
               Remove
           </Button>
@@ -2579,41 +2667,41 @@ const SalesPage = () => {
         setDiscountDialogOpen(false);
         setCustomDiscountAmount('');
       }} centered>
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className="bi bi-percent me-2"></i>
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className="bi bi-percent me-2" style={{ color: '#ffffff' }}></i>
             Apply Discount
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body className="p-4">
+        <Modal.Body className="p-4" style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           <div className="row g-3">
             {/* Percentage Discounts */}
             <div className="col-12">
-              <h6 className="text-muted mb-3">Percentage Discounts</h6>
+              <h6 className="mb-3" style={{ color: '#aaaaaa' }}>Percentage Discounts</h6>
               <div className="row g-2">
                 <div className="col-4">
                   <Button 
-                    variant="outline-primary" 
                     className="w-100 py-3"
                     onClick={() => handleDiscountSelect({ type: 'percentage', value: 5 })}
+                    style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
                   >
                     5%
                   </Button>
                 </div>
                 <div className="col-4">
                   <Button 
-                    variant="outline-primary" 
                     className="w-100 py-3"
                     onClick={() => handleDiscountSelect({ type: 'percentage', value: 10 })}
+                    style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
                   >
                     10%
                   </Button>
                 </div>
                 <div className="col-4">
                   <Button 
-                    variant="outline-primary" 
                     className="w-100 py-3"
                     onClick={() => handleDiscountSelect({ type: 'percentage', value: 20 })}
+                    style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
                   >
                     20%
                   </Button>
@@ -2623,7 +2711,7 @@ const SalesPage = () => {
 
             {/* Custom Amount Discount */}
             <div className="col-12">
-              <h6 className="text-muted mb-3">Custom Amount Discount</h6>
+              <h6 className="mb-3" style={{ color: '#aaaaaa' }}>Custom Amount Discount</h6>
               <div className="row g-2">
                 <div className="col-8">
                   <Form.Control
@@ -2632,21 +2720,22 @@ const SalesPage = () => {
                     value={customDiscountAmount}
                     onChange={(e) => setCustomDiscountAmount(e.target.value)}
                     className="form-control-lg"
+                    style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                   />
                 </div>
                 <div className="col-4">
                   <Button 
-                    variant="success" 
                     className="w-100 py-3"
                     onClick={handleCustomDiscountApply}
                     disabled={!customDiscountAmount || parseFloat(customDiscountAmount) <= 0 || parseFloat(customDiscountAmount) > calculateSubtotal()}
+                    style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
                   >
                     Apply
                   </Button>
                 </div>
               </div>
               <div className="mt-2">
-                <small className="text-muted">
+                <small style={{ color: '#aaaaaa' }}>
                   Maximum: €{calculateSubtotal().toFixed(2)}
                 </small>
               </div>
@@ -2654,20 +2743,20 @@ const SalesPage = () => {
 
             {/* Current Cart Summary */}
             <div className="col-12">
-              <div className="bg-light p-3 rounded">
-                <h6 className="mb-2">Current Cart Summary</h6>
-                <div className="d-flex justify-content-between">
+              <div className="p-3 rounded" style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+                <h6 className="mb-2" style={{ color: '#ffffff' }}>Current Cart Summary</h6>
+                <div className="d-flex justify-content-between" style={{ color: '#ffffff' }}>
                   <span>Subtotal:</span>
                   <span>€{calculateSubtotal().toFixed(2)}</span>
                 </div>
                 {appliedDiscount && (
                   <>
-                    <div className="d-flex justify-content-between text-success">
+                    <div className="d-flex justify-content-between" style={{ color: '#ffffff' }}>
                       <span>Discount:</span>
                       <span>-€{calculateDiscountAmount().toFixed(2)}</span>
                     </div>
-                    <hr className="my-2" />
-                    <div className="d-flex justify-content-between fw-bold">
+                    <hr className="my-2" style={{ borderColor: '#4a4a4a' }} />
+                    <div className="d-flex justify-content-between fw-bold" style={{ color: '#ffffff' }}>
                       <span>Total:</span>
                       <span>€{calculateTotal().toFixed(2)}</span>
                     </div>
@@ -2677,20 +2766,20 @@ const SalesPage = () => {
             </div>
           </div>
         </Modal.Body>
-        <Modal.Footer>
+        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
           {appliedDiscount && (
             <Button 
-              variant="danger" 
               onClick={handleRemoveDiscount}
               className="me-auto"
+              style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             >
               <i className="bi bi-x-circle me-1"></i>
               Remove Discount
             </Button>
           )}
           <Button 
-            variant="secondary" 
             onClick={() => setDiscountDialogOpen(false)}
+            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
           >
             Cancel
           </Button>
@@ -2699,25 +2788,25 @@ const SalesPage = () => {
 
       {/* Out of Stock Dialog */}
       <Modal show={outOfStockDialogOpen} onHide={() => setOutOfStockDialogOpen(false)} centered>
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className="bi bi-exclamation-triangle me-2"></i>
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className="bi bi-exclamation-triangle me-2" style={{ color: '#ffffff' }}></i>
             Out of Stock
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body className="text-center p-4">
+        <Modal.Body className="text-center p-4" style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           <div className="mb-4">
-            <i className="bi bi-x-circle text-danger" style={{ fontSize: '4rem' }}></i>
+            <i className="bi bi-x-circle" style={{ fontSize: '4rem', color: '#ffffff' }}></i>
           </div>
-          <h5 className="mb-3">Item Not Available</h5>
-          <p className="text-muted mb-4">
-            <strong>{outOfStockItem?.name}</strong> is currently out of stock.
+          <h5 className="mb-3" style={{ color: '#ffffff' }}>Item Not Available</h5>
+          <p className="mb-4" style={{ color: '#aaaaaa' }}>
+            <strong style={{ color: '#ffffff' }}>{outOfStockItem?.name}</strong> is currently out of stock.
             <br />
             Please select a different item or contact the manager to restock.
           </p>
           <div className="d-flex justify-content-center gap-2">
             <Button 
-              variant="primary" 
+              style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }} 
               onClick={() => setOutOfStockDialogOpen(false)}
             >
               <i className="bi bi-check-circle me-1"></i>
@@ -2751,23 +2840,21 @@ const SalesPage = () => {
         centered
         size="sm"
       >
-        <Modal.Body className="text-center py-4">
-          <h6 className="mb-4">Print label?</h6>
+        <Modal.Body className="text-center py-4" style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          <h6 className="mb-4" style={{ color: '#ffffff' }}>Print label?</h6>
           <div className="d-flex gap-3 justify-content-center">
             <Button 
-              variant="outline-secondary" 
               onClick={() => {
                 setPrintLabelDialogOpen(false);
                 setItemToPrint(null);
               }}
-              style={{ minWidth: '80px' }}
+              style={{ minWidth: '80px', backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             >
               No
             </Button>
             <Button 
-              variant="primary"
               onClick={handlePrintItemLabel}
-              style={{ minWidth: '80px' }}
+              style={{ minWidth: '80px', backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             >
               Yes
             </Button>

@@ -200,22 +200,17 @@ const UserPage = () => {
 
   if (loading && !submitting) {
     return (
-      <Container className="text-center py-5">
-        <Spinner animation="border" role="status">
+      <Container className="text-center py-5" style={{ backgroundColor: '#1a1a1a', minHeight: '100vh' }}>
+        <Spinner animation="border" role="status" style={{ color: '#ffffff' }}>
           <span className="visually-hidden">Loading...</span>
         </Spinner>
-        <p className="mt-3">Loading users...</p>
+        <p className="mt-3" style={{ color: '#ffffff' }}>Loading users...</p>
       </Container>
     );
   }
 
   return (
-    <Container className="py-4">
-      <h1 className="mb-4 fw-bold">
-        <i className="bi bi-people me-2"></i>
-        User Management
-      </h1>
-
+    <Container className="py-4" style={{ backgroundColor: '#1a1a1a', minHeight: '100vh' }}>
       {error && (
         <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-3">
           {error}
@@ -228,29 +223,32 @@ const UserPage = () => {
         </Alert>
       )}
 
-      <Card className="shadow-sm mb-4">
-        <Card.Header className="bg-primary text-white d-flex justify-content-between align-items-center">
-          <h5 className="mb-0 fw-bold">Users List</h5>
+      <Card className="shadow-sm mb-4" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+        <Card.Header style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }} className="d-flex justify-content-between align-items-center">
+          <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
+            <i className="bi bi-people me-2" style={{ color: '#ffffff' }}></i>
+            User Management
+          </h1>
           <div>
-            <Button variant="light" onClick={handleInitializeUsers} className="me-2" disabled={loading || submitting}>
+            <Button onClick={handleInitializeUsers} className="me-2" disabled={loading || submitting} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
               <i className="bi bi-arrow-clockwise me-2"></i>
               Initialize Default Users
             </Button>
-            <Button variant="light" onClick={handleAddUser} disabled={loading || submitting}>
+            <Button onClick={handleAddUser} disabled={loading || submitting} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
               <i className="bi bi-person-plus me-2"></i>
               Add New User
             </Button>
           </div>
         </Card.Header>
-        <Card.Body>
+        <Card.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           {users.length === 0 ? (
-            <div className="text-center py-5 text-muted">
-              <i className="bi bi-people-fill display-4 mb-3"></i>
+            <div className="text-center py-5" style={{ color: '#aaaaaa' }}>
+              <i className="bi bi-people-fill display-4 mb-3" style={{ color: '#aaaaaa' }}></i>
               <p>No users found. Click "Add New User" or "Initialize Default Users" to get started.</p>
             </div>
           ) : (
-            <Table striped bordered hover responsive className="mb-0">
-              <thead className="table-light">
+            <Table striped bordered hover responsive className="mb-0" style={{ color: '#ffffff' }}>
+              <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                 <tr>
                   <th>#</th>
                   <th>Username</th>
@@ -262,9 +260,9 @@ const UserPage = () => {
                   <th className="text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody style={{ backgroundColor: '#1a1a1a' }}>
                 {users.map((user, index) => (
-                  <tr key={user.id}>
+                  <tr key={user.id} style={{ backgroundColor: index % 2 === 0 ? '#1a1a1a' : '#222222', color: '#ffffff' }}>
                     <td>{index + 1}</td>
                     <td>
                       <strong>{user.username}</strong>
@@ -285,7 +283,6 @@ const UserPage = () => {
                     <td className="text-center">
                       <div className="d-flex justify-content-center gap-2">
                         <Button
-                          variant="outline-primary"
                           onClick={() => handleEditUser(user)}
                           disabled={submitting}
                           title="Edit User"
@@ -295,13 +292,15 @@ const UserPage = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '0'
+                            padding: '0',
+                            backgroundColor: '#2a2a2a',
+                            border: '1px solid #333333',
+                            color: '#ffffff'
                           }}
                         >
                           <i className="bi bi-pencil-square" style={{ fontSize: '18px' }}></i>
                         </Button>
                         <Button
-                          variant={user.isActive ? 'outline-warning' : 'outline-success'}
                           onClick={() => handleToggleStatus(user.id)}
                           disabled={submitting}
                           title={user.isActive ? 'Deactivate User' : 'Activate User'}
@@ -311,13 +310,15 @@ const UserPage = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '0'
+                            padding: '0',
+                            backgroundColor: '#2a2a2a',
+                            border: '1px solid #333333',
+                            color: '#ffffff'
                           }}
                         >
                           <i className={`bi ${user.isActive ? 'bi-pause' : 'bi-play'}`} style={{ fontSize: '18px' }}></i>
                         </Button>
                         <Button
-                          variant="outline-danger"
                           onClick={() => handleDeleteUser(user.id)}
                           disabled={submitting}
                           title="Delete User"
@@ -327,7 +328,10 @@ const UserPage = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '0'
+                            padding: '0',
+                            backgroundColor: '#2a2a2a',
+                            border: '1px solid #333333',
+                            color: '#ffffff'
                           }}
                         >
                           <i className="bi bi-trash" style={{ fontSize: '18px' }}></i>
@@ -344,18 +348,18 @@ const UserPage = () => {
 
       {/* Add/Edit User Modal */}
       <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className={`bi ${editingUser ? 'bi-pencil-square' : 'bi-person-plus'} me-2`}></i>
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className={`bi ${editingUser ? 'bi-pencil-square' : 'bi-person-plus'} me-2`} style={{ color: '#ffffff' }}></i>
             {editingUser ? 'Edit User' : 'Add New User'}
           </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSubmit(onSubmit)}>
-          <Modal.Body>
+          <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
             <div className="row">
               <div className="col-md-6">
                 <Form.Group className="mb-3" controlId="username">
-                  <Form.Label>Username</Form.Label>
+                  <Form.Label style={{ color: '#ffffff' }}>Username</Form.Label>
                   <Controller
                     name="username"
                     control={control}
@@ -370,6 +374,7 @@ const UserPage = () => {
                         placeholder="Enter username"
                         {...field}
                         isInvalid={!!errors.username}
+                        style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                       />
                     )}
                   />
@@ -380,7 +385,7 @@ const UserPage = () => {
               </div>
               <div className="col-md-6">
                 <Form.Group className="mb-3" controlId="email">
-                  <Form.Label>Email</Form.Label>
+                  <Form.Label style={{ color: '#ffffff' }}>Email</Form.Label>
                   <Controller
                     name="email"
                     control={control}
@@ -397,6 +402,7 @@ const UserPage = () => {
                         placeholder="Enter email"
                         {...field}
                         isInvalid={!!errors.email}
+                        style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                       />
                     )}
                   />
@@ -410,7 +416,7 @@ const UserPage = () => {
             <div className="row">
               <div className="col-md-6">
                 <Form.Group className="mb-3" controlId="fullName">
-                  <Form.Label>Full Name</Form.Label>
+                  <Form.Label style={{ color: '#ffffff' }}>Full Name</Form.Label>
                   <Controller
                     name="fullName"
                     control={control}
@@ -425,6 +431,7 @@ const UserPage = () => {
                         placeholder="Enter full name"
                         {...field}
                         isInvalid={!!errors.fullName}
+                        style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                       />
                     )}
                   />
@@ -435,13 +442,13 @@ const UserPage = () => {
               </div>
               <div className="col-md-6">
                 <Form.Group className="mb-3" controlId="role">
-                  <Form.Label>Role</Form.Label>
+                  <Form.Label style={{ color: '#ffffff' }}>Role</Form.Label>
                   <Controller
                     name="role"
                     control={control}
                     rules={{ required: 'Role is required' }}
                     render={({ field }) => (
-                      <Form.Select {...field} isInvalid={!!errors.role}>
+                      <Form.Select {...field} isInvalid={!!errors.role} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
                         <option value="">Select a role</option>
                         {availableRoles.map((role) => (
                           <option key={role.name} value={role.name}>
@@ -459,8 +466,8 @@ const UserPage = () => {
             </div>
 
             <Form.Group className="mb-3" controlId="password">
-              <Form.Label>
-                Password {editingUser && <small className="text-muted">(leave blank to keep current password)</small>}
+              <Form.Label style={{ color: '#ffffff' }}>
+                Password {editingUser && <small style={{ color: '#aaaaaa' }}>(leave blank to keep current password)</small>}
               </Form.Label>
               <Controller
                 name="password"
@@ -475,6 +482,7 @@ const UserPage = () => {
                     placeholder={editingUser ? "Enter new password (optional)" : "Enter password"}
                     {...field}
                     isInvalid={!!errors.password}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                   />
                 )}
               />
@@ -493,11 +501,11 @@ const UserPage = () => {
               </Form.Group>
             )}
           </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowModal(false)} disabled={submitting}>
+          <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+            <Button onClick={() => setShowModal(false)} disabled={submitting} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
               Cancel
             </Button>
-            <Button variant="primary" type="submit" disabled={submitting}>
+            <Button type="submit" disabled={submitting} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
               {submitting ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-save me-2"></i>}
               {editingUser ? 'Update User' : 'Add User'}
             </Button>

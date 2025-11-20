@@ -8,7 +8,7 @@ import FullscreenIndicator from './FullscreenIndicator';
 const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [companyName, setCompanyName] = useState('PickNPay');
+  const [companyName, setCompanyName] = useState('ADAMS GREEN');
   const { user, logout, isAuthenticated } = useAuth();
 
   const navigationItems = [
@@ -46,7 +46,7 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="min-vh-100 bg-light" style={{ paddingTop: 0 }}>
+    <div className="min-vh-100" style={{ paddingTop: 0, backgroundColor: '#000000' }}>
       <style>{`
         .navbar-nav {
           flex-wrap: nowrap;
@@ -69,37 +69,128 @@ const Layout = ({ children }) => {
         .layout-content-container {
           margin-top: 80px;
           min-height: calc(100vh - 80px);
+          background-color: #000000;
         }
         @media (max-width: 991px) {
           .layout-content-container {
             margin-top: 80px;
           }
         }
+        
+        /* 3D Button Effect for Navbar - Similar to Dashboard stats-card */
+        .btn-3d-nav {
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+          transition: all 0.3s ease;
+          border: 1px solid #333333 !important;
+        }
+        
+        .btn-3d-nav::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #4a4a4a 0%, #3a3a3a 100%);
+          z-index: 1;
+        }
+        
+        .btn-3d-nav:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 16px rgba(255, 255, 255, 0.15), 0 4px 8px rgba(0, 0, 0, 0.3);
+          border-color: #4a4a4a !important;
+        }
+        
+        .btn-3d-nav:hover::before {
+          background: linear-gradient(90deg, #5a5a5a 0%, #4a4a4a 100%);
+        }
+        
+        .btn-3d-nav:active {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .nav-link.btn-3d-nav {
+          border: 1px solid #333333 !important;
+        }
+        
+        /* 3D Icon Effect for Home Icon */
+        .icon-3d-nav {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.5rem;
+          border-radius: var(--radius-lg);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+          transition: all 0.3s ease;
+          border: 1px solid #333333;
+          background: #3a3a3a;
+          cursor: pointer;
+        }
+        
+        .icon-3d-nav::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #4a4a4a 0%, #3a3a3a 100%);
+          z-index: 1;
+          border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+        
+        .icon-3d-nav:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 16px rgba(255, 255, 255, 0.15), 0 4px 8px rgba(0, 0, 0, 0.3);
+          border-color: #4a4a4a;
+        }
+        
+        .icon-3d-nav:hover::before {
+          background: linear-gradient(90deg, #5a5a5a 0%, #4a4a4a 100%);
+        }
+        
+        .icon-3d-nav:active {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Override navbar background */
+        .navbar-custom {
+          background-color: #1a1a1a !important;
+          background: #1a1a1a !important;
+        }
       `}</style>
       {/* Navbar Container - Fixed at top */}
-      <Navbar bg="dark" variant="dark" expand="lg" fixed="top" className="shadow-modern-lg" style={{ 
-        background: 'linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%)',
+      <Navbar bg="dark" variant="dark" expand="lg" fixed="top" className="shadow-modern-lg navbar-custom" style={{ 
+        background: '#1a1a1a !important',
+        backgroundColor: '#1a1a1a !important',
         minHeight: '80px',
-        boxShadow: 'var(--shadow-xl)',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
         backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        borderBottom: '2px solid #2a2a2a',
         zIndex: 1030
       }}>
         <Container fluid>
-          <Navbar.Brand 
-            onClick={() => navigate('/')} 
-            className="fw-bold text-white" 
-            style={{ 
-              fontSize: '1.5rem',
-              textShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              letterSpacing: '0.025em',
-              cursor: 'pointer'
+          <button
+            onClick={() => navigate('/')}
+            className="btn btn-3d-nav fw-bold text-white d-flex align-items-center"
+            style={{
+              fontSize: '1.2rem',
+              padding: '0.75rem 1.25rem',
+              fontWeight: '500',
+              background: '#3a3a3a',
+              color: 'white',
+              border: 'none'
             }}
             title="Go to Dashboard"
           >
-            <i className="bi bi-shop me-3" style={{ fontSize: '1.75rem' }}></i>
-            <span className="text-white">{companyName}</span>
-              </Navbar.Brand>
+            <i className="bi bi-house me-2" style={{ fontSize: '1rem' }}></i>
+            {companyName}
+          </button>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
               <Navbar.Collapse id="basic-navbar-nav">
                 <Nav className="ms-auto">
@@ -111,7 +202,7 @@ const Layout = ({ children }) => {
                         e.preventDefault();
                         navigate(item.path);
                       }}
-                  className={`d-flex align-items-center hover-lift ${
+                  className={`d-flex align-items-center hover-lift btn-3d-nav ${
                         location.pathname === item.path ? 'active' : ''
                       }`}
                   style={{
@@ -120,9 +211,8 @@ const Layout = ({ children }) => {
                     margin: '0 0.25rem',
                     fontWeight: '500',
                     transition: 'all var(--transition-fast)',
-                    background: location.pathname === item.path ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    border: '1px solid transparent'
+                    background: location.pathname === item.path ? 'rgba(255, 255, 255, 0.15)' : '#3a3a3a',
+                    color: 'rgba(255, 255, 255, 0.9)'
                   }}
                 >
                   <i className={`${item.icon} me-2`} style={{ fontSize: '1.1rem' }}></i>
@@ -136,15 +226,13 @@ const Layout = ({ children }) => {
                   <Dropdown.Toggle 
                     variant="outline-light" 
                     id="user-dropdown" 
-                    className="d-flex align-items-center hover-lift"
+                    className="d-flex align-items-center hover-lift btn-3d-nav"
                     style={{
                       borderRadius: 'var(--radius-lg)',
                       padding: '0.75rem 1.25rem',
                       fontWeight: '500',
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      backdropFilter: 'blur(10px)'
+                      background: '#3a3a3a',
+                      color: 'white'
                     }}
                   >
                     <i className="bi bi-person-circle me-2" style={{ fontSize: '1.25rem' }}></i>
@@ -171,7 +259,7 @@ const Layout = ({ children }) => {
 
               {/* Minimize App Button */}
               <button
-                className="btn btn-outline-light d-flex align-items-center hover-lift ms-3"
+                className="btn btn-outline-light d-flex align-items-center hover-lift btn-3d-nav ms-3"
                 onClick={() => {
                   // Check if running in Electron
                   if (window && window.require) {
@@ -189,10 +277,8 @@ const Layout = ({ children }) => {
                   borderRadius: 'var(--radius-lg)',
                   padding: '0.75rem 1.25rem',
                   fontWeight: '500',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  backdropFilter: 'blur(10px)'
+                  background: '#3a3a3a',
+                  color: 'white'
                 }}
                 title="Minimize Application"
               >
@@ -201,7 +287,7 @@ const Layout = ({ children }) => {
 
               {/* Close App Button */}
               <button
-                className="btn btn-outline-light d-flex align-items-center hover-lift ms-3"
+                className="btn btn-outline-light d-flex align-items-center hover-lift btn-3d-nav ms-3"
                 onClick={() => {
                   console.log('Power button clicked - attempting to close app');
                   
@@ -232,10 +318,8 @@ const Layout = ({ children }) => {
                   borderRadius: 'var(--radius-lg)',
                   padding: '0.75rem 1.25rem',
                   fontWeight: '500',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  backdropFilter: 'blur(10px)'
+                  background: '#3a3a3a',
+                  color: 'white'
                 }}
                 title="Close Application"
               >
@@ -247,8 +331,8 @@ const Layout = ({ children }) => {
       </Navbar>
       
       {/* Content Container - Separate from navbar, starts below it */}
-      <div className="layout-content-container">
-        <Container fluid className="py-4" style={{ paddingTop: '2rem', paddingBottom: '2rem' }}>
+      <div className="layout-content-container" style={{ backgroundColor: '#000000' }}>
+        <Container fluid className="py-4" style={{ paddingTop: '2rem', paddingBottom: '2rem', backgroundColor: '#000000' }}>
           {children}
         </Container>
       </div>

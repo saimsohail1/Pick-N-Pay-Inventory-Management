@@ -131,74 +131,76 @@ const CategoryPage = () => {
 
   if (loading && categories.length === 0) {
     return (
-      <Container className="py-4">
+      <div style={{ backgroundColor: '#1a1a1a', minHeight: '100vh' }}>
         <div className="text-center py-5">
-          <Spinner animation="border" role="status">
+          <Spinner animation="border" role="status" style={{ color: '#ffffff' }}>
             <span className="visually-hidden">Loading...</span>
           </Spinner>
-          <p className="mt-3">Loading categories...</p>
+          <p className="mt-3" style={{ color: '#ffffff' }}>Loading categories...</p>
         </div>
-      </Container>
+      </div>
     );
   }
 
   return (
-    <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="mb-0 fw-bold">
-          <i className="bi bi-tags me-2"></i>
-          Categories
-        </h1>
-        <div className="d-flex align-items-center">
-          <span className="badge bg-primary me-2 fs-6">
-            {categories.length} Categories
-          </span>
-          <Button
-            variant="outline-primary"
-            onClick={handleInitializeCategories}
-            disabled={initializing}
-            className="me-2"
-          >
-            {initializing ? (
-              <Spinner animation="border" size="sm" className="me-2" />
-            ) : (
-              <i className="bi bi-download me-2"></i>
-            )}
-            Initialize Default
-          </Button>
-          <Button variant="primary" onClick={handleCreateCategory}>
-            <i className="bi bi-plus-circle me-2"></i>
-            Add Category
-          </Button>
-        </div>
-      </div>
-
+    <div style={{ backgroundColor: '#1a1a1a', minHeight: '100vh' }}>
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-3">
+        <Alert variant="danger" dismissible onClose={() => setError(null)} className="m-3" style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
           {error}
         </Alert>
       )}
 
       {success && (
-        <Alert variant="success" dismissible onClose={() => setSuccess(null)} className="mb-3">
+        <Alert variant="success" dismissible onClose={() => setSuccess(null)} className="m-3" style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
           {success}
         </Alert>
       )}
 
-      <Card className="shadow-sm">
-        <Card.Header className="bg-primary text-white">
-          <h5 className="mb-0 fw-bold">Category Management</h5>
+      <Card className="shadow-sm" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+        <Card.Header style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
+          <div className="d-flex justify-content-between align-items-center">
+            <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
+              <i className="bi bi-tags me-2" style={{ color: '#ffffff' }}></i>
+              Categories
+            </h1>
+            <div className="d-flex align-items-center gap-2">
+              <span className="badge fs-6" style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+                {categories.length} Categories
+              </span>
+              <Button
+                onClick={handleInitializeCategories}
+                disabled={initializing}
+                style={{ backgroundColor: '#3a3a3a', border: '1px solid #333333', color: '#ffffff' }}
+                className="fw-bold"
+              >
+                {initializing ? (
+                  <Spinner animation="border" size="sm" className="me-2" />
+                ) : (
+                  <i className="bi bi-download me-2"></i>
+                )}
+                Initialize Default
+              </Button>
+              <Button 
+                onClick={handleCreateCategory} 
+                style={{ backgroundColor: '#3a3a3a', border: '1px solid #333333', color: '#ffffff' }}
+                className="fw-bold"
+              >
+                <i className="bi bi-plus-circle me-2"></i>
+                Add Category
+              </Button>
+            </div>
+          </div>
         </Card.Header>
-        <Card.Body>
+        <Card.Body className="p-0" style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           {categories.length === 0 ? (
             <div className="text-center py-5">
-              <i className="bi bi-tags display-1 text-muted"></i>
-              <p className="text-muted mt-3">No categories found. Create your first category or initialize default categories.</p>
+              <i className="bi bi-tags display-1" style={{ color: '#aaaaaa' }}></i>
+              <p className="mt-3" style={{ color: '#aaaaaa' }}>No categories found. Create your first category or initialize default categories.</p>
             </div>
           ) : (
             <div className="table-responsive">
-              <Table striped hover className="mb-0">
-                <thead>
+              <Table striped hover className="mb-0" style={{ color: '#ffffff' }}>
+                <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                   <tr>
                     <th style={{ width: '5%' }}>#</th>
                     <th style={{ width: '25%' }}>Name</th>
@@ -208,9 +210,9 @@ const CategoryPage = () => {
                     <th style={{ width: '5%' }}>Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody style={{ backgroundColor: '#1a1a1a' }}>
                   {categories.map((category, index) => (
-                    <tr key={category.id}>
+                    <tr key={category.id} style={{ backgroundColor: index % 2 === 0 ? '#1a1a1a' : '#222222', color: '#ffffff' }}>
                       <td>{index + 1}</td>
                       <td>
                         <strong>{category.name}</strong>
@@ -231,7 +233,6 @@ const CategoryPage = () => {
                       <td>
                         <div className="d-flex gap-2">
                           <Button
-                            variant="outline-primary"
                             onClick={() => handleEditCategory(category)}
                             title="Edit"
                             style={{
@@ -240,13 +241,15 @@ const CategoryPage = () => {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              padding: '0'
+                              padding: '0',
+                              backgroundColor: '#2a2a2a',
+                              border: '1px solid #333333',
+                              color: '#ffffff'
                             }}
                           >
                             <i className="bi bi-pencil" style={{ fontSize: '18px' }}></i>
                           </Button>
                           <Button
-                            variant="outline-danger"
                             onClick={() => handleDeleteCategory(category.id)}
                             title="Delete"
                             style={{
@@ -255,7 +258,10 @@ const CategoryPage = () => {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              padding: '0'
+                              padding: '0',
+                              backgroundColor: '#2a2a2a',
+                              border: '1px solid #333333',
+                              color: '#ffffff'
                             }}
                           >
                             <i className="bi bi-trash" style={{ fontSize: '18px' }}></i>
@@ -273,15 +279,15 @@ const CategoryPage = () => {
 
       {/* Add/Edit Category Modal */}
       <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
             {editingCategory ? 'Edit Category' : 'Add New Category'}
           </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSubmit(onSubmit)}>
-          <Modal.Body>
+          <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
             <Form.Group className="mb-3">
-              <Form.Label>Category Name *</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>Category Name *</Form.Label>
               <Controller
                 name="name"
                 control={control}
@@ -292,6 +298,7 @@ const CategoryPage = () => {
                     placeholder="Enter category name"
                     {...field}
                     isInvalid={!!errors.name}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                   />
                 )}
               />
@@ -301,7 +308,7 @@ const CategoryPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>Description</Form.Label>
               <Controller
                 name="description"
                 control={control}
@@ -311,6 +318,7 @@ const CategoryPage = () => {
                     rows={3}
                     placeholder="Enter category description (optional)"
                     {...field}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                   />
                 )}
               />
@@ -328,19 +336,20 @@ const CategoryPage = () => {
                     checked={field.value}
                     onChange={field.onChange}
                     className="fw-bold"
+                    style={{ color: '#ffffff' }}
                   />
                 )}
               />
-              <Form.Text className="text-muted">
+              <Form.Text style={{ color: '#aaaaaa' }}>
                 When checked, this category will be visible in the sales interface
               </Form.Text>
             </Form.Group>
           </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowModal(false)}>
+          <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+            <Button onClick={() => setShowModal(false)} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
               Cancel
             </Button>
-            <Button variant="primary" type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
               {loading ? (
                 <Spinner animation="border" size="sm" className="me-2" />
               ) : (
@@ -351,7 +360,7 @@ const CategoryPage = () => {
           </Modal.Footer>
         </Form>
       </Modal>
-    </Container>
+    </div>
   );
 };
 

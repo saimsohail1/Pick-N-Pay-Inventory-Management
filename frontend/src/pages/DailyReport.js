@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Table, Button, Form, Row, Col, Alert, Spinner } from 'react-bootstrap';
+import { Container, Table, Button, Form, Row, Col, Alert, Spinner, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { salesAPI, usersAPI, companySettingsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,7 +21,7 @@ const DailyReport = () => {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
-  const [companySettings, setCompanySettings] = useState({ companyName: 'PickNPay', address: '' });
+  const [companySettings, setCompanySettings] = useState({ companyName: 'ADAMS GREEN', address: '' });
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
 
@@ -210,7 +210,7 @@ const DailyReport = () => {
       const settingsData = response.data || response;
       if (settingsData) {
         setCompanySettings({
-          companyName: settingsData.companyName || 'PickNPay',
+          companyName: settingsData.companyName || 'ADAMS GREEN',
           address: settingsData.address || ''
         });
         console.log('Company settings fetched:', settingsData);
@@ -244,7 +244,7 @@ const DailyReport = () => {
         const settingsData = response.data || response;
         if (settingsData) {
           currentCompanySettings = {
-            companyName: settingsData.companyName || 'PickNPay',
+            companyName: settingsData.companyName || 'ADAMS GREEN',
             address: settingsData.address || ''
           };
         }
@@ -291,7 +291,7 @@ const DailyReport = () => {
   };
 
   return (
-    <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: '#f8f9fa' }}>
+    <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: '#000000' }}>
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -312,48 +312,52 @@ const DailyReport = () => {
 
       {/* Print Header */}
       <div className="print-header text-center py-3">
-        <h2>PickNPay Daily Report</h2>
+        <h2>ADAMS GREEN Daily Report</h2>
         <p>Period: {formatDateRange()}</p>
         <p>Generated: {new Date().toLocaleString()}</p>
       </div>
 
       {/* Main Content - Full Width */}
-      <div className="flex-grow-1 p-4 report-container">
-        {/* Title */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h2 className="mb-1 fw-bold text-primary">
-              {startDate === endDate ? 'Daily Report' : 'Date Range Report'}
-            </h2>
-            <p className="mb-0 text-muted" style={{ fontSize: '0.95rem' }}>
-              <i className="bi bi-calendar3 me-1"></i>
-              {formatDateRange()}
-            </p>
-          </div>
-          <Button
-            variant="primary" 
-            onClick={handlePrintReport}
-            className="no-print"
-          >
-            <i className="bi bi-printer me-2"></i>
-            PRINT
-          </Button>
-        </div>
+      <div className="flex-grow-1 report-container" style={{ backgroundColor: '#1a1a1a', minHeight: '100vh' }}>
+        <Card className="shadow-sm" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+          <Card.Header style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
+            <div className="d-flex justify-content-between align-items-center">
+              <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
+                <i className="bi bi-file-earmark-text me-2" style={{ color: '#ffffff' }}></i>
+                {startDate === endDate ? 'Daily Report' : 'Date Range Report'}
+              </h1>
+              <Button
+                onClick={handlePrintReport}
+                className="no-print"
+                style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+              >
+                <i className="bi bi-printer me-2"></i>
+                PRINT
+              </Button>
+            </div>
+          </Card.Header>
+          <Card.Body className="p-0">
+            {/* Filters Container - Grey with Outline */}
+            <div className="p-3 border-bottom" style={{ backgroundColor: '#2a2a2a' }}>
+              <p className="mb-3" style={{ fontSize: '0.95rem', color: '#aaaaaa' }}>
+                <i className="bi bi-calendar3 me-1"></i>
+                {formatDateRange()}
+              </p>
 
           {/* Date Range and Search */}
-          <div className="d-flex justify-content-between align-items-center mb-4">
+          <div className="d-flex justify-content-between align-items-center">
             <div className="d-flex gap-3 align-items-end">
               {isAdmin() && (
                 <div>
-                  <label className="form-label fw-semibold text-dark">
+                  <label className="form-label fw-semibold" style={{ color: '#ffffff' }}>
                     <i className="bi bi-person me-1"></i>
                     Select User
                   </label>
                     <Form.Select
                       value={selectedUserId}
                       onChange={(e) => handleUserChange(e.target.value)}
-                    className="form-select-lg border-2"
-                    style={{ borderRadius: '10px', width: '200px' }}
+                    className="form-select-lg"
+                    style={{ borderRadius: '10px', width: '200px', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                     >
                     <option value="">All Users</option>
                       {users.map((user) => (
@@ -365,7 +369,7 @@ const DailyReport = () => {
                 </div>
               )}
               <div>
-                <label className="form-label fw-semibold text-dark">
+                <label className="form-label fw-semibold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-calendar3 me-1"></i>
                   Period Start
                 </label>
@@ -373,12 +377,12 @@ const DailyReport = () => {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="form-control form-control-lg border-2"
-                  style={{ borderRadius: '10px', width: '200px' }}
+                  className="form-control form-control-lg"
+                  style={{ borderRadius: '10px', width: '200px', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                 />
               </div>
               <div>
-                <label className="form-label fw-semibold text-dark">
+                <label className="form-label fw-semibold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-calendar3 me-1"></i>
                   Period End
                 </label>
@@ -386,15 +390,16 @@ const DailyReport = () => {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="form-control form-control-lg border-2"
-                  style={{ borderRadius: '10px', width: '200px' }}
+                  className="form-control form-control-lg"
+                  style={{ borderRadius: '10px', width: '200px', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                 />
               </div>
             </div>
-      </div>
+            </div>
+            </div>
 
-      {error && (
-            <Alert variant="danger" className="mb-3">
+          {error && (
+            <Alert variant="danger" className="mb-3" style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
           {error}
         </Alert>
       )}
@@ -402,22 +407,22 @@ const DailyReport = () => {
           {reportData && (
             <div>
               {/* Payment Methods Table - Top */}
-              <div className="mb-4">
-                <h5 className="mb-3 text-primary">Payment Methods</h5>
+              <div className="mb-4 p-4 rounded" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '8px' }}>
+                <h5 className="mb-3" style={{ color: '#ffffff' }}>Payment Methods</h5>
                 <Table striped bordered hover className="mb-0">
-                  <thead className="table-light">
+                  <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                     <tr>
-                      <th>Label</th>
-                      <th>Count</th>
-                      <th>Total</th>
+                      <th style={{ color: '#ffffff' }}>Label</th>
+                      <th style={{ color: '#ffffff' }}>Count</th>
+                      <th style={{ color: '#ffffff' }}>Total</th>
                               </tr>
                             </thead>
                             <tbody>
                     {reportData.paymentMethods.map((payment, index) => (
-                      <tr key={index} className={payment.label === 'Total' ? 'table-dark' : ''}>
-                        <td className="fw-bold">{payment.label}</td>
-                        <td className="text-center">{payment.count}</td>
-                        <td className="text-end fw-bold">€ {payment.total.toFixed(2)}</td>
+                      <tr key={index} style={{ backgroundColor: payment.label === 'Total' ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}>
+                        <td className="fw-bold" style={{ color: '#ffffff' }}>{payment.label}</td>
+                        <td className="text-center" style={{ color: '#ffffff' }}>{payment.count}</td>
+                        <td className="text-end fw-bold" style={{ color: '#ffffff' }}>€ {payment.total.toFixed(2)}</td>
                               </tr>
                     ))}
                   </tbody>
@@ -425,22 +430,22 @@ const DailyReport = () => {
               </div>
 
               {/* Categories Table - Bottom */}
-              <div className="mb-4">
-                <h5 className="mb-3 text-primary">Category Sales</h5>
+              <div className="mb-4 p-4 rounded" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '8px' }}>
+                <h5 className="mb-3" style={{ color: '#ffffff' }}>Category Sales</h5>
                 <Table striped bordered hover className="mb-0">
-                  <thead className="table-light">
+                  <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                     <tr>
-                      <th>Category</th>
-                      <th>Count</th>
-                      <th>Total</th>
+                      <th style={{ color: '#ffffff' }}>Category</th>
+                      <th style={{ color: '#ffffff' }}>Count</th>
+                      <th style={{ color: '#ffffff' }}>Total</th>
                               </tr>
                   </thead>
                   <tbody>
                     {reportData.categories.map((category, index) => (
-                      <tr key={index} className={category.category === 'Total' ? 'table-dark' : ''}>
-                        <td className="fw-bold">{category.category}</td>
-                        <td className="text-center">{category.count}</td>
-                        <td className="text-end fw-bold">€ {category.total.toFixed(2)}</td>
+                      <tr key={index} style={{ backgroundColor: category.category === 'Total' ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}>
+                        <td className="fw-bold" style={{ color: '#ffffff' }}>{category.category}</td>
+                        <td className="text-center" style={{ color: '#ffffff' }}>{category.count}</td>
+                        <td className="text-end fw-bold" style={{ color: '#ffffff' }}>€ {category.total.toFixed(2)}</td>
                               </tr>
                     ))}
                             </tbody>
@@ -452,33 +457,33 @@ const DailyReport = () => {
           {/* VAT Summary Section */}
           {reportData && reportData.vatInfo && (
             <div className="col-md-6 mb-4">
-              <div className="card h-100">
-                <div className="card-header bg-info text-white">
-                  <h5 className="card-title mb-0">
-                    <i className="bi bi-percent me-2"></i>
+              <div className="card h-100" style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333' }}>
+                <div className="card-header" style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
+                  <h5 className="card-title mb-0" style={{ color: '#ffffff' }}>
+                    <i className="bi bi-percent me-2" style={{ color: '#ffffff' }}></i>
                     VAT Summary
                   </h5>
                 </div>
-                <div className="card-body">
+                <div className="card-body" style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                   <Table striped bordered hover className="mb-0">
-                    <thead className="table-light">
+                    <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                       <tr>
-                        <th>Description</th>
-                        <th>Amount</th>
+                        <th style={{ color: '#ffffff' }}>Description</th>
+                        <th style={{ color: '#ffffff' }}>Amount</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td className="fw-bold">Amount Excluding VAT</td>
-                        <td className="text-end fw-bold">€ {reportData.vatInfo.totalAmountExcludingVat.toFixed(2)}</td>
+                      <tr style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+                        <td className="fw-bold" style={{ color: '#ffffff' }}>Amount Excluding VAT</td>
+                        <td className="text-end fw-bold" style={{ color: '#ffffff' }}>€ {reportData.vatInfo.totalAmountExcludingVat.toFixed(2)}</td>
                       </tr>
-                      <tr>
-                        <td className="fw-bold">Total VAT Amount</td>
-                        <td className="text-end fw-bold text-success">€ {reportData.vatInfo.totalVatAmount.toFixed(2)}</td>
+                      <tr style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+                        <td className="fw-bold" style={{ color: '#ffffff' }}>Total VAT Amount</td>
+                        <td className="text-end fw-bold" style={{ color: '#ffffff' }}>€ {reportData.vatInfo.totalVatAmount.toFixed(2)}</td>
                       </tr>
-                      <tr className="table-dark">
-                        <td className="fw-bold">Total Amount Including VAT</td>
-                        <td className="text-end fw-bold">€ {reportData.vatInfo.totalAmountIncludingVat.toFixed(2)}</td>
+                      <tr style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+                        <td className="fw-bold" style={{ color: '#ffffff' }}>Total Amount Including VAT</td>
+                        <td className="text-end fw-bold" style={{ color: '#ffffff' }}>€ {reportData.vatInfo.totalAmountIncludingVat.toFixed(2)}</td>
                       </tr>
                     </tbody>
                   </Table>
@@ -486,7 +491,8 @@ const DailyReport = () => {
               </div>
             </div>
           )}
-
+          </Card.Body>
+        </Card>
       </div>
     </div>
   );

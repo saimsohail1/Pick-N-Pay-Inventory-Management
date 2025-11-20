@@ -124,7 +124,7 @@ export const printWithElectron = (content, title = 'Print Document') => {
  * @param {string} companyAddress - Company address
  * @returns {string} HTML content
  */
-export const createReceiptHTML = (sale, companyName = 'PickNPay', companyAddress = '') => {
+export const createReceiptHTML = (sale, companyName = 'ADAMS GREEN', companyAddress = '') => {
   // Helper function to format date as DD/MM/YYYY
   const formatReceiptDate = (dateStr) => {
     if (!dateStr) return '';
@@ -252,7 +252,7 @@ export const createReceiptHTML = (sale, companyName = 'PickNPay', companyAddress
  * @param {string} startDate - Report start date
  * @returns {string} HTML content
  */
-export const createZReportHTML = (reportData, companyName = 'PickNPay', startDate, companyAddress = '', companyPhone = '') => {
+export const createZReportHTML = (reportData, companyName = 'ADAMS GREEN', startDate, companyAddress = '', companyPhone = '') => {
   // Format date as DD/MM/YYYY or handle date range string
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -588,7 +588,7 @@ export const createZReportHTML = (reportData, companyName = 'PickNPay', startDat
  * @param {string} dateRange - Date range
  * @returns {string} HTML content
  */
-export const createSalesHistoryHTML = (sales, companyName = 'PickNPay', dateRange = '') => {
+export const createSalesHistoryHTML = (sales, companyName = 'ADAMS GREEN', dateRange = '') => {
   const totalAmount = sales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount || 0), 0);
   
   return `

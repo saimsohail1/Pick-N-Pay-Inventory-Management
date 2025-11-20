@@ -150,7 +150,7 @@ function createWindow() {
 
 /**
  * Create the customer display window on second monitor
- * Only creates the window if there are 2 or more displays
+ * Creates on second monitor if available, otherwise on primary monitor
  */
 function createCustomerDisplayWindow() {
   if (customerDisplayWindow) return;
@@ -158,35 +158,42 @@ function createCustomerDisplayWindow() {
   // Get all displays
   const displays = screen.getAllDisplays();
   
-  // Only create customer display if there are 2 or more displays
-  if (displays.length < 2) {
-    console.log('📺 Only one display detected. Customer display window will not be created.');
-    return;
+  let targetDisplay;
+  let windowX, windowY;
+  
+  // Use the second display if available, otherwise use primary display
+  if (displays.length >= 2) {
+    targetDisplay = displays[1];
+    console.log(`📺 Creating customer display window on display 2 (second monitor)`);
+    windowX = targetDisplay.bounds.x + (targetDisplay.bounds.width - 1024) / 2;
+    windowY = targetDisplay.bounds.y + (targetDisplay.bounds.height - 600) / 2;
+  } else {
+    targetDisplay = displays[0];
+    console.log(`📺 Creating customer display window on primary display (only one monitor detected)`);
+    // Position on the right side of the primary display
+    windowX = targetDisplay.bounds.x + targetDisplay.bounds.width - 1024 - 20;
+    windowY = targetDisplay.bounds.y + 20;
   }
   
-  // Use the second display (index 1)
-  const secondDisplay = displays[1];
-  
-  console.log(`📺 Creating customer display window on display 2 (second monitor)`);
-  console.log(`📐 Display bounds:`, secondDisplay.bounds);
+  console.log(`📐 Display bounds:`, targetDisplay.bounds);
 
   customerDisplayWindow = new BrowserWindow({
     width: 1024,
     height: 600,
-    x: secondDisplay.bounds.x + (secondDisplay.bounds.width - 1024) / 2,
-    y: secondDisplay.bounds.y + (secondDisplay.bounds.height - 600) / 2,
+    x: windowX,
+    y: windowY,
     fullscreen: false,
     frame: false,
     autoHideMenuBar: true,
     alwaysOnTop: false,
-    resizable: false,
+    resizable: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true
     },
     show: false,
-    backgroundColor: '#f8f9fa'
+    backgroundColor: '#1a1a1a'
   });
 
   const startUrl = isDev
@@ -196,12 +203,15 @@ function createCustomerDisplayWindow() {
   customerDisplayWindow.loadURL(startUrl);
 
   customerDisplayWindow.once('ready-to-show', () => {
+    console.log('📺 Customer display window ready to show');
     customerDisplayWindow.show();
+    customerDisplayWindow.focus();
     customerDisplayWindow.setMenuBarVisibility(false);
     
     // Send current cart state when window is ready
     setTimeout(() => {
       try {
+        console.log('📺 Sending initial cart state to customer display:', currentCartState);
         customerDisplayWindow.webContents.send('cart-updated', currentCartState);
       } catch (error) {
         console.error('Error sending initial cart state:', error);
@@ -209,16 +219,37 @@ function createCustomerDisplayWindow() {
     }, 500); // Small delay to ensure window is fully ready
   });
 
+  // Also show window if it loads successfully
+  customerDisplayWindow.webContents.once('did-finish-load', () => {
+    console.log('📺 Customer display window finished loading');
+    if (!customerDisplayWindow.isDestroyed()) {
+      customerDisplayWindow.show();
+      customerDisplayWindow.focus();
+    }
+  });
+
   customerDisplayWindow.on('closed', () => {
     customerDisplayWindow = null;
   });
 
-  // Prevent closing customer display window
+  // Prevent closing customer display window - just hide it instead
   customerDisplayWindow.on('close', (event) => {
     if (!app.isQuitting) {
       event.preventDefault();
+      console.log('📺 Customer display window close prevented, hiding instead');
       customerDisplayWindow.hide();
     }
+  });
+
+  // Add error handling
+  customerDisplayWindow.webContents.on('crashed', () => {
+    console.error('📺 Customer display window crashed');
+    customerDisplayWindow = null;
+  });
+
+  customerDisplayWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error('📺 Customer display render process gone:', details);
+    customerDisplayWindow = null;
   });
 }
 
@@ -297,6 +328,21 @@ ipcMain.on('request-cart-state', (event) => {
     } catch (error) {
       console.error('Error sending cart state to customer display:', error);
     }
+  }
+});
+
+/**
+ * IPC handler to show customer display window
+ */
+ipcMain.on('show-customer-display', () => {
+  if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+    customerDisplayWindow.show();
+    customerDisplayWindow.focus();
+    console.log('📺 Customer display window shown via IPC');
+  } else {
+    // Recreate window if it doesn't exist
+    console.log('📺 Customer display window not found, recreating...');
+    createCustomerDisplayWindow();
   }
 });
 

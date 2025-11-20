@@ -3,6 +3,7 @@ const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
 const path = require('path');
 const fs = require('fs');
+const { SerialPort } = require('serialport');
 
 // 🔹 Only disable hardware acceleration on macOS/Linux, keep it ON for Windows
 if (process.platform !== 'win32') {
@@ -299,6 +300,18 @@ ipcMain.on('app-minimize', () => {
 });
 
 /**
+ * IPC handler for toggling fullscreen
+ */
+ipcMain.on('toggle-fullscreen', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    const isFullScreen = mainWindow.isFullScreen();
+    mainWindow.setFullScreen(!isFullScreen);
+    mainWindow.setMenuBarVisibility(isFullScreen); // Show menu bar when not fullscreen
+    console.log(`🖥️ Fullscreen ${!isFullScreen ? 'enabled' : 'disabled'}`);
+  }
+});
+
+/**
  * IPC handlers for cart synchronization
  */
 ipcMain.on('cart-updated', (event, cartData) => {
@@ -343,6 +356,172 @@ ipcMain.on('show-customer-display', () => {
     // Recreate window if it doesn't exist
     console.log('📺 Customer display window not found, recreating...');
     createCustomerDisplayWindow();
+  }
+});
+
+/**
+ * Open cash drawer using ESC/POS command via serial port
+ * ESC/POS command: ESC p (0x1B 0x70) m t1 t2
+ * Common values: 0x1B 0x70 0x00 0x19 0xFF (opens drawer 1)
+ */
+async function openCashDrawer() {
+  try {
+    // Get list of available serial ports
+    const ports = await SerialPort.list();
+    console.log('🔌 Available serial ports:', ports.map(p => p.path));
+
+    if (ports.length === 0) {
+      throw new Error('No serial ports found. Please connect your cash drawer.');
+    }
+
+    // Find the first available port
+    let portPath = null;
+    
+    if (process.platform === 'win32') {
+      // Windows: Check COM ports (COM1-COM20) and USB serial ports
+      // USB-to-serial adapters often show up as COM ports
+      const windowsPorts = [];
+      for (let i = 1; i <= 20; i++) {
+        windowsPorts.push(`COM${i}`);
+      }
+      
+      // Try to find a matching port
+      for (const comPort of windowsPorts) {
+        const found = ports.find(p => p.path.toUpperCase() === comPort.toUpperCase());
+        if (found) {
+          portPath = found.path;
+          console.log(`✅ Found Windows COM port: ${portPath}`);
+          break;
+        }
+      }
+      
+      // If no common COM port found, use the first available port (could be USB serial)
+      if (!portPath && ports.length > 0) {
+        portPath = ports[0].path;
+        console.log(`✅ Using first available Windows port: ${portPath}`);
+      }
+    } else {
+      // Mac/Linux: Check common USB and serial ports
+      const unixPorts = ['/dev/ttyUSB0', '/dev/ttyUSB1', '/dev/ttyS0', '/dev/ttyS1', '/dev/tty.usbserial', '/dev/tty.usbmodem'];
+      
+      for (const unixPort of unixPorts) {
+        const found = ports.find(p => p.path === unixPort || p.path.includes(unixPort));
+        if (found) {
+          portPath = found.path;
+          break;
+        }
+      }
+      
+      // If no common port found, use the first available port
+      if (!portPath && ports.length > 0) {
+        portPath = ports[0].path;
+      }
+    }
+
+    if (!portPath) {
+      throw new Error('No suitable serial port found.');
+    }
+
+    console.log(`💰 Opening cash drawer on port: ${portPath}`);
+
+    // Create serial port connection
+    const port = new SerialPort({
+      path: portPath,
+      baudRate: 9600, // Common baud rate for cash drawers
+      dataBits: 8,
+      parity: 'none',
+      stopBits: 1
+    });
+
+    // ESC/POS command to open cash drawer
+    // ESC p (0x1B 0x70) m t1 t2
+    // m = drawer number (0 or 1)
+    // t1 = on time in 2ms units (0x19 = 50 * 2ms = 100ms)
+    // t2 = off time in 2ms units (0xFF = 255 * 2ms = 510ms)
+    // Try drawer 0 first, then drawer 1 if needed
+    const openDrawerCommands = [
+      Buffer.from([0x1B, 0x70, 0x00, 0x19, 0xFF]), // Drawer 0
+      Buffer.from([0x1B, 0x70, 0x01, 0x19, 0xFF]), // Drawer 1
+      Buffer.from([0x10, 0x14, 0x01, 0x00, 0x01])  // Alternative command
+    ];
+
+    return new Promise((resolve, reject) => {
+      port.on('open', () => {
+        console.log('✅ Serial port opened successfully');
+        
+        // Try each command in sequence
+        let commandIndex = 0;
+        const tryNextCommand = () => {
+          if (commandIndex >= openDrawerCommands.length) {
+            port.close();
+            reject(new Error('All cash drawer commands failed'));
+            return;
+          }
+          
+          const command = openDrawerCommands[commandIndex];
+          console.log(`💰 Trying command ${commandIndex + 1}/${openDrawerCommands.length}`);
+          
+          port.write(command, (err) => {
+            if (err) {
+              console.error(`❌ Error writing command ${commandIndex + 1}:`, err);
+              commandIndex++;
+              setTimeout(tryNextCommand, 100);
+              return;
+            }
+            
+            console.log(`✅ Cash drawer open command ${commandIndex + 1} sent successfully`);
+            
+            // Close the port after a short delay
+            setTimeout(() => {
+              port.close((err) => {
+                if (err) {
+                  console.error('⚠️ Error closing serial port:', err);
+                } else {
+                  console.log('✅ Serial port closed');
+                }
+                resolve({ success: true, port: portPath, commandUsed: commandIndex + 1 });
+              });
+            }, 500);
+          });
+        };
+        
+        // Start trying commands
+        tryNextCommand();
+      });
+
+      port.on('error', (err) => {
+        console.error('❌ Serial port error:', err);
+        reject(err);
+      });
+
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        if (port.isOpen) {
+          port.close();
+        }
+        reject(new Error('Timeout: Could not open serial port within 5 seconds'));
+      }, 5000);
+    });
+  } catch (error) {
+    console.error('❌ Error opening cash drawer:', error);
+    throw error;
+  }
+}
+
+/**
+ * IPC handler for opening cash drawer
+ */
+ipcMain.handle('open-till', async (event) => {
+  try {
+    const result = await openCashDrawer();
+    return { success: true, message: 'Cash drawer opened successfully', port: result.port };
+  } catch (error) {
+    console.error('❌ Failed to open cash drawer:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to open cash drawer. Please check the connection.',
+      error: error.toString()
+    };
   }
 });
 

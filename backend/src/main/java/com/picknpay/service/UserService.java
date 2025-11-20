@@ -4,6 +4,7 @@ import com.picknpay.dto.UserDTO;
 import com.picknpay.entity.User;
 import com.picknpay.entity.UserRole;
 import com.picknpay.repository.UserRepository;
+import com.picknpay.repository.SaleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private SaleRepository saleRepository;
     
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -103,11 +107,17 @@ public class UserService {
     }
 
     public boolean deleteUser(Long id) {
-        if (userRepository.existsById(id)) {
-            userRepository.deleteById(id);
-            return true;
+        if (!userRepository.existsById(id)) {
+            return false;
         }
-        return false;
+        
+        // Check if user has any sales - cannot delete user with sales history
+        if (saleRepository.existsByUserId(id)) {
+            throw new RuntimeException("Cannot delete user: User has sales records. Please deactivate the user instead.");
+        }
+        
+        userRepository.deleteById(id);
+        return true;
     }
 
     public Optional<UserDTO> toggleUserStatus(Long id) {

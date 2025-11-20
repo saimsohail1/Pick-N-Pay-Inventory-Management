@@ -51,4 +51,8 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     // Get sales by user ID and date range with payment method filter
     @Query("SELECT s FROM Sale s WHERE s.user.id = :userId AND s.saleDate BETWEEN :startDate AND :endDate AND s.paymentMethod = :paymentMethod ORDER BY s.saleDate DESC")
     List<Sale> findSalesByUserIdAndDateRangeAndPaymentMethod(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, @Param("paymentMethod") PaymentMethod paymentMethod);
+    
+    // Check if user has any sales
+    @Query("SELECT COUNT(s) > 0 FROM Sale s WHERE s.user.id = :userId")
+    boolean existsByUserId(@Param("userId") Long userId);
 }

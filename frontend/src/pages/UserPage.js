@@ -107,11 +107,13 @@ const UserPage = () => {
         debouncedFetchUsers();
       } catch (err) {
         console.error('Failed to delete user:', err);
-        setError('Failed to delete user. Please try again.');
+        // Extract error message from response
+        const errorMessage = err.response?.data || err.message || 'Failed to delete user. Please try again.';
+        setError(errorMessage);
       } finally {
         setLoading(false);
-        addTimeout(() => setSuccess(null), 3000);
-        addTimeout(() => setError(null), 3000);
+        addTimeout(() => setSuccess(null), 5000);
+        addTimeout(() => setError(null), 5000);
       }
     }
   };

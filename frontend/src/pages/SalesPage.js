@@ -82,6 +82,7 @@ const SalesPage = () => {
   const [itemToPrint, setItemToPrint] = useState(null);
   const [itemFormCache, setItemFormCache] = useState({}); // Cache for item registration forms by barcode
   const lastClickRef = React.useRef({});
+  const lastTapRef = React.useRef(0);
   const { addTimeout } = useTimeoutManager();
 
   const { control, handleSubmit, reset, watch, formState: { errors } } = useForm({
@@ -1235,8 +1236,35 @@ const SalesPage = () => {
     setCheckoutDialogOpen(true);
   };
 
+  // Handle double-click/touch to toggle fullscreen
+  const handleDoubleClick = () => {
+    if (window.electron && window.electron.ipcRenderer) {
+      window.electron.ipcRenderer.send('toggle-fullscreen');
+    }
+  };
+
+  // Handle double-tap on touch devices
+  const handleTouchEnd = (e) => {
+    const now = Date.now();
+    const timeDiff = now - lastTapRef.current;
+    
+    if (timeDiff < 300 && timeDiff > 0) {
+      // Double tap detected (within 300ms)
+      e.preventDefault();
+      handleDoubleClick();
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+    }
+  };
+
   return (
-    <div className="sales-page-container" style={{ backgroundColor: '#000000', margin: 0, padding: 0, width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}>
+    <div 
+      className="sales-page-container" 
+      style={{ backgroundColor: '#000000', margin: 0, padding: 0, width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}
+      onDoubleClick={handleDoubleClick}
+      onTouchEnd={handleTouchEnd}
+    >
       <style>{`
         .sales-page-container {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1881,7 +1909,37 @@ const SalesPage = () => {
                       <i className="bi bi-pause-circle me-2"></i>
                       On Hold
                     </Button>
-                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+                    <Button 
+                      size="lg" 
+                      className="fw-bold btn-3d" 
+                      style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                      onClick={async () => {
+                        try {
+                          setLoading(true);
+                          setError(null);
+                          if (window.electron && window.electron.ipcRenderer) {
+                            const result = await window.electron.ipcRenderer.invoke('open-till');
+                            if (result.success) {
+                              setSuccess('Cash drawer opened successfully!');
+                              addTimeout(() => setSuccess(null), 3000);
+                            } else {
+                              setError(result.message || 'Failed to open cash drawer');
+                              addTimeout(() => setError(null), 5000);
+                            }
+                          } else {
+                            setError('Cash drawer functionality is only available in Electron app');
+                            addTimeout(() => setError(null), 5000);
+                          }
+                        } catch (err) {
+                          console.error('Error opening cash drawer:', err);
+                          setError('Failed to open cash drawer. Please check the connection.');
+                          addTimeout(() => setError(null), 5000);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                    >
                       <i className="bi bi-cash-stack me-2"></i>
                       Open Till
                     </Button>

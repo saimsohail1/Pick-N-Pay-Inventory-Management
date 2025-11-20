@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
       send: (channel, data) => {
       // Whitelist channels
-      const validChannels = ['cart-updated', 'request-cart-state', 'app-closing', 'app-minimize'];
+      const validChannels = ['cart-updated', 'request-cart-state', 'app-closing', 'app-minimize', 'toggle-fullscreen'];
       if (validChannels.includes(channel)) {
         ipcRenderer.send(channel, data);
       }
@@ -23,6 +23,14 @@ contextBridge.exposeInMainWorld('electron', {
       if (validChannels.includes(channel)) {
         ipcRenderer.removeListener(channel, func);
       }
+    },
+    invoke: (channel, ...args) => {
+      // Whitelist channels for invoke
+      const validChannels = ['open-till'];
+      if (validChannels.includes(channel)) {
+        return ipcRenderer.invoke(channel, ...args);
+      }
+      return Promise.reject(new Error(`Invalid channel: ${channel}`));
     }
   }
 });

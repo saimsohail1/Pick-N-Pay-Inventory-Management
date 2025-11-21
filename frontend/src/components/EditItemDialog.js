@@ -55,18 +55,18 @@ const EditItemDialog = ({
 
   return (
     <Modal show={show} onHide={handleClose} centered size="lg">
-      <Modal.Header closeButton className="bg-primary text-white">
-        <Modal.Title>
-          <i className="bi bi-pencil-square me-2"></i>
+      <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+        <Modal.Title style={{ color: '#ffffff' }}>
+          <i className="bi bi-pencil-square me-2" style={{ color: '#ffffff' }}></i>
           {title}
         </Modal.Title>
       </Modal.Header>
-      <Modal.Body className="p-4">
+      <Modal.Body className="p-4" style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
         <Form onSubmit={handleSubmit(handleFormSubmit)}>
           <Row className="mb-3">
             <Col md={6}>
               <Form.Group>
-                <Form.Label className="fw-semibold">
+                <Form.Label className="fw-semibold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-upc me-1"></i>
                   Barcode
                 </Form.Label>
@@ -78,6 +78,7 @@ const EditItemDialog = ({
                       {...field}
                       type="text"
                       placeholder="Enter barcode"
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     />
                   )}
                 />
@@ -85,7 +86,7 @@ const EditItemDialog = ({
             </Col>
             <Col md={6}>
               <Form.Group>
-                <Form.Label className="fw-semibold">
+                <Form.Label className="fw-semibold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-tags me-1"></i>
                   Category
                 </Form.Label>
@@ -93,7 +94,7 @@ const EditItemDialog = ({
                   name="categoryId"
                   control={control}
                   render={({ field }) => (
-                    <Form.Select {...field}>
+                    <Form.Select {...field} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
                       <option value="">Select Category</option>
                       {categories.map((category) => (
                         <option key={category.id} value={category.id}>
@@ -110,7 +111,7 @@ const EditItemDialog = ({
           <Row className="mb-3">
             <Col md={12}>
               <Form.Group>
-                <Form.Label className="fw-semibold">
+                <Form.Label className="fw-semibold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-tag me-1"></i>
                   Item Name
                 </Form.Label>
@@ -124,11 +125,12 @@ const EditItemDialog = ({
                       type="text"
                       placeholder="Enter item name"
                       className={errors.name ? 'is-invalid' : ''}
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     />
                   )}
                 />
                 {errors.name && (
-                  <div className="invalid-feedback">{errors.name.message}</div>
+                  <div className="invalid-feedback" style={{ color: '#ff6b6b' }}>{errors.name.message}</div>
                 )}
               </Form.Group>
             </Col>
@@ -137,7 +139,7 @@ const EditItemDialog = ({
           <Row className="mb-3">
             <Col md={12}>
               <Form.Group>
-                <Form.Label className="fw-semibold">
+                <Form.Label className="fw-semibold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-card-text me-1"></i>
                   Description
                 </Form.Label>
@@ -150,6 +152,7 @@ const EditItemDialog = ({
                       as="textarea"
                       rows={3}
                       placeholder="Enter item description"
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     />
                   )}
                 />
@@ -160,7 +163,7 @@ const EditItemDialog = ({
           <Row className="mb-3">
             <Col md={6}>
               <Form.Group>
-                <Form.Label className="fw-semibold">
+                <Form.Label className="fw-semibold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-currency-euro me-1"></i>
                   Price (€) *
                 </Form.Label>
@@ -179,19 +182,20 @@ const EditItemDialog = ({
                       min="0.01"
                       placeholder="0.00"
                       className={errors.price ? 'is-invalid' : ''}
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     />
                   )}
                 />
                 {errors.price && (
-                  <div className="invalid-feedback">{errors.price.message}</div>
+                  <div className="invalid-feedback" style={{ color: '#ff6b6b' }}>{errors.price.message}</div>
                 )}
               </Form.Group>
             </Col>
             <Col md={6}>
               <Form.Group>
-                <Form.Label className="fw-semibold">
-                  <i className="bi bi-hash me-1"></i>
-                  Stock Quantity *
+                <Form.Label className="fw-semibold" style={{ color: '#ffffff' }}>
+                  <i className="bi bi-cart me-1"></i>
+                  Cart Quantity *
                 </Form.Label>
                 <Controller
                   name="stockQuantity"
@@ -207,11 +211,12 @@ const EditItemDialog = ({
                       min="1"
                       placeholder="1"
                       className={errors.stockQuantity ? 'is-invalid' : ''}
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     />
                   )}
                 />
                 {errors.stockQuantity && (
-                  <div className="invalid-feedback">{errors.stockQuantity.message}</div>
+                  <div className="invalid-feedback" style={{ color: '#ff6b6b' }}>{errors.stockQuantity.message}</div>
                 )}
               </Form.Group>
             </Col>
@@ -220,7 +225,7 @@ const EditItemDialog = ({
           <Row className="mb-3">
             <Col md={6}>
               <Form.Group>
-                <Form.Label className="fw-semibold">
+                <Form.Label className="fw-semibold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-percent me-1"></i>
                   VAT Rate (%) *
                 </Form.Label>
@@ -239,11 +244,12 @@ const EditItemDialog = ({
                       min="0"
                       placeholder="23.00"
                       className={errors.vatRate ? 'is-invalid' : ''}
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     />
                   )}
                 />
                 {errors.vatRate && (
-                  <div className="invalid-feedback">{errors.vatRate.message}</div>
+                  <div className="invalid-feedback" style={{ color: '#ff6b6b' }}>{errors.vatRate.message}</div>
                 )}
               </Form.Group>
             </Col>
@@ -255,7 +261,7 @@ const EditItemDialog = ({
           <Row className="mb-3">
             <Col md={6}>
               <Form.Group>
-                <Form.Label className="fw-semibold">
+                <Form.Label className="fw-semibold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-box me-1"></i>
                   Batch ID
                 </Form.Label>
@@ -267,6 +273,7 @@ const EditItemDialog = ({
                       {...field}
                       type="text"
                       placeholder="Enter batch ID (optional)"
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     />
                   )}
                 />
@@ -274,7 +281,7 @@ const EditItemDialog = ({
             </Col>
             <Col md={6}>
               <Form.Group>
-                <Form.Label className="fw-semibold">
+                <Form.Label className="fw-semibold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-calendar3 me-1"></i>
                   Expiry Date
                 </Form.Label>
@@ -286,6 +293,7 @@ const EditItemDialog = ({
                       {...field}
                       type="date"
                       placeholder="Select expiry date"
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     />
                   )}
                 />
@@ -297,6 +305,7 @@ const EditItemDialog = ({
             <Button 
               variant="secondary" 
               onClick={handleClose}
+              style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             >
               <i className="bi bi-x-circle me-1"></i>
               Cancel
@@ -304,6 +313,7 @@ const EditItemDialog = ({
             <Button 
               variant="primary" 
               type="submit"
+              style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             >
               <i className="bi bi-check-circle me-1"></i>
               {isEditMode ? 'Update Item' : 'Add Item'}

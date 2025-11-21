@@ -3,7 +3,17 @@ const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
 const path = require('path');
 const fs = require('fs');
-const { SerialPort } = require('serialport');
+
+// Conditionally load serialport - it may fail if not rebuilt for Electron
+let SerialPort = null;
+try {
+  const serialport = require('serialport');
+  SerialPort = serialport.SerialPort;
+  console.log('✅ SerialPort module loaded successfully');
+} catch (error) {
+  console.warn('⚠️ SerialPort module failed to load:', error.message);
+  console.warn('⚠️ Cash drawer functionality will be disabled. Run: npm install --save-dev electron-rebuild && npx electron-rebuild');
+}
 
 // 🔹 Only disable hardware acceleration on macOS/Linux, keep it ON for Windows
 if (process.platform !== 'win32') {
@@ -365,6 +375,11 @@ ipcMain.on('show-customer-display', () => {
  * Common values: 0x1B 0x70 0x00 0x19 0xFF (opens drawer 1)
  */
 async function openCashDrawer() {
+  // Check if SerialPort is available
+  if (!SerialPort) {
+    throw new Error('SerialPort module not available. Please rebuild native modules: npm install --save-dev electron-rebuild && npx electron-rebuild');
+  }
+  
   try {
     // Get list of available serial ports
     const ports = await SerialPort.list();

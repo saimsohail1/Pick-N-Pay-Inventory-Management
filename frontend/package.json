@@ -40,6 +40,7 @@
     "concurrently": "^7.6.0",
     "electron": "^22.0.0",
     "electron-builder": "^23.6.0",
+    "electron-rebuild": "^3.2.9",
     "wait-on": "^7.0.1"
   },
   "browserslist": {

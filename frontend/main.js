@@ -457,9 +457,34 @@ async function openCashDrawerViaPrinter(printerName = null) {
         // Note: We use Write-Host for debugging, but Write-Output for the result
         const psScript = `
           $printer = Get-Printer -Name "${targetPrinter}" -ErrorAction SilentlyContinue;
+          
+          # If not found, try partial match
+          if (-not $printer) {
+            $allPrinters = Get-Printer -ErrorAction SilentlyContinue;
+            $printer = $allPrinters | Where-Object { $_.Name -like "*${targetPrinter}*" -or $_.Name -like "*UDiiPOS*" -or $_.Name -like "*SGT*116*" } | Select-Object -First 1;
+          }
+          
+          $port = $null;
           if ($printer) {
             $port = $printer.PortName;
             Write-Host "Found printer: $($printer.Name) on port: $port";
+          } else {
+            # Try direct port access (USB001 is the known port)
+            $directPorts = @("USB001", "LPT1", "COM1", "COM2", "COM3");
+            foreach ($testPort in $directPorts) {
+              try {
+                $testStream = New-Object System.IO.FileStream($testPort, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite) -ErrorAction Stop;
+                $testStream.Close();
+                $port = $testPort;
+                Write-Host "Found accessible port: $port";
+                break;
+              } catch {
+                # Port not accessible, try next
+              }
+            }
+          }
+          
+          if ($port) {
             $bytes = [System.IO.File]::ReadAllBytes("${tempFile.replace(/\\/g, '/')}");
             Write-Host "Read $($bytes.Length) bytes";
             try {
@@ -467,7 +492,7 @@ async function openCashDrawerViaPrinter(printerName = null) {
               $fileStream.Write($bytes, 0, $bytes.Length);
               $fileStream.Flush();
               $fileStream.Close();
-              Write-Host "Command sent successfully";
+              Write-Host "Command sent successfully to port $port";
               Write-Output "OK"
             } catch {
               Write-Output "ERROR: $($_.Exception.Message)"

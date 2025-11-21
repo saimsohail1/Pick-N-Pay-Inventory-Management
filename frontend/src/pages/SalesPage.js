@@ -519,6 +519,10 @@ const SalesPage = () => {
     return cart.reduce((sum, item) => sum + item.totalPrice, 0);
   };
 
+  const calculateTotalItems = () => {
+    return cart.reduce((sum, item) => sum + item.quantity, 0);
+  };
+
   const calculateDiscountAmount = () => {
     if (!appliedDiscount) return 0;
     
@@ -1831,7 +1835,7 @@ const SalesPage = () => {
             <div className="bg-dark text-white" style={{ padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333' }}>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
-                  <div className="d-block" style={{ fontSize: '0.9rem' }}>Subtotal: €{calculateSubtotal().toFixed(2)}</div>
+                  <div className="d-block" style={{ fontSize: '0.9rem' }}>Total Items: {calculateTotalItems()}</div>
                   {appliedDiscount && (
                     <div className="d-block" style={{ fontSize: '0.9rem' }}>
                       Discount: -€{calculateDiscountAmount().toFixed(2)} 

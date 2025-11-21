@@ -446,7 +446,7 @@ async function openCashDrawerViaPrinter(printerName = "SGT-116Receipt") {
 
       // Use Windows PRINT command so the installed driver routes to the correct USB endpoint
       const targetPrinter = printerName || 'SGT-116Receipt';
-      const printCommand = `print /D:"${targetPrinter}" "${tempFile}"`;
+      const printCommand = `print /D:USB001 "${tempFile}"`;
       logToFile('INFO', '📤 Sending drawer command via print', { command: printCommand });
 
       exec(printCommand, { timeout: 8000 }, (error, stdout, stderr) => {
@@ -506,7 +506,7 @@ async function sendRawEscPosToPrinter(escPosData, printerName = "SGT-116Receipt"
       fs.writeFileSync(tempFile, escPosData);
 
       const targetPrinter = printerName || 'SGT-116Receipt';
-      const printCommand = `print /D:"${targetPrinter}" "${tempFile}"`;
+      const printCommand = `print /D:USB001 "${tempFile}"`;
 
       const hexPreview = Array.from(escPosData.slice(0, 50))
         .map((b) => '0x' + b.toString(16).toUpperCase().padStart(2, '0'))

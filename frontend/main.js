@@ -864,11 +864,17 @@ ipcMain.handle('open-till', async (event, options = {}) => {
     // Send HTML to renderer to print via window.print()
     // This will trigger the drawer because it goes through the print spooler
     if (event.sender) {
+      // Escape the HTML string properly for JavaScript template literal
+      const escapedHTML = tillReceiptHTML
+        .replace(/\\/g, '\\\\')
+        .replace(/`/g, '\\`')
+        .replace(/\${/g, '\\${');
+      
       event.sender.webContents.executeJavaScript(`
         (function() {
           const printWindow = window.open('', '_blank', 'width=300,height=200');
           if (printWindow) {
-            printWindow.document.write(\`${tillReceiptHTML.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`);
+            printWindow.document.write(\`${escapedHTML}\`);
             printWindow.document.close();
             printWindow.focus();
             setTimeout(() => {

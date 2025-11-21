@@ -585,7 +585,15 @@ async function sendRawEscPosToPrinter(escPosData, printerName = null) {
       });
       
       const psScript = `
+        # Try exact name first
         $printer = Get-Printer -Name "${targetPrinter}" -ErrorAction SilentlyContinue;
+        
+        # If not found, try partial match (case-insensitive)
+        if (-not $printer) {
+          $allPrinters = Get-Printer -ErrorAction SilentlyContinue;
+          $printer = $allPrinters | Where-Object { $_.Name -like "*${targetPrinter}*" -or $_.Name -like "*SGT*116*" -or $_.Name -like "*Receipt*" } | Select-Object -First 1;
+        }
+        
         if ($printer) {
           $port = $printer.PortName;
           Write-Host "Found printer: $($printer.Name) on port: $port";
@@ -606,6 +614,10 @@ async function sendRawEscPosToPrinter(escPosData, printerName = null) {
             Write-Output "ERROR: $($_.Exception.Message)"
           }
         } else {
+          # List all printers for debugging
+          $allPrinters = Get-Printer -ErrorAction SilentlyContinue;
+          Write-Host "Available printers:";
+          $allPrinters | ForEach-Object { Write-Host "  - $($_.Name) (Port: $($_.PortName))" };
           Write-Output "NOTFOUND"
         }
       `;
@@ -863,42 +875,47 @@ ipcMain.handle('open-till', async (event, options = {}) => {
     
     // Send HTML to renderer to print via window.print()
     // This will trigger the drawer because it goes through the print spooler
-    if (event.sender) {
-      // Escape the HTML string properly for JavaScript template literal
-      const escapedHTML = tillReceiptHTML
-        .replace(/\\/g, '\\\\')
-        .replace(/`/g, '\\`')
-        .replace(/\${/g, '\\${');
-      
-      event.sender.webContents.executeJavaScript(`
-        (function() {
-          const printWindow = window.open('', '_blank', 'width=300,height=200');
-          if (printWindow) {
-            printWindow.document.write(\`${escapedHTML}\`);
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => {
-              printWindow.print();
-              setTimeout(() => printWindow.close(), 500);
-            }, 200);
-            return true;
-          }
-          return false;
-        })();
-      `);
-      
-      logToFile('INFO', '✅ Till opened receipt sent to print (will trigger drawer)');
-      console.log('✅ Till opened receipt sent to print (will trigger drawer)');
-      
-      return { 
-        success: true, 
-        message: `Till opened successfully`, 
-        type: 'printer',
-        logFile: logFile
-      };
-    } else {
-      throw new Error('Cannot access renderer process');
+    // In Electron, event.sender IS the WebContents, so we use it directly
+    const webContents = event.sender;
+    if (!webContents || webContents.isDestroyed()) {
+      throw new Error('Cannot access renderer process - webContents is unavailable');
     }
+    
+    // Escape the HTML string properly for JavaScript template literal
+    const escapedHTML = tillReceiptHTML
+      .replace(/\\/g, '\\\\')
+      .replace(/`/g, '\\`')
+      .replace(/\${/g, '\\${');
+    
+    webContents.executeJavaScript(`
+      (function() {
+        const printWindow = window.open('', '_blank', 'width=300,height=200');
+        if (printWindow) {
+          printWindow.document.write(\`${escapedHTML}\`);
+          printWindow.document.close();
+          printWindow.focus();
+          setTimeout(() => {
+            printWindow.print();
+            setTimeout(() => printWindow.close(), 500);
+          }, 200);
+          return true;
+        }
+        return false;
+      })();
+    `).catch(err => {
+      logToFile('ERROR', 'Failed to execute JavaScript in renderer', { error: err.message });
+      throw err;
+    });
+    
+    logToFile('INFO', '✅ Till opened receipt sent to print (will trigger drawer)');
+    console.log('✅ Till opened receipt sent to print (will trigger drawer)');
+    
+    return { 
+      success: true, 
+      message: `Till opened successfully`, 
+      type: 'printer',
+      logFile: logFile
+    };
   } catch (error) {
     logToFile('ERROR', '❌ Failed to open till', { error: error.message, stack: error.stack });
     console.error('❌ Failed to open till:', error);

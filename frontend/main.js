@@ -575,7 +575,7 @@ async function sendRawEscPosToPrinter(escPosData, printerName = null) {
       console.log(`📤 ESC/POS data (first 200 bytes): ${hexDump.substring(0, 200)}...`);
       logToFile('INFO', 'ESC/POS data hex dump', { hexDump: hexDump.substring(0, 500) });
       
-      const targetPrinter = printerName || 'SGT-116Receipt Printer';
+      const targetPrinter = printerName || 'UDiiPOS D2 SGT-116Receipt';
       console.log(`📤 Sending raw ESC/POS data to printer: ${targetPrinter}`);
       console.log(`📤 Data length: ${escPosData.length} bytes`);
       logToFile('INFO', '📤 Sending raw ESC/POS print data', { 
@@ -591,25 +591,43 @@ async function sendRawEscPosToPrinter(escPosData, printerName = null) {
         # If not found, try partial match (case-insensitive)
         if (-not $printer) {
           $allPrinters = Get-Printer -ErrorAction SilentlyContinue;
-          $printer = $allPrinters | Where-Object { $_.Name -like "*${targetPrinter}*" -or $_.Name -like "*SGT*116*" -or $_.Name -like "*Receipt*" } | Select-Object -First 1;
+          $printer = $allPrinters | Where-Object { $_.Name -like "*${targetPrinter}*" -or $_.Name -like "*SGT*116*" -or $_.Name -like "*UDiiPOS*" -or $_.Name -like "*Receipt*" } | Select-Object -First 1;
         }
         
+        $port = $null;
         if ($printer) {
           $port = $printer.PortName;
           Write-Host "Found printer: $($printer.Name) on port: $port";
+        } else {
+          # Try direct port access (USB001 is common for USB receipt printers)
+          $directPorts = @("USB001", "LPT1", "COM1", "COM2", "COM3");
+          foreach ($testPort in $directPorts) {
+            try {
+              $testStream = New-Object System.IO.FileStream($testPort, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite) -ErrorAction Stop;
+              $testStream.Close();
+              $port = $testPort;
+              Write-Host "Found accessible port: $port";
+              break;
+            } catch {
+              # Port not accessible, try next
+            }
+          }
+        }
+        
+        if ($port) {
           $bytes = [System.IO.File]::ReadAllBytes("${tempFile.replace(/\\/g, '/')}");
           Write-Host "Read $($bytes.Length) bytes from file";
           Write-Host "First 50 bytes: $($bytes[0..49] | ForEach-Object { '0x' + $_.ToString('X2') } | Join-String -Separator ' ')";
           try {
             $fileStream = New-Object System.IO.FileStream($port, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite);
             $bytesWritten = $fileStream.Write($bytes, 0, $bytes.Length);
-            Write-Host "Wrote $bytesWritten bytes to port";
+            Write-Host "Wrote $bytesWritten bytes to port $port";
             $fileStream.Flush();
             $fileStream.Close();
             Write-Host "Print data sent successfully";
             Write-Output "OK"
           } catch {
-            Write-Host "Error writing to port: $($_.Exception.Message)";
+            Write-Host "Error writing to port $port : $($_.Exception.Message)";
             Write-Host "Error type: $($_.Exception.GetType().FullName)";
             Write-Output "ERROR: $($_.Exception.Message)"
           }

@@ -482,6 +482,8 @@ async function openCashDrawerViaPrinter(printerName = null) {
         fs.writeFileSync(psScriptFile, psScript);
         
         console.log(`📤 Executing PowerShell script for drawer...`);
+        logToFile('INFO', `Executing PowerShell script for drawer`, { scriptFile: psScriptFile, tempFile: tempFile });
+        
         exec(`powershell -ExecutionPolicy Bypass -File "${psScriptFile}"`, { timeout: 10000 }, (psError, psStdout, psStderr) => {
           // Clean up script file
           try {
@@ -492,6 +494,13 @@ async function openCashDrawerViaPrinter(printerName = null) {
           
           console.log(`📤 PowerShell stdout:`, psStdout);
           if (psStderr) console.log(`📤 PowerShell stderr:`, psStderr);
+          
+          logToFile('INFO', `PowerShell execution result`, { 
+            stdout: psStdout, 
+            stderr: psStderr, 
+            error: psError?.message 
+          });
+          
           // Clean up temp file
           try {
             if (fs.existsSync(tempFile)) {
@@ -516,7 +525,9 @@ async function openCashDrawerViaPrinter(printerName = null) {
             
             logToFile('ERROR', '❌ Failed to send drawer command', { 
               printer: targetPrinter,
-              error: errorDetails
+              error: errorDetails,
+              stdout: psStdout,
+              stderr: psStderr
             });
             
             const errorMsg = `Could not send drawer command to printer "${targetPrinter}".\n\n` +
@@ -525,7 +536,8 @@ async function openCashDrawerViaPrinter(printerName = null) {
               `1. Check printer is connected and powered on\n` +
               `2. Verify drawer cable is connected to printer's RJ11 DK port\n` +
               `3. Ensure printer driver is installed\n` +
-              `4. Try running as Administrator`;
+              `4. Try running as Administrator\n` +
+              `5. Check printer driver settings - disable "Open drawer on print" if enabled`;
             
             reject(new Error(errorMsg));
           }

@@ -1904,30 +1904,42 @@ const SalesPage = () => {
                         try {
                           setLoading(true);
                           setError(null);
+                          setSuccess(null);
+                          
+                          console.log('💰 Open Till button clicked');
+                          
                           if (window.electron && window.electron.ipcRenderer) {
+                            console.log('💰 Sending open-till IPC request...');
                             const result = await window.electron.ipcRenderer.invoke('open-till');
                             
-                            if (result.success) {
-                              setSuccess('Cash drawer command sent successfully!');
+                            console.log('💰 Open Till result:', result);
+                            
+                            if (result && result.success) {
+                              setSuccess(`Cash drawer opened successfully! ${result.printer ? `(Printer: ${result.printer})` : ''}`);
                               addTimeout(() => setSuccess(null), 3000);
-                              console.log('Cash drawer result:', result);
                             } else {
-                              setError(result.message || 'Failed to open cash drawer. Please check printer connection and drawer cable.');
-                              addTimeout(() => setError(null), 5000);
+                              const errorMsg = result?.message || 'Failed to open cash drawer. Please check printer connection and drawer cable.';
+                              setError(errorMsg);
+                              addTimeout(() => setError(null), 8000);
+                              console.error('❌ Open Till failed:', result);
                             }
                           } else {
-                            setError('Cash drawer functionality is only available in Electron app');
+                            const errorMsg = 'Cash drawer functionality is only available in Electron app. window.electron is not available.';
+                            setError(errorMsg);
                             addTimeout(() => setError(null), 5000);
+                            console.error('❌ Electron IPC not available');
                           }
                         } catch (err) {
-                          console.error('Error opening cash drawer:', err);
-                          setError(`Failed to open cash drawer: ${err.message || 'Please check the printer connection and console logs'}`);
+                          console.error('❌ Error opening cash drawer:', err);
+                          const errorMsg = `Failed to open cash drawer: ${err.message || 'Unknown error. Please check the printer connection and console logs.'}`;
+                          setError(errorMsg);
                           addTimeout(() => setError(null), 8000);
                         } finally {
                           setLoading(false);
                         }
                       }}
                       disabled={loading}
+                      title="Open cash drawer (ESC/POS command sent directly to printer port)"
                     >
                       <i className="bi bi-cash-stack me-2"></i>
                       Open Till

@@ -82,7 +82,6 @@ const SalesPage = () => {
   const [itemToPrint, setItemToPrint] = useState(null);
   const [itemFormCache, setItemFormCache] = useState({}); // Cache for item registration forms by barcode
   const lastClickRef = React.useRef({});
-  const lastTapRef = React.useRef(0);
   const { addTimeout } = useTimeoutManager();
 
   const { control, handleSubmit, reset, watch, formState: { errors } } = useForm({
@@ -1017,7 +1016,7 @@ const SalesPage = () => {
       setCart(updatedCart);
       setEditItemDialogOpen(false);
       setSuccess(`Updated ${formData.name || itemToEdit.itemName} in database (DB stock: ${parseInt(formData.stockQuantity)}). Cart quantity unchanged (${itemToEdit.cartQuantity || itemToEdit.quantity}).`);
-      addTimeout(() => setSuccess(null), 3000);
+    addTimeout(() => setSuccess(null), 3000);
       
       // Show print label dialog
       setItemToPrint({
@@ -1248,34 +1247,10 @@ const SalesPage = () => {
     setCheckoutDialogOpen(true);
   };
 
-  // Handle double-click/touch to toggle fullscreen
-  const handleDoubleClick = () => {
-    if (window.electron && window.electron.ipcRenderer) {
-      window.electron.ipcRenderer.send('toggle-fullscreen');
-    }
-  };
-
-  // Handle double-tap on touch devices
-  const handleTouchEnd = (e) => {
-    const now = Date.now();
-    const timeDiff = now - lastTapRef.current;
-    
-    if (timeDiff < 300 && timeDiff > 0) {
-      // Double tap detected (within 300ms)
-      e.preventDefault();
-      handleDoubleClick();
-      lastTapRef.current = 0;
-    } else {
-      lastTapRef.current = now;
-    }
-  };
-
   return (
     <div 
       className="sales-page-container" 
       style={{ backgroundColor: '#000000', margin: 0, padding: '0.2rem', width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}
-      onDoubleClick={handleDoubleClick}
-      onTouchEnd={handleTouchEnd}
     >
       <style>{`
         .sales-page-container {

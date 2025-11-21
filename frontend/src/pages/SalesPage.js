@@ -84,6 +84,13 @@ const SalesPage = () => {
   const lastClickRef = React.useRef({});
   const lastTapRef = React.useRef(0);
   const { addTimeout } = useTimeoutManager();
+  
+  // Cash drawer IP configuration (stored in localStorage)
+  const [cashDrawerIP, setCashDrawerIP] = useState(() => {
+    const saved = localStorage.getItem('cashDrawerIP');
+    return saved || ''; // Default: empty (use auto-detection)
+  });
+  const [cashDrawerIPDialogOpen, setCashDrawerIPDialogOpen] = useState(false);
 
   const { control, handleSubmit, reset, watch, formState: { errors } } = useForm({
     defaultValues: {
@@ -1401,7 +1408,7 @@ const SalesPage = () => {
             <button
               onClick={() => navigate('/')}
               className="btn btn-3d fw-bold text-white d-flex align-items-center"
-              style={{
+              style={{ 
                 fontSize: '1.2rem',
                 padding: '0.75rem 1.25rem',
                 fontWeight: '500',
@@ -1913,27 +1920,46 @@ const SalesPage = () => {
                       size="lg" 
                       className="fw-bold btn-3d" 
                       style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                      onContextMenu={(e) => {
+                        // Right-click to configure IP
+                        e.preventDefault();
+                        setCashDrawerIPDialogOpen(true);
+                      }}
                       onClick={async () => {
                         try {
                           setLoading(true);
                           setError(null);
                           if (window.electron && window.electron.ipcRenderer) {
-                            // Try network mode first (Ethernet/LAN connection)
-                            // Auto-detect or use common defaults
-                            const result = await window.electron.ipcRenderer.invoke('open-till', { 
-                              networkMode: 'auto' // Auto-detect network cash drawer
-                            });
+                            // Use configured IP if available, otherwise auto-detect
+                            const options = cashDrawerIP 
+                              ? { ipAddress: cashDrawerIP, port: 9100 }
+                              : { networkMode: 'auto' };
+                            
+                            const result = await window.electron.ipcRenderer.invoke('open-till', options);
                             
                             if (result.success) {
                               const details = result.type === 'network' 
                                 ? ` (Network: ${result.address})` 
                                 : result.port ? ` (Port: ${result.port}${result.baudRate ? `, Baud: ${result.baudRate}` : ''})` : '';
-                              setSuccess(`Cash drawer command sent successfully!${details}\n\nNote: If drawer didn't open, check:\n1. Network connection and IP address\n2. Firewall settings (port 9100)\n3. Check console for detailed logs`);
-                              addTimeout(() => setSuccess(null), 5000);
+                              const logInfo = result.logFile ? `\n\n📋 Log file: ${result.logFile}` : '';
+                              setSuccess(`Cash drawer command sent successfully!${details}${logInfo}\n\nNote: If drawer didn't open, check:\n1. Network connection and IP address\n2. Firewall settings (port 9100)\n3. Press F12 to open DevTools and check Console tab\n4. Check log file for detailed information`);
+                              addTimeout(() => setSuccess(null), 8000);
                               console.log('Cash drawer result:', result);
+                              if (result.logFile) {
+                                console.log('📋 Detailed logs saved to:', result.logFile);
+                              }
                             } else {
-                              setError(result.message || 'Failed to open cash drawer. Please check network connection and IP address.');
-                              addTimeout(() => setError(null), 8000);
+                              const logInfo = result.logFile ? `\n\n📋 Check log file for details: ${result.logFile}` : '';
+                              const errorMsg = result.message || 'Failed to open cash drawer.';
+                              const isNetworkError = errorMsg.includes('network') || errorMsg.includes('IP') || errorMsg.includes('auto-detect');
+                              const helpText = isNetworkError 
+                                ? '\n\n💡 To fix this:\n1. Right-click "Open Till" button to configure IP address\n2. Find your cash drawer IP address (check drawer settings or router)\n3. Check firewall settings (port 9100)\n4. Your PC is at 192.168.0.37, drawer is likely on 192.168.0.x'
+                                : '\n\nPress F12 to open DevTools and check Console tab for details.';
+                              setError(errorMsg + logInfo + helpText);
+                              addTimeout(() => setError(null), 12000);
+                              if (result.logFile) {
+                                console.error('📋 Detailed error logs saved to:', result.logFile);
+                              }
                             }
                           } else {
                             setError('Cash drawer functionality is only available in Electron app');
@@ -2929,6 +2955,103 @@ const SalesPage = () => {
         </Modal.Body>
       </Modal>
 
+      
+      {/* Cash Drawer IP Configuration Modal */}
+      <Modal show={cashDrawerIPDialogOpen} onHide={() => setCashDrawerIPDialogOpen(false)} centered>
+        <Modal.Header closeButton style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className="bi bi-gear me-2"></i>
+            Configure Cash Drawer IP Address
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label style={{ color: '#aaaaaa' }}>IP Address</Form.Label>
+              <InputGroup>
+                <Form.Control
+                  type="text"
+                  placeholder="192.168.0.100"
+                  value={cashDrawerIP}
+                  onChange={(e) => setCashDrawerIP(e.target.value)}
+                  style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                />
+                <Button
+                  variant="outline-secondary"
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      if (window.electron && window.electron.ipcRenderer) {
+                        const result = await window.electron.ipcRenderer.invoke('scan-network-drawer');
+                        if (result.success && result.foundIPs.length > 0) {
+                          // Use first found IP
+                          setCashDrawerIP(result.foundIPs[0].ip);
+                          setSuccess(`Found cash drawer at ${result.foundIPs[0].ip}:${result.foundIPs[0].port}`);
+                          addTimeout(() => setSuccess(null), 3000);
+                        } else {
+                          setError('No cash drawer found. Please enter IP manually.');
+                          addTimeout(() => setError(null), 5000);
+                        }
+                      }
+                    } catch (err) {
+                      setError('Scan failed: ' + err.message);
+                      addTimeout(() => setError(null), 5000);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                  style={{ backgroundColor: '#3a3a3a', border: '1px solid #333333', color: '#ffffff' }}
+                >
+                  {loading ? <Spinner animation="border" size="sm" /> : 'Scan'}
+                </Button>
+              </InputGroup>
+              <Form.Text className="text-muted" style={{ color: '#aaaaaa' }}>
+                Leave empty to use auto-detection. Your PC is at 192.168.0.37, so the drawer is likely on 192.168.0.x subnet.
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label style={{ color: '#aaaaaa' }}>Port (optional)</Form.Label>
+              <Form.Control
+                type="number"
+                placeholder="9100"
+                defaultValue="9100"
+                style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                readOnly
+              />
+              <Form.Text className="text-muted" style={{ color: '#aaaaaa' }}>
+                Default port for network cash drawers (9100)
+              </Form.Text>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#2a2a2a', borderTop: '1px solid #333333' }}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setCashDrawerIP('');
+              localStorage.removeItem('cashDrawerIP');
+              setCashDrawerIPDialogOpen(false);
+            }}
+            style={{ backgroundColor: '#3a3a3a', border: '1px solid #333333', color: '#ffffff' }}
+          >
+            Clear (Use Auto-Detection)
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              localStorage.setItem('cashDrawerIP', cashDrawerIP);
+              setCashDrawerIPDialogOpen(false);
+              setSuccess(`Cash drawer IP configured: ${cashDrawerIP || 'Auto-detection enabled'}`);
+              addTimeout(() => setSuccess(null), 3000);
+            }}
+            style={{ backgroundColor: '#3a3a3a', border: '1px solid #333333', color: '#ffffff' }}
+          >
+            <i className="bi bi-check-circle me-1"></i>
+            Save
+          </Button>
+        </Modal.Footer>
+      </Modal>
       
       {/* Fullscreen indicator */}
       <FullscreenIndicator />

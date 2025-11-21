@@ -5,6 +5,37 @@ const path = require('path');
 const fs = require('fs');
 const net = require('net'); // For network-based cash drawers
 
+// Create logs directory if it doesn't exist
+const logsDir = path.join(app.getPath('userData'), 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
+
+// Log file path
+const logFile = path.join(logsDir, `cash-drawer-${new Date().toISOString().split('T')[0]}.log`);
+
+// Helper function to write to both console and log file
+function logToFile(level, message, data = null) {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] [${level}] ${message}${data ? ' ' + JSON.stringify(data, null, 2) : ''}\n`;
+  
+  // Write to console
+  if (level === 'ERROR') {
+    console.error(message, data || '');
+  } else if (level === 'WARN') {
+    console.warn(message, data || '');
+  } else {
+    console.log(message, data || '');
+  }
+  
+  // Write to log file
+  try {
+    fs.appendFileSync(logFile, logMessage, 'utf8');
+  } catch (err) {
+    console.error('Failed to write to log file:', err);
+  }
+}
+
 // Conditionally load serialport - it may fail if not rebuilt for Electron
 let SerialPort = null;
 try {
@@ -112,22 +143,37 @@ function createWindow() {
     mainWindow.show();
     mainWindow.setFullScreen(true);
     mainWindow.setMenuBarVisibility(false);
+    
+    // Open DevTools in development mode or if F12 is pressed
+    if (isDev) {
+      // mainWindow.webContents.openDevTools(); // Uncomment to auto-open DevTools
+    }
   });
 
-  // 🔹 Handle fullscreen toggle
+  // 🔹 Handle keyboard shortcuts (F12 for DevTools, F11/Escape for fullscreen)
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
 
+    // F12 - Toggle DevTools (works in both dev and production)
+    if (input.key === 'F12') {
+      mainWindow.webContents.toggleDevTools();
+      return;
+    }
+
+    // Escape - Exit fullscreen
     if (input.key === 'Escape' && mainWindow.isFullScreen()) {
       mainWindow.setFullScreen(false);
       mainWindow.setMenuBarVisibility(true);
       mainWindow.webContents.send('fullscreen-exited');
+      return;
     }
 
+    // F11 - Toggle fullscreen
     if (input.key === 'F11') {
       const isFullScreen = mainWindow.isFullScreen();
       mainWindow.setFullScreen(!isFullScreen);
       mainWindow.setMenuBarVisibility(!isFullScreen);
+      return;
     }
   });
 
@@ -135,19 +181,19 @@ function createWindow() {
     // If app is not quitting, prevent default and send IPC message
     if (!app.isQuitting) {
       event.preventDefault();
-      try {
-        mainWindow.webContents.send('app-closing');
-      } catch (err) {
-        console.error('Error sending app-closing event:', err);
-      }
+    try {
+      mainWindow.webContents.send('app-closing');
+    } catch (err) {
+      console.error('Error sending app-closing event:', err);
+    }
     } else {
       // If app is quitting, force destroy customer display window
-      if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+    if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
         customerDisplayWindow.removeAllListeners();
         customerDisplayWindow.destroy();
         customerDisplayWindow = null;
-      }
-      stopBackend();
+    }
+    stopBackend();
     }
   });
 
@@ -337,7 +383,7 @@ ipcMain.on('cart-updated', (event, cartData) => {
   // Send to customer display window if it exists and is not destroyed
   if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
     try {
-      customerDisplayWindow.webContents.send('cart-updated', currentCartState);
+    customerDisplayWindow.webContents.send('cart-updated', currentCartState);
     } catch (error) {
       console.error('Error sending cart update to customer display:', error);
     }
@@ -348,7 +394,7 @@ ipcMain.on('request-cart-state', (event) => {
   // Send current cart state to requesting window if customer display exists
   if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
     try {
-      customerDisplayWindow.webContents.send('cart-updated', currentCartState);
+    customerDisplayWindow.webContents.send('cart-updated', currentCartState);
     } catch (error) {
       console.error('Error sending cart state to customer display:', error);
     }
@@ -376,6 +422,7 @@ ipcMain.on('show-customer-display', () => {
  */
 async function openCashDrawerNetwork(ipAddress, port = 9100) {
   return new Promise((resolve, reject) => {
+    logToFile('INFO', `🌐 Connecting to network cash drawer at ${ipAddress}:${port}`);
     console.log(`🌐 Connecting to network cash drawer at ${ipAddress}:${port}`);
     
     const socket = new net.Socket();
@@ -394,12 +441,15 @@ async function openCashDrawerNetwork(ipAddress, port = 9100) {
     
     socket.on('connect', () => {
       connected = true;
+      logToFile('INFO', `✅ Connected to cash drawer at ${ipAddress}:${port}`);
       console.log(`✅ Connected to cash drawer at ${ipAddress}:${port}`);
       
       // Try first command (most common)
       const command = openDrawerCommands[0];
+      const commandHex = Array.from(command).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+      logToFile('INFO', `📤 Sending cash drawer open command...`, { command: commandHex });
       console.log(`📤 Sending cash drawer open command...`);
-      console.log(`📤 Command bytes:`, Array.from(command).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' '));
+      console.log(`📤 Command bytes:`, commandHex);
       
       socket.write(command, (err) => {
         if (err) {
@@ -410,6 +460,7 @@ async function openCashDrawerNetwork(ipAddress, port = 9100) {
         }
         
         commandSent = true;
+        logToFile('INFO', `✅ Cash drawer command sent successfully`, { ip: ipAddress, port: port });
         console.log('✅ Cash drawer command sent successfully');
         
         // Flush and keep connection open briefly to ensure command is processed
@@ -418,6 +469,7 @@ async function openCashDrawerNetwork(ipAddress, port = 9100) {
         // Keep connection open briefly to ensure command is processed
         setTimeout(() => {
           socket.end();
+          logToFile('INFO', `✅ Cash drawer operation completed`, { ip: ipAddress, port: port, success: true });
           resolve({ 
             success: true, 
             type: 'network',
@@ -429,6 +481,7 @@ async function openCashDrawerNetwork(ipAddress, port = 9100) {
     });
     
     socket.on('error', (err) => {
+      logToFile('ERROR', `❌ Network error connecting to ${ipAddress}:${port}`, { error: err.message, code: err.code });
       console.error(`❌ Network error connecting to ${ipAddress}:${port}:`, err.message);
       if (!commandSent) {
         reject(new Error(`Failed to connect to cash drawer: ${err.message}`));
@@ -436,6 +489,7 @@ async function openCashDrawerNetwork(ipAddress, port = 9100) {
     });
     
     socket.on('timeout', () => {
+      logToFile('ERROR', `❌ Connection timeout to ${ipAddress}:${port}`);
       console.error(`❌ Connection timeout to ${ipAddress}:${port}`);
       socket.destroy();
       if (!commandSent) {
@@ -465,29 +519,55 @@ async function detectNetworkCashDrawer() {
   // Get local network IPs first (most likely)
   const os = require('os');
   const interfaces = os.networkInterfaces();
+  let localNetworkIP = null;
+  
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
       if (iface.family === 'IPv4' && !iface.internal) {
         localIPs.push(iface.address);
+        if (!localNetworkIP) {
+          localNetworkIP = iface.address;
+        }
         // Also try common IPs on same subnet
         const parts = iface.address.split('.');
         if (parts.length === 4) {
-          // Try a few IPs on the same subnet
-          for (let i = 1; i <= 10; i++) {
-            localIPs.push(`${parts[0]}.${parts[1]}.${parts[2]}.${i}`);
+          // Try common IPs on the same subnet (prioritize .1, .100, .101)
+          localIPs.push(`${parts[0]}.${parts[1]}.${parts[2]}.1`);
+          localIPs.push(`${parts[0]}.${parts[1]}.${parts[2]}.100`);
+          localIPs.push(`${parts[0]}.${parts[1]}.${parts[2]}.101`);
+          for (let i = 2; i <= 20; i++) {
+            if (i !== 100 && i !== 101) {
+              localIPs.push(`${parts[0]}.${parts[1]}.${parts[2]}.${i}`);
+            }
           }
         }
       }
     }
   }
   
-  // Add common defaults
-  localIPs.push('192.168.1.1', '192.168.0.1', '192.168.1.100', '192.168.0.100');
+  // Add common defaults (prioritize these at the beginning)
+  // Since user's PC is at 192.168.0.37, prioritize 192.168.0.x subnet
+  localIPs.unshift(
+    '192.168.0.100', '192.168.0.101', '192.168.0.102', '192.168.0.103',
+    '192.168.0.1', '192.168.0.2', '192.168.0.10', '192.168.0.20',
+    '192.168.1.100', '192.168.1.1', '192.168.1.101'
+  );
   
+  logToFile('INFO', '🔍 Scanning for network cash drawer', { localNetworkIP, totalIPs: localIPs.length });
   console.log('🔍 Scanning for network cash drawer (this may take a few seconds)...');
+  console.log(`📍 Your PC IP: ${localNetworkIP || 'unknown'}, scanning subnet 192.168.0.x`);
   
-  // Try most likely IPs first (limit to avoid long wait)
-  const ipsToTry = [...new Set(localIPs)].slice(0, 15); // Remove duplicates and limit
+  // Try most likely IPs first (limit to avoid long wait, but prioritize 192.168.0.x)
+  const uniqueIPs = [...new Set(localIPs)];
+  // Sort to prioritize 192.168.0.x subnet
+  const sortedIPs = uniqueIPs.sort((a, b) => {
+    const aIsTargetSubnet = a.startsWith('192.168.0.');
+    const bIsTargetSubnet = b.startsWith('192.168.0.');
+    if (aIsTargetSubnet && !bIsTargetSubnet) return -1;
+    if (!aIsTargetSubnet && bIsTargetSubnet) return 1;
+    return 0;
+  });
+  const ipsToTry = sortedIPs.slice(0, 30); // Try more IPs since we know the subnet
   
   // Try ports in parallel for faster detection
   for (const ip of ipsToTry) {
@@ -781,54 +861,111 @@ function tryOpenDrawer(portPath, baudRate, commands) {
  * Supports both network (TCP/IP) and serial (USB/COM) connections
  */
 ipcMain.handle('open-till', async (event, options = {}) => {
+  logToFile('INFO', '💰 Open Till button clicked', options);
   try {
     // Check if network connection is specified
     if (options.ipAddress) {
       const port = options.port || 9100; // Default to port 9100 (raw printing)
+      logToFile('INFO', `Using specified IP address: ${options.ipAddress}:${port}`);
       const result = await openCashDrawerNetwork(options.ipAddress, port);
+      logToFile('INFO', 'Cash drawer command completed', result);
       return { 
         success: true, 
         message: `Cash drawer opened successfully via network (${options.ipAddress}:${port})`, 
         type: 'network',
         address: result.address,
-        commandUsed: result.commandUsed
+        commandUsed: result.commandUsed,
+        logFile: logFile
       };
     }
     
     // If no IP specified but network mode is requested, try auto-detection
     if (options.networkMode === true || options.networkMode === 'auto') {
+      logToFile('INFO', '🔍 Auto-detecting network cash drawer...');
       console.log('🔍 Auto-detecting network cash drawer...');
-      const detected = await detectNetworkCashDrawer();
-      if (detected) {
-        const result = await openCashDrawerNetwork(detected.ip, detected.port);
-        return { 
-          success: true, 
-          message: `Cash drawer opened successfully via network (auto-detected: ${detected.ip}:${detected.port})`, 
-          type: 'network',
-          address: result.address,
-          commandUsed: result.commandUsed
-        };
-      } else {
-        throw new Error('Could not auto-detect network cash drawer. Please specify IP address.');
+      
+      try {
+        const detected = await detectNetworkCashDrawer();
+        if (detected) {
+          logToFile('INFO', 'Auto-detected cash drawer', detected);
+          const result = await openCashDrawerNetwork(detected.ip, detected.port);
+          logToFile('INFO', 'Cash drawer command completed', result);
+          return { 
+            success: true, 
+            message: `Cash drawer opened successfully via network (auto-detected: ${detected.ip}:${detected.port})`, 
+            type: 'network',
+            address: result.address,
+            commandUsed: result.commandUsed,
+            logFile: logFile
+          };
+        } else {
+          logToFile('WARN', 'Could not auto-detect network cash drawer - trying common network IPs directly');
+          console.log('⚠️ Auto-detection failed, trying common network IPs directly...');
+          
+          // Try common IPs directly without scanning
+          // Prioritize 192.168.0.x subnet since user's PC is at 192.168.0.37
+          const commonIPs = [
+            '192.168.0.100', '192.168.0.101', '192.168.0.102', '192.168.0.103',
+            '192.168.0.1', '192.168.0.2', '192.168.0.10', '192.168.0.20',
+            '192.168.1.100', '192.168.1.1'
+          ];
+          const commonPorts = [9100, 515];
+          
+          for (const ip of commonIPs) {
+            for (const port of commonPorts) {
+              try {
+                logToFile('INFO', `Trying direct connection to ${ip}:${port}`);
+                const result = await openCashDrawerNetwork(ip, port);
+                logToFile('INFO', 'Cash drawer command completed', result);
+                return { 
+                  success: true, 
+                  message: `Cash drawer opened successfully via network (${ip}:${port})`, 
+                  type: 'network',
+                  address: result.address,
+                  commandUsed: result.commandUsed,
+                  logFile: logFile
+                };
+              } catch (err) {
+                logToFile('WARN', `Failed to connect to ${ip}:${port}`, { error: err.message });
+                // Continue to next IP/port
+              }
+            }
+          }
+          
+          // If all network attempts failed, throw error instead of falling back to serial
+          throw new Error('Could not connect to network cash drawer. Auto-detection failed and common IPs did not work. Please specify the cash drawer IP address manually.');
+        }
+      } catch (error) {
+        logToFile('ERROR', 'Network cash drawer detection/connection failed', { error: error.message });
+        throw error;
       }
     }
     
-    // Otherwise, try serial connection
-    const result = await openCashDrawerSerial(options.portPath);
-    return { 
-      success: true, 
-      message: 'Cash drawer opened successfully', 
-      type: 'serial',
-      port: result.port,
-      baudRate: result.baudRate,
-      commandUsed: result.commandUsed
-    };
+    // Only try serial connection if network mode is explicitly disabled or not requested
+    if (options.networkMode === false || (!options.networkMode && !options.ipAddress)) {
+      logToFile('INFO', 'Using serial port connection');
+      const result = await openCashDrawerSerial(options.portPath);
+      return { 
+        success: true, 
+        message: 'Cash drawer opened successfully', 
+        type: 'serial',
+        port: result.port,
+        baudRate: result.baudRate,
+        commandUsed: result.commandUsed,
+        logFile: logFile
+      };
+    }
+    
+    // If we get here, something went wrong
+    throw new Error('Invalid cash drawer configuration. Please specify either ipAddress for network mode or set networkMode to false for serial mode.');
   } catch (error) {
+    logToFile('ERROR', '❌ Failed to open cash drawer', { error: error.message, stack: error.stack });
     console.error('❌ Failed to open cash drawer:', error);
     return { 
       success: false, 
       message: error.message || 'Failed to open cash drawer. Please check the connection.',
-      error: error.toString()
+      error: error.toString(),
+      logFile: logFile // Include log file path in response
     };
   }
 });
@@ -856,6 +993,87 @@ ipcMain.handle('get-serial-ports', async () => {
     console.error('❌ Error listing serial ports:', error);
     return { success: false, ports: [], message: error.message };
   }
+});
+
+/**
+ * IPC handler to scan network for cash drawer (quick scan of common IPs)
+ */
+ipcMain.handle('scan-network-drawer', async () => {
+  logToFile('INFO', '🔍 Starting network scan for cash drawer');
+  const foundIPs = [];
+  const commonPorts = [9100, 515];
+  
+  // Get local network IP
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  let subnet = '192.168.0';
+  
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        const parts = iface.address.split('.');
+        if (parts.length === 4) {
+          subnet = `${parts[0]}.${parts[1]}.${parts[2]}`;
+          break;
+        }
+      }
+    }
+  }
+  
+  logToFile('INFO', `Scanning subnet ${subnet}.x for cash drawer`);
+  console.log(`🔍 Scanning ${subnet}.x subnet for cash drawer...`);
+  
+  // Scan common IPs on the subnet (limit to avoid long wait)
+  const ipsToScan = [];
+  for (let i = 1; i <= 150; i++) {
+    if (i !== 37) { // Skip PC's own IP
+      ipsToScan.push(`${subnet}.${i}`);
+    }
+  }
+  
+  // Try first 30 IPs to keep it fast
+  const ipsToTry = ipsToScan.slice(0, 30);
+  
+  for (const ip of ipsToTry) {
+    for (const port of commonPorts) {
+      try {
+        const socket = new net.Socket();
+        socket.setTimeout(300); // 300ms timeout per IP
+        
+        await new Promise((resolve, reject) => {
+          socket.on('connect', () => {
+            socket.destroy();
+            foundIPs.push({ ip, port, status: 'open' });
+            logToFile('INFO', `Found open port: ${ip}:${port}`);
+            resolve();
+          });
+          
+          socket.on('error', () => {
+            reject();
+          });
+          
+          socket.on('timeout', () => {
+            socket.destroy();
+            reject();
+          });
+          
+          socket.connect(port, ip);
+        });
+      } catch (e) {
+        // Continue scanning
+      }
+    }
+  }
+  
+  logToFile('INFO', `Network scan completed`, { found: foundIPs.length, subnet });
+  return { 
+    success: true, 
+    foundIPs,
+    subnet,
+    message: foundIPs.length > 0 
+      ? `Found ${foundIPs.length} potential cash drawer(s)` 
+      : 'No cash drawer found. Try manual IP configuration.'
+  };
 });
 
 app.whenReady().then(() => {

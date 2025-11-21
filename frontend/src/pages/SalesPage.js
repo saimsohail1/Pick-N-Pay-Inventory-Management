@@ -919,10 +919,11 @@ const SalesPage = () => {
       const fullItemData = response.data || response;
       
       // Merge cart item data with database item data
-      // Use cart quantity, NOT database stock quantity
+      // Store both cart quantity and DB stock quantity
       const itemToEditData = {
         ...selectedCartItem,
-        stockQuantity: selectedCartItem.quantity, // Use cart quantity, not DB stock
+        stockQuantity: selectedCartItem.quantity, // Cart quantity (editable)
+        dbStockQuantity: fullItemData.stockQuantity, // DB stock quantity (for display only)
         categoryId: fullItemData.categoryId, // Use actual DB category
         generalExpiryDate: fullItemData.generalExpiryDate,
         batchId: fullItemData.batchId,
@@ -990,16 +991,17 @@ const SalesPage = () => {
       await itemsAPI.update(itemToEdit.itemId, itemData);
 
       // Update the item in the cart only
-      // Use formData.stockQuantity as the new cart quantity
+      // IMPORTANT: Keep the original cart quantity unchanged - don't update it from form
       const updatedCart = cart.map(item => {
         if (item.id === itemToEdit.id) {
-          const newQuantity = parseInt(formData.stockQuantity) || item.quantity;
+          // Keep original cart quantity - don't change it
+          const originalQuantity = item.quantity;
           const updatedItem = {
             ...item,
             itemName: formData.name || item.itemName,
             unitPrice: parseFloat(formData.price),
-            quantity: newQuantity, // Update cart quantity only
-            totalPrice: parseFloat(formData.price) * newQuantity,
+            quantity: originalQuantity, // Keep original cart quantity
+            totalPrice: parseFloat(formData.price) * originalQuantity,
             itemBarcode: formData.barcode || item.itemBarcode,
             description: formData.description || item.description,
             categoryId: formData.categoryId || item.categoryId,

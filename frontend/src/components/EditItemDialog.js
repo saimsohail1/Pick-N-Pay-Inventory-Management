@@ -41,6 +41,9 @@ const EditItemDialog = ({
       });
     }
   }, [itemToEdit, reset]);
+  
+  // Get DB stock quantity for display
+  const dbStockQuantity = itemToEdit?.dbStockQuantity ?? null;
 
   const handleFormSubmit = (data) => {
     if (onSave) {
@@ -217,6 +220,12 @@ const EditItemDialog = ({
                 />
                 {errors.stockQuantity && (
                   <div className="invalid-feedback" style={{ color: '#ff6b6b' }}>{errors.stockQuantity.message}</div>
+                )}
+                {dbStockQuantity !== null && (
+                  <Form.Text className="text-muted" style={{ color: '#aaaaaa', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                    <i className="bi bi-info-circle me-1"></i>
+                    Database Stock: {dbStockQuantity} (for reference only)
+                  </Form.Text>
                 )}
               </Form.Group>
             </Col>

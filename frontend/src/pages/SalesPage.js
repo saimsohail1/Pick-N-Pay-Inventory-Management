@@ -1907,31 +1907,63 @@ const SalesPage = () => {
                           setSuccess(null);
                           
                           console.log('💰 Open Till button clicked');
+                          console.log('💰 Checking window.electron:', !!window.electron);
+                          console.log('💰 Checking window.electron.ipcRenderer:', !!window.electron?.ipcRenderer);
                           
-                          if (window.electron && window.electron.ipcRenderer) {
-                            console.log('💰 Sending open-till IPC request...');
+                          if (!window.electron) {
+                            const errorMsg = 'Electron IPC not available. window.electron is undefined. Are you running in Electron?';
+                            setError(errorMsg);
+                            addTimeout(() => setError(null), 8000);
+                            console.error('❌', errorMsg);
+                            setLoading(false);
+                            return;
+                          }
+                          
+                          if (!window.electron.ipcRenderer) {
+                            const errorMsg = 'Electron IPC renderer not available. window.electron.ipcRenderer is undefined.';
+                            setError(errorMsg);
+                            addTimeout(() => setError(null), 8000);
+                            console.error('❌', errorMsg);
+                            setLoading(false);
+                            return;
+                          }
+                          
+                          console.log('💰 Sending open-till IPC request...');
+                          console.log('💰 IPC invoke function exists:', typeof window.electron.ipcRenderer.invoke === 'function');
+                          
+                          try {
                             const result = await window.electron.ipcRenderer.invoke('open-till');
                             
-                            console.log('💰 Open Till result:', result);
+                            console.log('💰 Open Till IPC result received:', result);
+                            console.log('💰 Result type:', typeof result);
+                            console.log('💰 Result keys:', result ? Object.keys(result) : 'null');
                             
                             if (result && result.success) {
-                              setSuccess(`Cash drawer opened successfully! ${result.printer ? `(Printer: ${result.printer})` : ''}`);
+                              const successMsg = `Cash drawer opened successfully! ${result.printer ? `(Printer: ${result.printer})` : ''}`;
+                              setSuccess(successMsg);
                               addTimeout(() => setSuccess(null), 3000);
+                              console.log('✅', successMsg);
                             } else {
-                              const errorMsg = result?.message || 'Failed to open cash drawer. Please check printer connection and drawer cable.';
+                              const errorMsg = result?.message || result?.error || 'Failed to open cash drawer. Please check printer connection and drawer cable.';
                               setError(errorMsg);
                               addTimeout(() => setError(null), 8000);
                               console.error('❌ Open Till failed:', result);
                             }
-                          } else {
-                            const errorMsg = 'Cash drawer functionality is only available in Electron app. window.electron is not available.';
+                          } catch (invokeError) {
+                            console.error('❌ IPC invoke error:', invokeError);
+                            console.error('❌ Error name:', invokeError.name);
+                            console.error('❌ Error message:', invokeError.message);
+                            console.error('❌ Error stack:', invokeError.stack);
+                            const errorMsg = `IPC invoke failed: ${invokeError.message || invokeError.toString()}`;
                             setError(errorMsg);
-                            addTimeout(() => setError(null), 5000);
-                            console.error('❌ Electron IPC not available');
+                            addTimeout(() => setError(null), 8000);
                           }
                         } catch (err) {
-                          console.error('❌ Error opening cash drawer:', err);
-                          const errorMsg = `Failed to open cash drawer: ${err.message || 'Unknown error. Please check the printer connection and console logs.'}`;
+                          console.error('❌ Unexpected error opening cash drawer:', err);
+                          console.error('❌ Error name:', err.name);
+                          console.error('❌ Error message:', err.message);
+                          console.error('❌ Error stack:', err.stack);
+                          const errorMsg = `Failed to open cash drawer: ${err.message || err.toString() || 'Unknown error. Please check the printer connection and console logs.'}`;
                           setError(errorMsg);
                           addTimeout(() => setError(null), 8000);
                         } finally {

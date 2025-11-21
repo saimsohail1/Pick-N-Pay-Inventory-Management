@@ -454,9 +454,44 @@ async function openCashDrawerViaPrinter(printerName = null) {
         
         // PowerShell command to get printer port and send raw bytes directly
         // Using FileStream for more reliable direct port access
-        const psCommand = `$printer = Get-Printer -Name "${targetPrinter}" -ErrorAction SilentlyContinue; if ($printer) { $port = $printer.PortName; $bytes = [System.IO.File]::ReadAllBytes("${tempFile}"); try { $fileStream = New-Object System.IO.FileStream($port, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite); $fileStream.Write($bytes, 0, $bytes.Length); $fileStream.Flush(); $fileStream.Close(); Write-Output "OK" } catch { Write-Output "ERROR: $($_.Exception.Message)" } } else { Write-Output "NOTFOUND" }`;
+        // Note: We use Write-Host for debugging, but Write-Output for the result
+        const psScript = `
+          $printer = Get-Printer -Name "${targetPrinter}" -ErrorAction SilentlyContinue;
+          if ($printer) {
+            $port = $printer.PortName;
+            Write-Host "Found printer: $($printer.Name) on port: $port";
+            $bytes = [System.IO.File]::ReadAllBytes("${tempFile.replace(/\\/g, '/')}");
+            Write-Host "Read $($bytes.Length) bytes";
+            try {
+              $fileStream = New-Object System.IO.FileStream($port, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite);
+              $fileStream.Write($bytes, 0, $bytes.Length);
+              $fileStream.Flush();
+              $fileStream.Close();
+              Write-Host "Command sent successfully";
+              Write-Output "OK"
+            } catch {
+              Write-Output "ERROR: $($_.Exception.Message)"
+            }
+          } else {
+            Write-Output "NOTFOUND"
+          }
+        `;
         
-        exec(`powershell -Command "${psCommand.replace(/"/g, '\\"')}"`, { timeout: 5000 }, (psError, psStdout, psStderr) => {
+        // Write script to temp file to avoid escaping issues
+        const psScriptFile = path.join(app.getPath('temp'), `drawer_script_${Date.now()}.ps1`);
+        fs.writeFileSync(psScriptFile, psScript);
+        
+        console.log(`📤 Executing PowerShell script for drawer...`);
+        exec(`powershell -ExecutionPolicy Bypass -File "${psScriptFile}"`, { timeout: 10000 }, (psError, psStdout, psStderr) => {
+          // Clean up script file
+          try {
+            if (fs.existsSync(psScriptFile)) {
+              fs.unlinkSync(psScriptFile);
+            }
+          } catch (e) {}
+          
+          console.log(`📤 PowerShell stdout:`, psStdout);
+          if (psStderr) console.log(`📤 PowerShell stderr:`, psStderr);
           // Clean up temp file
           try {
             if (fs.existsSync(tempFile)) {

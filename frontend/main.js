@@ -443,81 +443,71 @@ async function openCashDrawerViaPrinter(printerName = null) {
         // Write ESC/POS command to temp file
         fs.writeFileSync(tempFile, openDrawerCommand);
         
-        // Method 1: Try to send to specified printer or default printer
-        const sendToPrinter = (targetPrinter) => {
-          return new Promise((res, rej) => {
-            // Use PowerShell to send raw bytes to printer port
-            // Get printer port and send raw data
-            const psScript = targetPrinter 
-              ? `$p = Get-Printer -Name "${targetPrinter}" -ErrorAction SilentlyContinue; if ($p) { $port = $p.PortName; $bytes = [System.IO.File]::ReadAllBytes("${tempFile}"); [System.IO.File]::WriteAllBytes("$port", $bytes); "OK" } else { "NOTFOUND" }`
-              : `$p = Get-Printer | Where-Object {$_.Default -eq $true} | Select-Object -First 1; if ($p) { $port = $p.PortName; $bytes = [System.IO.File]::ReadAllBytes("${tempFile}"); [System.IO.File]::WriteAllBytes("$port", $bytes); "OK" } else { "NOTFOUND" }`;
-            
-            exec(`powershell -Command "${psScript}"`, { timeout: 5000 }, (error, stdout, stderr) => {
-              if (!error && stdout && stdout.trim() === 'OK') {
-                res(true);
-              } else {
-                rej(new Error('Printer not found or port not accessible'));
-              }
-            });
-          });
-        };
+        // Simple method: Use Windows PRINT command to send raw data to printer
+        // PRINT /D:"Printer Name" sends raw data directly
+        const printCommand = printerName 
+          ? `print /D:"${printerName}" "${tempFile}"`
+          : `print /D:PRN "${tempFile}"`; // PRN = default printer
         
-        // Method 2: Try LPT1 (common for POS printers)
-        const sendToLPT1 = () => {
-          return new Promise((res, rej) => {
-            exec(`copy /B "${tempFile}" LPT1`, { timeout: 3000 }, (error) => {
-              if (!error) {
-                res(true);
-              } else {
-                rej(error);
-              }
-            });
-          });
-        };
+        console.log(`📤 Executing: ${printCommand}`);
         
-        // Try methods in order
-        (async () => {
+        exec(printCommand, { timeout: 5000 }, (error, stdout, stderr) => {
+          // Clean up temp file
           try {
-            // Try specified/default printer first
-            if (printerName) {
-              await sendToPrinter(printerName);
-              logToFile('INFO', `✅ Cash drawer command sent to printer: ${printerName}`);
-              console.log(`✅ Cash drawer command sent to printer: ${printerName}`);
+            if (fs.existsSync(tempFile)) {
               fs.unlinkSync(tempFile);
-              resolve({ success: true, type: 'printer', printer: printerName, commandUsed: 'ESC p 0 60 255' });
-              return;
             }
-            
-            // Try default printer
-            await sendToPrinter(null);
-            logToFile('INFO', '✅ Cash drawer command sent to default printer');
-            console.log('✅ Cash drawer command sent to default printer');
-            fs.unlinkSync(tempFile);
-            resolve({ success: true, type: 'printer', printer: 'default', commandUsed: 'ESC p 0 60 255' });
-          } catch (printerError) {
-            // If printer method failed, try LPT1
-            try {
-              await sendToLPT1();
-              logToFile('INFO', '✅ Cash drawer command sent via LPT1');
-              console.log('✅ Cash drawer command sent via LPT1');
-              fs.unlinkSync(tempFile);
-              resolve({ success: true, type: 'printer', port: 'LPT1', commandUsed: 'ESC p 0 60 255' });
-            } catch (lptError) {
-              // Clean up temp file
-              try { fs.unlinkSync(tempFile); } catch (e) {}
-              
-              const errorMsg = 'Could not send drawer command to printer. ' +
-                'Please ensure:\n' +
-                '1. Printer is connected and powered on\n' +
-                '2. Drawer is connected to printer\'s RJ11 DK port\n' +
-                '3. Printer driver is installed\n' +
-                '4. Try specifying printer name in settings';
-              
-              logToFile('ERROR', '❌ Failed to send to printer', { printerError: printerError.message, lptError: lptError.message });
-              reject(new Error(errorMsg));
-            }
+          } catch (e) {
+            // Ignore cleanup errors
           }
-        })();
+          
+          if (!error) {
+            logToFile('INFO', `✅ Cash drawer command sent to printer: ${printerName || 'default'}`);
+            console.log(`✅ Cash drawer command sent successfully`);
+            resolve({ 
+              success: true, 
+              type: 'printer', 
+              printer: printerName || 'default', 
+              commandUsed: 'ESC p 0 60 255' 
+            });
+          } else {
+            // If print command fails, try alternative: direct port write via PowerShell
+            console.log('⚠️ Print command failed, trying PowerShell method...');
+            
+            const psCommand = printerName
+              ? `$printer = Get-Printer -Name "${printerName}" -ErrorAction SilentlyContinue; if ($printer) { $port = $printer.PortName; $bytes = [System.IO.File]::ReadAllBytes("${tempFile}"); [System.IO.File]::WriteAllBytes("$port", $bytes); Write-Output "OK" } else { Write-Output "NOTFOUND" }`
+              : `$printer = Get-Printer | Where-Object {$_.Default -eq $true} | Select-Object -First 1; if ($printer) { $port = $printer.PortName; $bytes = [System.IO.File]::ReadAllBytes("${tempFile}"); [System.IO.File]::WriteAllBytes("$port", $bytes); Write-Output "OK" } else { Write-Output "NOTFOUND" }`;
+            
+            exec(`powershell -Command "${psCommand.replace(/"/g, '\\"')}"`, { timeout: 5000 }, (psError, psStdout, psStderr) => {
+              if (!psError && psStdout && psStdout.trim().includes('OK')) {
+                logToFile('INFO', `✅ Cash drawer command sent via PowerShell to: ${printerName || 'default'}`);
+                console.log(`✅ Cash drawer command sent successfully via PowerShell`);
+                resolve({ 
+                  success: true, 
+                  type: 'printer', 
+                  printer: printerName || 'default', 
+                  commandUsed: 'ESC p 0 60 255' 
+                });
+              } else {
+                const errorMsg = `Could not send drawer command to printer.\n\n` +
+                  `Troubleshooting:\n` +
+                  `1. Check printer is connected and powered on\n` +
+                  `2. Verify drawer cable is connected to printer's RJ11 DK port\n` +
+                  `3. Ensure printer driver is installed\n` +
+                  `4. Try running as Administrator\n` +
+                  `5. Check printer name in Windows Settings > Printers`;
+                
+                logToFile('ERROR', '❌ Failed to send to printer', { 
+                  printError: error?.message, 
+                  psError: psError?.message,
+                  psStdout: psStdout,
+                  psStderr: psStderr
+                });
+                reject(new Error(errorMsg));
+              }
+            });
+          }
+        });
       } else {
         reject(new Error('Printer-based cash drawer is currently only supported on Windows'));
       }

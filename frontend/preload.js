@@ -26,7 +26,7 @@ contextBridge.exposeInMainWorld('electron', {
     },
     invoke: (channel, ...args) => {
       // Whitelist channels for invoke
-      const validChannels = ['open-till'];
+      const validChannels = ['open-till', 'get-serial-ports'];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, ...args);
       }

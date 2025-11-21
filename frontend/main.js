@@ -3,6 +3,7 @@ const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
 const path = require('path');
 const fs = require('fs');
+const net = require('net'); // For network-based cash drawers
 
 // Conditionally load serialport - it may fail if not rebuilt for Electron
 let SerialPort = null;
@@ -12,7 +13,7 @@ try {
   console.log('✅ SerialPort module loaded successfully');
 } catch (error) {
   console.warn('⚠️ SerialPort module failed to load:', error.message);
-  console.warn('⚠️ Cash drawer functionality will be disabled. Run: npm install --save-dev electron-rebuild && npx electron-rebuild');
+  console.warn('⚠️ Serial-based cash drawer functionality will be disabled. Run: npm install --save-dev electron-rebuild && npx electron-rebuild');
 }
 
 // 🔹 Only disable hardware acceleration on macOS/Linux, keep it ON for Windows
@@ -370,11 +371,167 @@ ipcMain.on('show-customer-display', () => {
 });
 
 /**
+ * Open cash drawer via network (TCP/IP)
+ * Most network cash drawers use port 9100 (raw printing) or 515 (LPR)
+ */
+async function openCashDrawerNetwork(ipAddress, port = 9100) {
+  return new Promise((resolve, reject) => {
+    console.log(`🌐 Connecting to network cash drawer at ${ipAddress}:${port}`);
+    
+    const socket = new net.Socket();
+    let connected = false;
+    let commandSent = false;
+    
+    // ESC/POS commands to try
+    const openDrawerCommands = [
+      Buffer.from([0x1B, 0x70, 0x00, 0x19, 0xFF]), // ESC p 0 - Drawer 0, 100ms on, 510ms off
+      Buffer.from([0x1B, 0x70, 0x01, 0x19, 0xFF]), // ESC p 1 - Drawer 1, 100ms on, 510ms off
+      Buffer.from([0x1B, 0x70, 0x00, 0x32, 0xFF]), // ESC p 0 - Drawer 0, 200ms on, 510ms off
+      Buffer.from([0x1B, 0x70, 0x01, 0x32, 0xFF]), // ESC p 1 - Drawer 1, 200ms on, 510ms off
+    ];
+    
+    socket.setTimeout(5000); // 5 second timeout
+    
+    socket.on('connect', () => {
+      connected = true;
+      console.log(`✅ Connected to cash drawer at ${ipAddress}:${port}`);
+      
+      // Try first command (most common)
+      const command = openDrawerCommands[0];
+      console.log(`📤 Sending cash drawer open command...`);
+      console.log(`📤 Command bytes:`, Array.from(command).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' '));
+      
+      socket.write(command, (err) => {
+        if (err) {
+          console.error('❌ Error writing command:', err);
+          socket.destroy();
+          reject(err);
+          return;
+        }
+        
+        commandSent = true;
+        console.log('✅ Cash drawer command sent successfully');
+        
+        // Flush and keep connection open briefly to ensure command is processed
+        socket.setNoDelay(true); // Disable Nagle algorithm for immediate send
+        
+        // Keep connection open briefly to ensure command is processed
+        setTimeout(() => {
+          socket.end();
+          resolve({ 
+            success: true, 
+            type: 'network',
+            address: `${ipAddress}:${port}`,
+            commandUsed: 1
+          });
+        }, 1000); // Keep open for 1 second
+      });
+    });
+    
+    socket.on('error', (err) => {
+      console.error(`❌ Network error connecting to ${ipAddress}:${port}:`, err.message);
+      if (!commandSent) {
+        reject(new Error(`Failed to connect to cash drawer: ${err.message}`));
+      }
+    });
+    
+    socket.on('timeout', () => {
+      console.error(`❌ Connection timeout to ${ipAddress}:${port}`);
+      socket.destroy();
+      if (!commandSent) {
+        reject(new Error(`Connection timeout to cash drawer at ${ipAddress}:${port}`));
+      }
+    });
+    
+    socket.on('close', () => {
+      if (connected) {
+        console.log('✅ Connection to cash drawer closed');
+      }
+    });
+    
+    // Connect to the cash drawer
+    socket.connect(port, ipAddress);
+  });
+}
+
+/**
+ * Try to auto-detect network cash drawer by scanning common IPs and ports
+ * Optimized for speed - tries most likely IPs first
+ */
+async function detectNetworkCashDrawer() {
+  const commonPorts = [9100, 515]; // Most common ports for network cash drawers
+  const localIPs = [];
+  
+  // Get local network IPs first (most likely)
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        localIPs.push(iface.address);
+        // Also try common IPs on same subnet
+        const parts = iface.address.split('.');
+        if (parts.length === 4) {
+          // Try a few IPs on the same subnet
+          for (let i = 1; i <= 10; i++) {
+            localIPs.push(`${parts[0]}.${parts[1]}.${parts[2]}.${i}`);
+          }
+        }
+      }
+    }
+  }
+  
+  // Add common defaults
+  localIPs.push('192.168.1.1', '192.168.0.1', '192.168.1.100', '192.168.0.100');
+  
+  console.log('🔍 Scanning for network cash drawer (this may take a few seconds)...');
+  
+  // Try most likely IPs first (limit to avoid long wait)
+  const ipsToTry = [...new Set(localIPs)].slice(0, 15); // Remove duplicates and limit
+  
+  // Try ports in parallel for faster detection
+  for (const ip of ipsToTry) {
+    for (const port of commonPorts) {
+      try {
+        const socket = new net.Socket();
+        socket.setTimeout(200); // Quick timeout for scanning
+        
+        const result = await new Promise((resolve, reject) => {
+          socket.on('connect', () => {
+            socket.destroy();
+            resolve({ ip, port });
+          });
+          
+          socket.on('error', () => {
+            reject();
+          });
+          
+          socket.on('timeout', () => {
+            socket.destroy();
+            reject();
+          });
+          
+          socket.connect(port, ip);
+        });
+        
+        console.log(`✅ Found potential cash drawer at ${result.ip}:${result.port}`);
+        return result;
+      } catch (e) {
+        // Continue scanning
+      }
+    }
+  }
+  
+  console.log('⚠️ Could not auto-detect network cash drawer');
+  return null;
+}
+
+/**
  * Open cash drawer using ESC/POS command via serial port
  * ESC/POS command: ESC p (0x1B 0x70) m t1 t2
  * Common values: 0x1B 0x70 0x00 0x19 0xFF (opens drawer 1)
  */
-async function openCashDrawer() {
+async function openCashDrawerSerial(specifiedPort = null) {
   // Check if SerialPort is available
   if (!SerialPort) {
     throw new Error('SerialPort module not available. Please rebuild native modules: npm install --save-dev electron-rebuild && npx electron-rebuild');
@@ -383,16 +540,24 @@ async function openCashDrawer() {
   try {
     // Get list of available serial ports
     const ports = await SerialPort.list();
-    console.log('🔌 Available serial ports:', ports.map(p => p.path));
+    console.log('🔌 Available serial ports:', ports.map(p => ({ path: p.path, manufacturer: p.manufacturer })));
 
     if (ports.length === 0) {
       throw new Error('No serial ports found. Please connect your cash drawer.');
     }
 
-    // Find the first available port
-    let portPath = null;
+    // Use specified port if provided, otherwise find the first available port
+    let portPath = specifiedPort;
     
-    if (process.platform === 'win32') {
+    // If port is specified, verify it exists
+    if (portPath) {
+      const found = ports.find(p => p.path === portPath || p.path.toUpperCase() === portPath.toUpperCase());
+      if (!found) {
+        throw new Error(`Specified port ${portPath} not found. Available ports: ${ports.map(p => p.path).join(', ')}`);
+      }
+      portPath = found.path;
+      console.log(`✅ Using specified port: ${portPath}`);
+    } else if (process.platform === 'win32') {
       // Windows: Check COM ports (COM1-COM20) and USB serial ports
       // USB-to-serial adapters often show up as COM ports
       const windowsPorts = [];
@@ -438,85 +603,173 @@ async function openCashDrawer() {
     }
 
     console.log(`💰 Opening cash drawer on port: ${portPath}`);
+    console.log(`📋 Port details:`, ports.find(p => p.path === portPath));
 
-    // Create serial port connection
-    const port = new SerialPort({
-      path: portPath,
-      baudRate: 9600, // Common baud rate for cash drawers
-      dataBits: 8,
-      parity: 'none',
-      stopBits: 1
-    });
-
-    // ESC/POS command to open cash drawer
-    // ESC p (0x1B 0x70) m t1 t2
-    // m = drawer number (0 or 1)
-    // t1 = on time in 2ms units (0x19 = 50 * 2ms = 100ms)
-    // t2 = off time in 2ms units (0xFF = 255 * 2ms = 510ms)
-    // Try drawer 0 first, then drawer 1 if needed
+    // ESC/POS commands to try (various formats)
     const openDrawerCommands = [
-      Buffer.from([0x1B, 0x70, 0x00, 0x19, 0xFF]), // Drawer 0
-      Buffer.from([0x1B, 0x70, 0x01, 0x19, 0xFF]), // Drawer 1
-      Buffer.from([0x10, 0x14, 0x01, 0x00, 0x01])  // Alternative command
+      Buffer.from([0x1B, 0x70, 0x00, 0x19, 0xFF]), // ESC p 0 - Drawer 0, 100ms on, 510ms off
+      Buffer.from([0x1B, 0x70, 0x01, 0x19, 0xFF]), // ESC p 1 - Drawer 1, 100ms on, 510ms off
+      Buffer.from([0x1B, 0x70, 0x00, 0x32, 0xFF]), // ESC p 0 - Drawer 0, 200ms on, 510ms off
+      Buffer.from([0x1B, 0x70, 0x01, 0x32, 0xFF]), // ESC p 1 - Drawer 1, 200ms on, 510ms off
+      Buffer.from([0x10, 0x14, 0x01, 0x00, 0x01]), // Alternative command format
+      Buffer.from([0x1B, 0x70, 0x00, 0x64, 0x64]), // ESC p 0 - Drawer 0, longer pulse
     ];
 
-    return new Promise((resolve, reject) => {
+    // Common baud rates to try
+    const baudRates = [9600, 19200, 115200, 38400, 57600];
+
+    // Try each baud rate
+    let lastError = null;
+    for (const baudRate of baudRates) {
+      try {
+        console.log(`🔌 Trying baud rate: ${baudRate}`);
+        const result = await tryOpenDrawer(portPath, baudRate, openDrawerCommands);
+        if (result && result.success) {
+          return result;
+        }
+      } catch (error) {
+        console.log(`⚠️ Baud rate ${baudRate} failed:`, error.message);
+        lastError = error;
+        // Continue to next baud rate
+      }
+    }
+
+    // If we get here, all baud rates and commands failed
+    const errorMsg = `Failed to open cash drawer. Tried ${baudRates.length} baud rates and ${openDrawerCommands.length} commands on port ${portPath}.\n\n` +
+      `Possible issues:\n` +
+      `1. Wrong serial port - Check Device Manager (Windows) to find the correct COM port\n` +
+      `2. Drawer connected through printer - If drawer is connected via RJ11/RJ12 to a printer, use the printer's COM port\n` +
+      `3. Wrong baud rate - Your drawer might need a different baud rate\n` +
+      `4. Drawer needs different command format\n` +
+      `5. Port is locked by another application\n\n` +
+      `Available ports: ${ports.map(p => p.path).join(', ')}`;
+    
+    throw new Error(errorMsg);
+  } catch (error) {
+    console.error('❌ Error opening cash drawer:', error);
+    throw error;
+  }
+}
+
+/**
+ * Try to open drawer with specific baud rate
+ */
+function tryOpenDrawer(portPath, baudRate, commands) {
+  return new Promise((resolve, reject) => {
+    let port = null;
+    let commandIndex = 0;
+    let portOpened = false;
+
+    try {
+      port = new SerialPort({
+        path: portPath,
+        baudRate: baudRate,
+        dataBits: 8,
+        parity: 'none',
+        stopBits: 1,
+        autoOpen: false // Don't open automatically
+      });
+
       port.on('open', () => {
-        console.log('✅ Serial port opened successfully');
+        portOpened = true;
+        console.log(`✅ Serial port opened at ${baudRate} baud`);
         
-        // Try each command in sequence
-        let commandIndex = 0;
-        const tryNextCommand = () => {
-          if (commandIndex >= openDrawerCommands.length) {
-            port.close();
-            reject(new Error('All cash drawer commands failed'));
-            return;
-          }
-          
-          const command = openDrawerCommands[commandIndex];
-          console.log(`💰 Trying command ${commandIndex + 1}/${openDrawerCommands.length}`);
-          
-          port.write(command, (err) => {
-            if (err) {
-              console.error(`❌ Error writing command ${commandIndex + 1}:`, err);
-              commandIndex++;
-              setTimeout(tryNextCommand, 100);
-              return;
-            }
-            
-            console.log(`✅ Cash drawer open command ${commandIndex + 1} sent successfully`);
-            
-            // Close the port after a short delay
-            setTimeout(() => {
-              port.close((err) => {
-                if (err) {
-                  console.error('⚠️ Error closing serial port:', err);
-                } else {
-                  console.log('✅ Serial port closed');
-                }
-                resolve({ success: true, port: portPath, commandUsed: commandIndex + 1 });
-              });
-            }, 500);
-          });
-        };
-        
-        // Start trying commands
-        tryNextCommand();
+        // Small delay to ensure port is ready
+        setTimeout(() => {
+          tryNextCommand();
+        }, 100);
       });
 
       port.on('error', (err) => {
-        console.error('❌ Serial port error:', err);
+        console.error(`❌ Serial port error at ${baudRate} baud:`, err);
+        if (port && port.isOpen) {
+          port.close();
+        }
         reject(err);
       });
 
-      // Timeout after 5 seconds
-      setTimeout(() => {
-        if (port.isOpen) {
-          port.close();
+      const tryNextCommand = () => {
+        if (commandIndex >= commands.length) {
+          if (port && port.isOpen) {
+            port.close();
+          }
+          reject(new Error(`All commands failed at ${baudRate} baud`));
+          return;
         }
-        reject(new Error('Timeout: Could not open serial port within 5 seconds'));
-      }, 5000);
-    });
+        
+        const command = commands[commandIndex];
+        console.log(`💰 Trying command ${commandIndex + 1}/${commands.length} at ${baudRate} baud`);
+        console.log(`📤 Command bytes:`, Array.from(command).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' '));
+        
+        port.write(command, (err) => {
+          if (err) {
+            console.error(`❌ Error writing command ${commandIndex + 1}:`, err);
+            commandIndex++;
+            setTimeout(tryNextCommand, 200);
+            return;
+          }
+          
+          // Flush the buffer to ensure data is sent
+          port.drain((drainErr) => {
+            if (drainErr) {
+              console.error('⚠️ Error draining port:', drainErr);
+            }
+            
+            console.log(`✅ Command ${commandIndex + 1} sent and flushed at ${baudRate} baud`);
+            
+            // Keep port open longer to ensure command is processed
+            setTimeout(() => {
+              if (port && port.isOpen) {
+                port.close((closeErr) => {
+                  if (closeErr) {
+                    console.error('⚠️ Error closing serial port:', closeErr);
+                  } else {
+                    console.log('✅ Serial port closed');
+                  }
+                  resolve({ 
+                    success: true, 
+                    port: portPath, 
+                    baudRate: baudRate,
+                    commandUsed: commandIndex + 1 
+                  });
+                });
+              } else {
+                resolve({ 
+                  success: true, 
+                  port: portPath, 
+                  baudRate: baudRate,
+                  commandUsed: commandIndex + 1 
+                });
+              }
+            }, 1000); // Keep open for 1 second
+          });
+        });
+      };
+
+      // Open the port
+      port.open((err) => {
+        if (err) {
+          console.error(`❌ Failed to open port at ${baudRate} baud:`, err);
+          reject(err);
+        }
+      });
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        if (!portOpened) {
+          if (port) {
+            port.close();
+          }
+          reject(new Error(`Timeout: Could not open serial port at ${baudRate} baud within 10 seconds`));
+        }
+      }, 10000);
+    } catch (error) {
+      if (port && port.isOpen) {
+        port.close();
+      }
+      reject(error);
+    }
+  });
   } catch (error) {
     console.error('❌ Error opening cash drawer:', error);
     throw error;
@@ -525,11 +778,51 @@ async function openCashDrawer() {
 
 /**
  * IPC handler for opening cash drawer
+ * Supports both network (TCP/IP) and serial (USB/COM) connections
  */
-ipcMain.handle('open-till', async (event) => {
+ipcMain.handle('open-till', async (event, options = {}) => {
   try {
-    const result = await openCashDrawer();
-    return { success: true, message: 'Cash drawer opened successfully', port: result.port };
+    // Check if network connection is specified
+    if (options.ipAddress) {
+      const port = options.port || 9100; // Default to port 9100 (raw printing)
+      const result = await openCashDrawerNetwork(options.ipAddress, port);
+      return { 
+        success: true, 
+        message: `Cash drawer opened successfully via network (${options.ipAddress}:${port})`, 
+        type: 'network',
+        address: result.address,
+        commandUsed: result.commandUsed
+      };
+    }
+    
+    // If no IP specified but network mode is requested, try auto-detection
+    if (options.networkMode === true || options.networkMode === 'auto') {
+      console.log('🔍 Auto-detecting network cash drawer...');
+      const detected = await detectNetworkCashDrawer();
+      if (detected) {
+        const result = await openCashDrawerNetwork(detected.ip, detected.port);
+        return { 
+          success: true, 
+          message: `Cash drawer opened successfully via network (auto-detected: ${detected.ip}:${detected.port})`, 
+          type: 'network',
+          address: result.address,
+          commandUsed: result.commandUsed
+        };
+      } else {
+        throw new Error('Could not auto-detect network cash drawer. Please specify IP address.');
+      }
+    }
+    
+    // Otherwise, try serial connection
+    const result = await openCashDrawerSerial(options.portPath);
+    return { 
+      success: true, 
+      message: 'Cash drawer opened successfully', 
+      type: 'serial',
+      port: result.port,
+      baudRate: result.baudRate,
+      commandUsed: result.commandUsed
+    };
   } catch (error) {
     console.error('❌ Failed to open cash drawer:', error);
     return { 
@@ -537,6 +830,31 @@ ipcMain.handle('open-till', async (event) => {
       message: error.message || 'Failed to open cash drawer. Please check the connection.',
       error: error.toString()
     };
+  }
+});
+
+/**
+ * IPC handler to get list of available serial ports
+ */
+ipcMain.handle('get-serial-ports', async () => {
+  if (!SerialPort) {
+    return { success: false, ports: [], message: 'SerialPort module not available' };
+  }
+  
+  try {
+    const ports = await SerialPort.list();
+    return { 
+      success: true, 
+      ports: ports.map(p => ({
+        path: p.path,
+        manufacturer: p.manufacturer,
+        vendorId: p.vendorId,
+        productId: p.productId
+      }))
+    };
+  } catch (error) {
+    console.error('❌ Error listing serial ports:', error);
+    return { success: false, ports: [], message: error.message };
   }
 });
 

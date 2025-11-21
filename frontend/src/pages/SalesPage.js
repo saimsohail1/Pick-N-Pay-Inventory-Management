@@ -1918,13 +1918,22 @@ const SalesPage = () => {
                           setLoading(true);
                           setError(null);
                           if (window.electron && window.electron.ipcRenderer) {
-                            const result = await window.electron.ipcRenderer.invoke('open-till');
+                            // Try network mode first (Ethernet/LAN connection)
+                            // Auto-detect or use common defaults
+                            const result = await window.electron.ipcRenderer.invoke('open-till', { 
+                              networkMode: 'auto' // Auto-detect network cash drawer
+                            });
+                            
                             if (result.success) {
-                              setSuccess('Cash drawer opened successfully!');
-                              addTimeout(() => setSuccess(null), 3000);
+                              const details = result.type === 'network' 
+                                ? ` (Network: ${result.address})` 
+                                : result.port ? ` (Port: ${result.port}${result.baudRate ? `, Baud: ${result.baudRate}` : ''})` : '';
+                              setSuccess(`Cash drawer command sent successfully!${details}\n\nNote: If drawer didn't open, check:\n1. Network connection and IP address\n2. Firewall settings (port 9100)\n3. Check console for detailed logs`);
+                              addTimeout(() => setSuccess(null), 5000);
+                              console.log('Cash drawer result:', result);
                             } else {
-                              setError(result.message || 'Failed to open cash drawer');
-                              addTimeout(() => setError(null), 5000);
+                              setError(result.message || 'Failed to open cash drawer. Please check network connection and IP address.');
+                              addTimeout(() => setError(null), 8000);
                             }
                           } else {
                             setError('Cash drawer functionality is only available in Electron app');
@@ -1932,8 +1941,8 @@ const SalesPage = () => {
                           }
                         } catch (err) {
                           console.error('Error opening cash drawer:', err);
-                          setError('Failed to open cash drawer. Please check the connection.');
-                          addTimeout(() => setError(null), 5000);
+                          setError(`Failed to open cash drawer: ${err.message || 'Please check the network connection and console logs'}`);
+                          addTimeout(() => setError(null), 8000);
                         } finally {
                           setLoading(false);
                         }

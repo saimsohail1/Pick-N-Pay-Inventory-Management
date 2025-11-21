@@ -803,55 +803,48 @@ function convertReceiptToEscPos(sale, companyName, companyAddress) {
 /**
  * Create a simple "Till Opened" receipt
  */
+/**
+ * Create a simple "Till Opened" receipt as HTML
+ * This will be printed via window.print() which triggers the drawer via printer driver
+ */
 function createTillOpenedReceipt(companyName, companyAddress) {
-  const ESC = 0x1B;
-  const LF = 0x0A;
-  const CR = 0x0D;
-  
-  const buffers = [];
-  
-  const appendText = (text) => {
-    if (!text) return;
-    const asciiText = String(text).replace(/[^\x00-\x7F]/g, '?');
-    buffers.push(Buffer.from(asciiText, 'ascii'));
-  };
-  
-  const appendBytes = (bytes) => {
-    buffers.push(Buffer.from(bytes));
-  };
-  
-  // Initialize printer
-  appendBytes([ESC, 0x40]);
-  
-  // Center align
-  appendBytes([ESC, 0x61, 0x01]);
-  appendText((companyName || 'ADAMS GREEN').toUpperCase());
-  appendBytes([LF, CR]);
-  
-  if (companyAddress) {
-    appendText(companyAddress);
-    appendBytes([LF, CR]);
-  }
-  
-  appendText('TILL OPENED');
-  appendBytes([LF, CR]);
-  
-  // Date and time
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   
-  appendBytes([ESC, 0x61, 0x00]); // Left align
-  appendText(`Date: ${dateStr}`);
-  appendBytes([LF, CR]);
-  appendText(`Time: ${timeStr}`);
-  appendBytes([LF, CR, LF, LF]);
-  
-  // Cut paper
-  appendBytes([0x1D, 0x56, 0x41, 0x00]); // GS V A 0 - Partial cut
-  appendBytes([LF, LF, LF]);
-  
-  return Buffer.concat(buffers);
+  // Create simple HTML that will be printed via window.print()
+  // This goes through the print spooler which triggers the drawer
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Till Opened</title>
+      <style>
+        @media print {
+          @page { size: 80mm auto; margin: 0; }
+          body { margin: 0; padding: 5mm; font-family: 'Courier New', monospace; font-size: 12px; }
+        }
+        body { 
+          font-family: 'Courier New', monospace; 
+          font-size: 12px; 
+          margin: 0; 
+          padding: 5mm; 
+          text-align: center;
+        }
+        .header { font-weight: bold; margin-bottom: 10px; }
+        .title { font-weight: bold; font-size: 14px; margin: 10px 0; }
+        .info { margin: 5px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="header">${(companyName || 'ADAMS GREEN').toUpperCase()}</div>
+      ${companyAddress ? `<div>${companyAddress}</div>` : ''}
+      <div class="title">TILL OPENED</div>
+      <div class="info">Date: ${dateStr}</div>
+      <div class="info">Time: ${timeStr}</div>
+    </body>
+    </html>
+  `;
 }
 
 /**

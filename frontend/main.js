@@ -447,7 +447,7 @@ async function openCashDrawerViaPrinter(printerName = null) {
         // This avoids interfering with normal print jobs
         const printersToTry = printerName 
           ? [printerName]
-          : ['SGT-116Receipt Printer']; // Primary printer - since it's working, try this first
+          : ['UDiiPOS D2 SGT-116Receipt']; // Primary printer name
         
         const targetPrinter = printersToTry[0];
         console.log(`📤 Sending drawer command to printer: ${targetPrinter}`);

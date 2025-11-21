@@ -3,7 +3,7 @@ import { Table, Button, Form, Alert, Modal, Spinner, Card } from "react-bootstra
 import { format } from "date-fns";
 import { salesAPI, usersAPI, companySettingsAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
-import { directPrint, createReceiptHTML, createSalesHistoryHTML } from '../utils/printUtils';
+import { directPrint, createReceiptHTML, createSalesHistoryHTML, printReceiptRaw } from '../utils/printUtils';
 
 const SalesHistory = () => {
   const { user } = useAuth();
@@ -245,6 +245,23 @@ const SalesHistory = () => {
         // Use existing state if fetch fails
       }
       
+      // Try raw ESC/POS printing first (bypasses print spooler - no drawer interference)
+      if (window.electron && window.electron.ipcRenderer) {
+        try {
+          console.log('🖨️ Attempting raw ESC/POS print (bypasses print spooler)');
+          await printReceiptRaw(
+            sale,
+            currentCompanySettings.companyName,
+            currentCompanySettings.address
+          );
+          return;
+        } catch (rawPrintError) {
+          console.warn('⚠️ Raw ESC/POS print failed, falling back to regular print:', rawPrintError);
+          // Fall through to regular print
+        }
+      }
+      
+      // Fallback to regular print (for non-Electron or if raw print fails)
       const receiptContent = createReceiptHTML(
         sale, 
         currentCompanySettings.companyName, 

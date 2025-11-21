@@ -447,72 +447,54 @@ async function openCashDrawerViaPrinter(printerName = null) {
         // This avoids interfering with normal print jobs
         const printersToTry = printerName 
           ? [printerName]
-          : ['SGT-116Receipt Printer', 'POS-80', 'XP-80C', 'TM-T82']; // Try common POS printer names
+          : ['SGT-116Receipt Printer']; // Primary printer - since it's working, try this first
         
-        let commandSent = false;
-        let lastError = null;
+        const targetPrinter = printersToTry[0];
+        console.log(`📤 Sending drawer command to printer: ${targetPrinter}`);
         
-        const tryNextPrinter = (index) => {
-          if (index >= printersToTry.length) {
-            // All printers failed
-            try {
-              if (fs.existsSync(tempFile)) {
-                fs.unlinkSync(tempFile);
-              }
-            } catch (e) {}
+        // PowerShell command to get printer port and send raw bytes directly
+        // Using FileStream for more reliable direct port access
+        const psCommand = `$printer = Get-Printer -Name "${targetPrinter}" -ErrorAction SilentlyContinue; if ($printer) { $port = $printer.PortName; $bytes = [System.IO.File]::ReadAllBytes("${tempFile}"); try { $fileStream = New-Object System.IO.FileStream($port, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite); $fileStream.Write($bytes, 0, $bytes.Length); $fileStream.Flush(); $fileStream.Close(); Write-Output "OK" } catch { Write-Output "ERROR: $($_.Exception.Message)" } } else { Write-Output "NOTFOUND" }`;
+        
+        exec(`powershell -Command "${psCommand.replace(/"/g, '\\"')}"`, { timeout: 5000 }, (psError, psStdout, psStderr) => {
+          // Clean up temp file
+          try {
+            if (fs.existsSync(tempFile)) {
+              fs.unlinkSync(tempFile);
+            }
+          } catch (e) {
+            // Ignore cleanup errors
+          }
+          
+          if (!psError && psStdout && psStdout.trim().includes('OK')) {
+            logToFile('INFO', `✅ Cash drawer command sent successfully to: ${targetPrinter}`);
+            console.log(`✅ Cash drawer command sent successfully to: ${targetPrinter}`);
+            resolve({ 
+              success: true, 
+              type: 'printer', 
+              printer: targetPrinter, 
+              commandUsed: 'ESC p 0 60 255' 
+            });
+          } else {
+            const errorDetails = psStdout || psStderr || psError?.message || 'Unknown error';
+            console.error(`❌ Failed to send drawer command: ${errorDetails}`);
             
-            const errorMsg = `Could not send drawer command to printer.\n\n` +
-              `Tried printers: ${printersToTry.join(', ')}\n\n` +
+            logToFile('ERROR', '❌ Failed to send drawer command', { 
+              printer: targetPrinter,
+              error: errorDetails
+            });
+            
+            const errorMsg = `Could not send drawer command to printer "${targetPrinter}".\n\n` +
+              `Error: ${errorDetails}\n\n` +
               `Troubleshooting:\n` +
-              `1. Check printer "SGT-116Receipt Printer" is connected and powered on\n` +
+              `1. Check printer is connected and powered on\n` +
               `2. Verify drawer cable is connected to printer's RJ11 DK port\n` +
               `3. Ensure printer driver is installed\n` +
               `4. Try running as Administrator`;
             
-            logToFile('ERROR', '❌ Failed to send to printer', { 
-              printersTried: printersToTry,
-              lastError: lastError?.message
-            });
             reject(new Error(errorMsg));
-            return;
           }
-          
-          const targetPrinter = printersToTry[index];
-          console.log(`📤 Trying printer ${index + 1}/${printersToTry.length}: ${targetPrinter}`);
-          
-          // PowerShell command to get printer port and send raw bytes directly
-          const psCommand = `$printer = Get-Printer -Name "${targetPrinter}" -ErrorAction SilentlyContinue; if ($printer) { $port = $printer.PortName; $bytes = [System.IO.File]::ReadAllBytes("${tempFile}"); try { $stream = [System.IO.File]::OpenWrite($port); $stream.Write($bytes, 0, $bytes.Length); $stream.Close(); Write-Output "OK" } catch { Write-Output "PORT_ERROR" } } else { Write-Output "NOTFOUND" }`;
-          
-          exec(`powershell -Command "${psCommand.replace(/"/g, '\\"')}"`, { timeout: 5000 }, (psError, psStdout, psStderr) => {
-            if (!psError && psStdout && psStdout.trim().includes('OK')) {
-              commandSent = true;
-              logToFile('INFO', `✅ Cash drawer command sent via PowerShell to: ${targetPrinter}`);
-              console.log(`✅ Cash drawer command sent successfully to: ${targetPrinter}`);
-              
-              // Clean up temp file
-              try {
-                if (fs.existsSync(tempFile)) {
-                  fs.unlinkSync(tempFile);
-                }
-              } catch (e) {}
-              
-              resolve({ 
-                success: true, 
-                type: 'printer', 
-                printer: targetPrinter, 
-                commandUsed: 'ESC p 0 60 255' 
-              });
-            } else {
-              console.log(`⚠️ Printer ${targetPrinter} failed: ${psStdout || psError?.message}`);
-              lastError = psError || new Error(psStdout || 'Unknown error');
-              // Try next printer
-              tryNextPrinter(index + 1);
-            }
-          });
-        };
-        
-        // Start trying printers
-        tryNextPrinter(0);
+        });
       } else {
         reject(new Error('Printer-based cash drawer is currently only supported on Windows'));
       }

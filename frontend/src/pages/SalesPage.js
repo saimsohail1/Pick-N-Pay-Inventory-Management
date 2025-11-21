@@ -1261,7 +1261,7 @@ const SalesPage = () => {
   return (
     <div 
       className="sales-page-container" 
-      style={{ backgroundColor: '#000000', margin: 0, padding: 0, width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}
+      style={{ backgroundColor: '#000000', margin: 0, padding: '0.2rem', width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}
       onDoubleClick={handleDoubleClick}
       onTouchEnd={handleTouchEnd}
     >
@@ -1395,7 +1395,7 @@ const SalesPage = () => {
         }
       `}</style>
       {/* Compact Header */}
-      <div className="text-white py-2 px-3" style={{ minHeight: '60px', margin: 0, padding: '0.5rem 1rem', backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a' }}>
+      <div className="text-white py-2 px-3" style={{ minHeight: '55px', margin: 0, padding: '0.4rem 1rem', backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a' }}>
         <div className="d-flex align-items-center justify-content-between w-100">
         <div className="d-flex align-items-center">
             <button
@@ -1574,7 +1574,7 @@ const SalesPage = () => {
       )}
 
       {/* Main Content - Two Column Layout */}
-      <div className="d-flex" style={{ margin: 0, padding: '0.5rem', gap: '0.5rem', minWidth: 'fit-content', minHeight: 'fit-content' }}>
+      <div className="d-flex" style={{ margin: 0, padding: '0.3rem', gap: '0.4rem', minWidth: 'fit-content', minHeight: 'fit-content' }}>
           {/* Left Panel - Items Grid (70%) */}
         <div className="d-flex flex-column" style={{ width: '70%', padding: 0, backgroundColor: '#2a2a2a', borderRadius: '8px', overflow: 'hidden', color: '#ffffff', border: '1px solid #333333' }}>
           {showHeldTransactions ? (
@@ -1921,21 +1921,12 @@ const SalesPage = () => {
                             const result = await window.electron.ipcRenderer.invoke('open-till');
                             
                             if (result.success) {
-                              const details = result.printer ? ` (Printer: ${result.printer})` : '';
-                              const logInfo = result.logFile ? `\n\n📋 Log file: ${result.logFile}` : '';
-                              setSuccess(`Cash drawer command sent successfully!${details}${logInfo}\n\nNote: If drawer didn't open, check:\n1. Drawer is connected to printer's RJ11 DK port\n2. Printer is powered on and connected\n3. Press F12 to open DevTools and check Console tab\n4. Check log file for detailed information`);
-                              addTimeout(() => setSuccess(null), 8000);
+                              setSuccess('Cash drawer command sent successfully!');
+                              addTimeout(() => setSuccess(null), 3000);
                               console.log('Cash drawer result:', result);
-                              if (result.logFile) {
-                                console.log('📋 Detailed logs saved to:', result.logFile);
-                              }
                             } else {
-                              const logInfo = result.logFile ? `\n\n📋 Check log file for details: ${result.logFile}` : '';
-                              setError((result.message || 'Failed to open cash drawer. Please check printer connection and drawer cable.') + logInfo + '\n\nPress F12 to open DevTools and check Console tab for details.');
-                              addTimeout(() => setError(null), 10000);
-                              if (result.logFile) {
-                                console.error('📋 Detailed error logs saved to:', result.logFile);
-                              }
+                              setError(result.message || 'Failed to open cash drawer. Please check printer connection and drawer cable.');
+                              addTimeout(() => setError(null), 5000);
                             }
                           } else {
                             setError('Cash drawer functionality is only available in Electron app');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Row, Col, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { companySettingsAPI } from '../services/api';
@@ -6,6 +6,7 @@ import { companySettingsAPI } from '../services/api';
 const Dashboard = () => {
   const navigate = useNavigate();
   const [companyName, setCompanyName] = useState('ADAMS GREEN');
+  const lastTapRef = useRef(0);
 
   useEffect(() => {
     const fetchCompanyName = async () => {
@@ -30,6 +31,28 @@ const Dashboard = () => {
     window.addEventListener('companyNameUpdated', handleCompanyNameUpdate);
     return () => window.removeEventListener('companyNameUpdated', handleCompanyNameUpdate);
   }, []);
+
+  // Handle double-click to toggle fullscreen
+  const handleDoubleClick = () => {
+    if (window.electron && window.electron.ipcRenderer) {
+      window.electron.ipcRenderer.send('toggle-fullscreen');
+    }
+  };
+
+  // Handle double-tap on touch devices
+  const handleTouchEnd = (e) => {
+    const now = Date.now();
+    const timeDiff = now - lastTapRef.current;
+    
+    if (timeDiff < 300 && timeDiff > 0) {
+      // Double tap detected (within 300ms)
+      e.preventDefault();
+      handleDoubleClick();
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+    }
+  };
 
 
 
@@ -86,7 +109,12 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="animate-fade-in-up" style={{ backgroundColor: 'transparent', minHeight: '100vh', padding: '2rem 0' }}>
+    <div 
+      className="animate-fade-in-up" 
+      style={{ backgroundColor: 'transparent', minHeight: '100vh', padding: '2rem 0' }}
+      onDoubleClick={handleDoubleClick}
+      onTouchEnd={handleTouchEnd}
+    >
       <style>{`
         /* 3D Container Effect - Similar to Dashboard stats-card */
         .container-3d {

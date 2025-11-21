@@ -850,10 +850,6 @@ function tryOpenDrawer(portPath, baudRate, commands) {
       reject(error);
     }
   });
-  } catch (error) {
-    console.error('❌ Error opening cash drawer:', error);
-    throw error;
-  }
 }
 
 /**

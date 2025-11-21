@@ -648,9 +648,13 @@ function convertReceiptToEscPos(sale, companyName, companyAddress) {
   
   const buffers = [];
   
-  // Helper to append text
+  // Helper to append text (use ASCII/latin1 for better ESC/POS compatibility)
   const appendText = (text) => {
-    buffers.push(Buffer.from(text, 'utf8'));
+    // Convert to ASCII-safe string, replacing special characters
+    const asciiText = text
+      .replace(/€/g, 'EUR')
+      .replace(/[^\x00-\x7F]/g, '?'); // Replace non-ASCII with ?
+    buffers.push(Buffer.from(asciiText, 'ascii'));
   };
   
   // Helper to append bytes
@@ -658,13 +662,26 @@ function convertReceiptToEscPos(sale, companyName, companyAddress) {
     buffers.push(Buffer.from(bytes));
   };
   
+  // Log the sale data for debugging
+  console.log('📄 Converting sale to ESC/POS:', JSON.stringify(sale, null, 2));
+  logToFile('INFO', 'Converting sale to ESC/POS', { 
+    saleId: sale.id, 
+    itemCount: sale.saleItems?.length || 0,
+    saleItems: sale.saleItems 
+  });
+  
   // Initialize printer
   appendBytes([ESC, 0x40]); // ESC @ - Initialize printer
+  
+  // Set character code table (PC437 - standard for thermal printers)
+  appendBytes([ESC, 0x74, 0x00]); // ESC t 0 - Select character code table 0 (PC437)
   
   // Center align and bold for header
   appendBytes([ESC, 0x61, 0x01]); // ESC a 1 - Center align
   appendBytes([ESC, 0x45, 0x01]); // ESC E 1 - Bold on
-  appendText(companyName.toUpperCase() + '\n');
+  appendBytes([ESC, 0x21, 0x08]); // ESC ! 8 - Double height
+  appendText((companyName || 'ADAMS GREEN').toUpperCase() + '\n');
+  appendBytes([ESC, 0x21, 0x00]); // ESC ! 0 - Normal size
   appendBytes([ESC, 0x45, 0x00]); // ESC E 0 - Bold off
   
   if (companyAddress) {
@@ -676,21 +693,23 @@ function convertReceiptToEscPos(sale, companyName, companyAddress) {
   
   // Format date
   const saleDate = new Date(sale.saleDate);
-  const dateStr = saleDate.toLocaleDateString('en-GB');
-  const timeStr = saleDate.toLocaleTimeString();
+  const dateStr = saleDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const timeStr = saleDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   appendText(`Date: ${dateStr}\n`);
   appendText(`Time: ${timeStr}\n`);
   appendText(`Sale ID: ${sale.id}\n`);
-  appendText(`Cashier: ${sale.user?.username || 'Unknown'}\n`);
+  appendText(`Cashier: ${sale.user?.username || sale.user?.fullName || 'Unknown'}\n`);
   
   // Divider
   appendText('--------------------------------\n');
   
   // Items
   if (sale.saleItems && sale.saleItems.length > 0) {
-    sale.saleItems.forEach(item => {
-      const name = (item.itemName || 'Unknown Item').substring(0, 32); // Limit length
-      const price = parseFloat(item.unitPrice || 0).toFixed(2);
+    console.log('📦 Processing sale items:', sale.saleItems.length);
+    sale.saleItems.forEach((item, index) => {
+      console.log(`  Item ${index + 1}:`, item);
+      const name = (item.itemName || item.name || 'Unknown Item').substring(0, 32); // Limit length
+      const price = parseFloat(item.unitPrice || item.price || 0).toFixed(2);
       const qty = item.quantity || 1;
       const total = parseFloat(item.totalPrice || 0).toFixed(2);
       
@@ -698,9 +717,12 @@ function convertReceiptToEscPos(sale, companyName, companyAddress) {
       appendText(name + '\n');
       // Quantity and prices (right aligned)
       appendBytes([ESC, 0x61, 0x02]); // Right align
-      appendText(`${qty}x  €${price}  €${total}\n`);
+      appendText(`${qty}x  EUR${price}  EUR${total}\n`);
       appendBytes([ESC, 0x61, 0x00]); // Left align
     });
+  } else {
+    console.warn('⚠️ No sale items found in sale data');
+    appendText('No items\n');
   }
   
   // Divider
@@ -709,16 +731,20 @@ function convertReceiptToEscPos(sale, companyName, companyAddress) {
   // Calculate totals
   const subtotalExcludingVat = sale.saleItems ? sale.saleItems.reduce((sum, item) => 
     sum + parseFloat(item.priceExcludingVat || 0), 0
-  ) : 0;
+  ) : parseFloat(sale.subtotalAmount || sale.totalAmount || 0);
   const totalVat = sale.saleItems ? sale.saleItems.reduce((sum, item) => 
     sum + parseFloat(item.vatAmount || 0), 0
   ) : 0;
   
   appendBytes([ESC, 0x61, 0x02]); // Right align
-  appendText(`Subtotal (excl. VAT): €${subtotalExcludingVat.toFixed(2)}\n`);
-  appendText(`VAT (23%): €${totalVat.toFixed(2)}\n`);
+  appendText(`Subtotal (excl. VAT): EUR${subtotalExcludingVat.toFixed(2)}\n`);
+  if (totalVat > 0) {
+    appendText(`VAT (23%): EUR${totalVat.toFixed(2)}\n`);
+  }
   appendBytes([ESC, 0x45, 0x01]); // Bold on
-  appendText(`TOTAL: €${parseFloat(sale.totalAmount || 0).toFixed(2)}\n`);
+  appendBytes([ESC, 0x21, 0x10]); // ESC ! 16 - Double width
+  appendText(`TOTAL: EUR${parseFloat(sale.totalAmount || 0).toFixed(2)}\n`);
+  appendBytes([ESC, 0x21, 0x00]); // ESC ! 0 - Normal size
   appendBytes([ESC, 0x45, 0x00]); // Bold off
   appendBytes([ESC, 0x61, 0x00]); // Left align
   
@@ -726,13 +752,20 @@ function convertReceiptToEscPos(sale, companyName, companyAddress) {
   appendText('--------------------------------\n');
   appendBytes([ESC, 0x61, 0x01]); // Center align
   appendText('Thank you for your purchase!\n');
-  appendText(companyName + '\n');
+  appendText((companyName || 'ADAMS GREEN') + '\n');
+  
+  // Feed lines before cut
+  appendBytes([LF, LF, LF]);
   
   // Cut paper (partial cut)
   appendBytes([GS, 0x56, 0x41, 0x00]); // GS V A 0 - Partial cut
-  appendBytes([LF, LF, LF]); // Feed a few lines
+  appendBytes([LF, LF, LF]); // Feed a few lines after cut
   
-  return Buffer.concat(buffers);
+  const finalBuffer = Buffer.concat(buffers);
+  console.log(`✅ ESC/POS buffer created: ${finalBuffer.length} bytes`);
+  logToFile('INFO', 'ESC/POS buffer created', { bufferLength: finalBuffer.length });
+  
+  return finalBuffer;
 }
 
 /**
@@ -767,22 +800,55 @@ ipcMain.handle('open-till', async (event, options = {}) => {
  * IPC handler for raw ESC/POS printing (bypasses print spooler)
  */
 ipcMain.handle('print-receipt-raw', async (event, receiptData) => {
-  logToFile('INFO', '🖨️ Raw receipt print requested', { saleId: receiptData.saleId });
+  logToFile('INFO', '🖨️ Raw receipt print requested', { 
+    saleId: receiptData.saleId,
+    sale: receiptData.sale,
+    companyName: receiptData.companyName,
+    companyAddress: receiptData.companyAddress
+  });
+  console.log('🖨️ Raw receipt print requested:', {
+    saleId: receiptData.saleId,
+    saleItemsCount: receiptData.sale?.saleItems?.length || 0,
+    totalAmount: receiptData.sale?.totalAmount
+  });
+  
   try {
+    // Validate sale data
+    if (!receiptData.sale) {
+      throw new Error('Sale data is missing');
+    }
+    
+    if (!receiptData.sale.saleItems || receiptData.sale.saleItems.length === 0) {
+      console.warn('⚠️ Sale has no items, but proceeding with print');
+    }
+    
     const escPosData = convertReceiptToEscPos(
       receiptData.sale,
       receiptData.companyName || 'ADAMS GREEN',
       receiptData.companyAddress || ''
     );
+    
+    console.log(`📤 Sending ${escPosData.length} bytes to printer...`);
     const result = await sendRawEscPosToPrinter(escPosData, receiptData.printerName);
+    
+    logToFile('INFO', '✅ Receipt printed successfully', { 
+      printer: result.printer,
+      dataLength: escPosData.length
+    });
+    
     return {
       success: true,
       message: `Receipt printed successfully${result.printer ? ` (${result.printer})` : ''}`,
       printer: result.printer
     };
   } catch (error) {
-    logToFile('ERROR', '❌ Failed to print receipt', { error: error.message, stack: error.stack });
+    logToFile('ERROR', '❌ Failed to print receipt', { 
+      error: error.message, 
+      stack: error.stack,
+      saleId: receiptData.saleId
+    });
     console.error('❌ Failed to print receipt:', error);
+    console.error('❌ Error stack:', error.stack);
     return {
       success: false,
       message: error.message || 'Failed to print receipt. Please check printer connection.',

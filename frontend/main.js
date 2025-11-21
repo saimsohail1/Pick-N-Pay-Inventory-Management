@@ -570,9 +570,19 @@ async function sendRawEscPosToPrinter(escPosData, printerName = null) {
       // Write ESC/POS data to temp file
       fs.writeFileSync(tempFile, escPosData);
       
+      // Also save a hex dump for debugging
+      const hexDump = Array.from(escPosData).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+      console.log(`📤 ESC/POS data (first 200 bytes): ${hexDump.substring(0, 200)}...`);
+      logToFile('INFO', 'ESC/POS data hex dump', { hexDump: hexDump.substring(0, 500) });
+      
       const targetPrinter = printerName || 'SGT-116Receipt Printer';
       console.log(`📤 Sending raw ESC/POS data to printer: ${targetPrinter}`);
-      logToFile('INFO', '📤 Sending raw ESC/POS print data', { printer: targetPrinter, dataLength: escPosData.length });
+      console.log(`📤 Data length: ${escPosData.length} bytes`);
+      logToFile('INFO', '📤 Sending raw ESC/POS print data', { 
+        printer: targetPrinter, 
+        dataLength: escPosData.length,
+        firstBytes: hexDump.substring(0, 100)
+      });
       
       const psScript = `
         $printer = Get-Printer -Name "${targetPrinter}" -ErrorAction SilentlyContinue;
@@ -580,15 +590,19 @@ async function sendRawEscPosToPrinter(escPosData, printerName = null) {
           $port = $printer.PortName;
           Write-Host "Found printer: $($printer.Name) on port: $port";
           $bytes = [System.IO.File]::ReadAllBytes("${tempFile.replace(/\\/g, '/')}");
-          Write-Host "Read $($bytes.Length) bytes";
+          Write-Host "Read $($bytes.Length) bytes from file";
+          Write-Host "First 50 bytes: $($bytes[0..49] | ForEach-Object { '0x' + $_.ToString('X2') } | Join-String -Separator ' ')";
           try {
             $fileStream = New-Object System.IO.FileStream($port, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite);
-            $fileStream.Write($bytes, 0, $bytes.Length);
+            $bytesWritten = $fileStream.Write($bytes, 0, $bytes.Length);
+            Write-Host "Wrote $bytesWritten bytes to port";
             $fileStream.Flush();
             $fileStream.Close();
             Write-Host "Print data sent successfully";
             Write-Output "OK"
           } catch {
+            Write-Host "Error writing to port: $($_.Exception.Message)";
+            Write-Host "Error type: $($_.Exception.GetType().FullName)";
             Write-Output "ERROR: $($_.Exception.Message)"
           }
         } else {
@@ -600,6 +614,9 @@ async function sendRawEscPosToPrinter(escPosData, printerName = null) {
       fs.writeFileSync(psScriptFile, psScript);
       
       exec(`powershell -ExecutionPolicy Bypass -File "${psScriptFile}"`, { timeout: 15000 }, (psError, psStdout, psStderr) => {
+        console.log(`📤 PowerShell stdout:`, psStdout);
+        if (psStderr) console.log(`📤 PowerShell stderr:`, psStderr);
+        
         // Clean up script file
         try {
           if (fs.existsSync(psScriptFile)) {
@@ -615,7 +632,7 @@ async function sendRawEscPosToPrinter(escPosData, printerName = null) {
         } catch (e) {}
         
         if (!psError && psStdout && psStdout.trim().includes('OK')) {
-          logToFile('INFO', `✅ Raw ESC/POS print data sent successfully to: ${targetPrinter}`);
+          logToFile('INFO', `✅ Raw ESC/POS print data sent successfully to: ${targetPrinter}`, { stdout: psStdout });
           console.log(`✅ Print data sent successfully to: ${targetPrinter}`);
           resolve({ 
             success: true, 
@@ -626,7 +643,9 @@ async function sendRawEscPosToPrinter(escPosData, printerName = null) {
           console.error(`❌ Failed to send print data: ${errorDetails}`);
           logToFile('ERROR', '❌ Failed to send print data', { 
             printer: targetPrinter,
-            error: errorDetails
+            error: errorDetails,
+            stdout: psStdout,
+            stderr: psStderr
           });
           reject(new Error(`Could not send print data to printer "${targetPrinter}": ${errorDetails}`));
         }
@@ -640,18 +659,21 @@ async function sendRawEscPosToPrinter(escPosData, printerName = null) {
 
 /**
  * Convert receipt data to ESC/POS format
+ * Using simpler, more compatible ESC/POS commands
  */
 function convertReceiptToEscPos(sale, companyName, companyAddress) {
   const ESC = 0x1B;
   const GS = 0x1D;
   const LF = 0x0A;
+  const CR = 0x0D;
   
   const buffers = [];
   
-  // Helper to append text (use ASCII/latin1 for better ESC/POS compatibility)
+  // Helper to append text (use ASCII for maximum compatibility)
   const appendText = (text) => {
-    // Convert to ASCII-safe string, replacing special characters
-    const asciiText = text
+    if (!text) return;
+    // Convert to ASCII-safe string
+    const asciiText = String(text)
       .replace(/€/g, 'EUR')
       .replace(/[^\x00-\x7F]/g, '?'); // Replace non-ASCII with ?
     buffers.push(Buffer.from(asciiText, 'ascii'));
@@ -670,63 +692,66 @@ function convertReceiptToEscPos(sale, companyName, companyAddress) {
     saleItems: sale.saleItems 
   });
   
-  // Initialize printer
+  // Initialize printer (CRITICAL - must be first)
   appendBytes([ESC, 0x40]); // ESC @ - Initialize printer
   
-  // Set character code table (PC437 - standard for thermal printers)
-  appendBytes([ESC, 0x74, 0x00]); // ESC t 0 - Select character code table 0 (PC437)
-  
-  // Center align and bold for header
+  // Simple text mode - no fancy formatting that might confuse the printer
   appendBytes([ESC, 0x61, 0x01]); // ESC a 1 - Center align
-  appendBytes([ESC, 0x45, 0x01]); // ESC E 1 - Bold on
-  appendBytes([ESC, 0x21, 0x08]); // ESC ! 8 - Double height
-  appendText((companyName || 'ADAMS GREEN').toUpperCase() + '\n');
-  appendBytes([ESC, 0x21, 0x00]); // ESC ! 0 - Normal size
-  appendBytes([ESC, 0x45, 0x00]); // ESC E 0 - Bold off
+  appendText((companyName || 'ADAMS GREEN').toUpperCase());
+  appendBytes([LF, CR]); // Line feed + carriage return
   
   if (companyAddress) {
-    appendText(companyAddress + '\n');
+    appendText(companyAddress);
+    appendBytes([LF, CR]);
   }
   
-  appendText('SALE RECEIPT\n');
+  appendText('SALE RECEIPT');
+  appendBytes([LF, CR]);
   appendBytes([ESC, 0x61, 0x00]); // ESC a 0 - Left align
   
   // Format date
   const saleDate = new Date(sale.saleDate);
   const dateStr = saleDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const timeStr = saleDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  appendText(`Date: ${dateStr}\n`);
-  appendText(`Time: ${timeStr}\n`);
-  appendText(`Sale ID: ${sale.id}\n`);
-  appendText(`Cashier: ${sale.user?.username || sale.user?.fullName || 'Unknown'}\n`);
+  appendText(`Date: ${dateStr}`);
+  appendBytes([LF, CR]);
+  appendText(`Time: ${timeStr}`);
+  appendBytes([LF, CR]);
+  appendText(`Sale ID: ${sale.id}`);
+  appendBytes([LF, CR]);
+  appendText(`Cashier: ${sale.user?.username || sale.user?.fullName || 'Unknown'}`);
+  appendBytes([LF, CR]);
   
   // Divider
-  appendText('--------------------------------\n');
+  appendText('--------------------------------');
+  appendBytes([LF, CR]);
   
   // Items
   if (sale.saleItems && sale.saleItems.length > 0) {
     console.log('📦 Processing sale items:', sale.saleItems.length);
     sale.saleItems.forEach((item, index) => {
       console.log(`  Item ${index + 1}:`, item);
-      const name = (item.itemName || item.name || 'Unknown Item').substring(0, 32); // Limit length
+      const name = (item.itemName || item.name || 'Unknown Item').substring(0, 32);
       const price = parseFloat(item.unitPrice || item.price || 0).toFixed(2);
       const qty = item.quantity || 1;
       const total = parseFloat(item.totalPrice || 0).toFixed(2);
       
-      // Item name (left aligned)
-      appendText(name + '\n');
-      // Quantity and prices (right aligned)
-      appendBytes([ESC, 0x61, 0x02]); // Right align
-      appendText(`${qty}x  EUR${price}  EUR${total}\n`);
-      appendBytes([ESC, 0x61, 0x00]); // Left align
+      // Item name
+      appendText(name);
+      appendBytes([LF, CR]);
+      // Quantity and prices
+      appendText(`${qty}x  EUR${price}  EUR${total}`);
+      appendBytes([LF, CR]);
     });
   } else {
     console.warn('⚠️ No sale items found in sale data');
-    appendText('No items\n');
+    appendText('No items');
+    appendBytes([LF, CR]);
   }
   
   // Divider
-  appendText('--------------------------------\n');
+  appendText('--------------------------------');
+  appendBytes([LF, CR]);
   
   // Calculate totals
   const subtotalExcludingVat = sale.saleItems ? sale.saleItems.reduce((sum, item) => 
@@ -736,34 +761,38 @@ function convertReceiptToEscPos(sale, companyName, companyAddress) {
     sum + parseFloat(item.vatAmount || 0), 0
   ) : 0;
   
-  appendBytes([ESC, 0x61, 0x02]); // Right align
-  appendText(`Subtotal (excl. VAT): EUR${subtotalExcludingVat.toFixed(2)}\n`);
+  appendText(`Subtotal (excl. VAT): EUR${subtotalExcludingVat.toFixed(2)}`);
+  appendBytes([LF, CR]);
   if (totalVat > 0) {
-    appendText(`VAT (23%): EUR${totalVat.toFixed(2)}\n`);
+    appendText(`VAT (23%): EUR${totalVat.toFixed(2)}`);
+    appendBytes([LF, CR]);
   }
-  appendBytes([ESC, 0x45, 0x01]); // Bold on
-  appendBytes([ESC, 0x21, 0x10]); // ESC ! 16 - Double width
-  appendText(`TOTAL: EUR${parseFloat(sale.totalAmount || 0).toFixed(2)}\n`);
-  appendBytes([ESC, 0x21, 0x00]); // ESC ! 0 - Normal size
-  appendBytes([ESC, 0x45, 0x00]); // Bold off
-  appendBytes([ESC, 0x61, 0x00]); // Left align
+  appendText(`TOTAL: EUR${parseFloat(sale.totalAmount || 0).toFixed(2)}`);
+  appendBytes([LF, CR]);
   
   // Footer
-  appendText('--------------------------------\n');
+  appendText('--------------------------------');
+  appendBytes([LF, CR]);
   appendBytes([ESC, 0x61, 0x01]); // Center align
-  appendText('Thank you for your purchase!\n');
-  appendText((companyName || 'ADAMS GREEN') + '\n');
+  appendText('Thank you for your purchase!');
+  appendBytes([LF, CR]);
+  appendText(companyName || 'ADAMS GREEN');
+  appendBytes([LF, CR]);
   
   // Feed lines before cut
   appendBytes([LF, LF, LF]);
   
   // Cut paper (partial cut)
   appendBytes([GS, 0x56, 0x41, 0x00]); // GS V A 0 - Partial cut
-  appendBytes([LF, LF, LF]); // Feed a few lines after cut
+  appendBytes([LF, LF, LF]); // Feed after cut
   
   const finalBuffer = Buffer.concat(buffers);
   console.log(`✅ ESC/POS buffer created: ${finalBuffer.length} bytes`);
-  logToFile('INFO', 'ESC/POS buffer created', { bufferLength: finalBuffer.length });
+  console.log(`📤 First 100 bytes: ${Array.from(finalBuffer.slice(0, 100)).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ')}`);
+  logToFile('INFO', 'ESC/POS buffer created', { 
+    bufferLength: finalBuffer.length,
+    firstBytes: Array.from(finalBuffer.slice(0, 50)).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ')
+  });
   
   return finalBuffer;
 }
@@ -797,6 +826,25 @@ ipcMain.handle('open-till', async (event, options = {}) => {
 });
 
 /**
+ * Test print function - sends simple text to verify printer works
+ */
+async function testPrint(printerName = null) {
+  const ESC = 0x1B;
+  const LF = 0x0A;
+  const CR = 0x0D;
+  
+  const testData = Buffer.concat([
+    Buffer.from([ESC, 0x40]), // Initialize
+    Buffer.from('TEST PRINT\n', 'ascii'),
+    Buffer.from('If you see this, printer is working!\n', 'ascii'),
+    Buffer.from([LF, LF, LF])
+  ]);
+  
+  console.log('🧪 Sending test print...');
+  return await sendRawEscPosToPrinter(testData, printerName);
+}
+
+/**
  * IPC handler for raw ESC/POS printing (bypasses print spooler)
  */
 ipcMain.handle('print-receipt-raw', async (event, receiptData) => {
@@ -828,6 +876,10 @@ ipcMain.handle('print-receipt-raw', async (event, receiptData) => {
       receiptData.companyAddress || ''
     );
     
+    if (escPosData.length === 0) {
+      throw new Error('ESC/POS data is empty - nothing to print');
+    }
+    
     console.log(`📤 Sending ${escPosData.length} bytes to printer...`);
     const result = await sendRawEscPosToPrinter(escPosData, receiptData.printerName);
     
@@ -852,6 +904,28 @@ ipcMain.handle('print-receipt-raw', async (event, receiptData) => {
     return {
       success: false,
       message: error.message || 'Failed to print receipt. Please check printer connection.',
+      error: error.toString()
+    };
+  }
+});
+
+/**
+ * IPC handler for test print
+ */
+ipcMain.handle('test-print', async (event, options = {}) => {
+  logToFile('INFO', '🧪 Test print requested', options);
+  try {
+    const result = await testPrint(options.printerName);
+    return {
+      success: true,
+      message: `Test print sent${result.printer ? ` (${result.printer})` : ''}`,
+      printer: result.printer
+    };
+  } catch (error) {
+    logToFile('ERROR', '❌ Test print failed', { error: error.message });
+    return {
+      success: false,
+      message: error.message || 'Test print failed',
       error: error.toString()
     };
   }

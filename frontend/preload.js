@@ -26,7 +26,7 @@ contextBridge.exposeInMainWorld('electron', {
     },
     invoke: (channel, ...args) => {
       // Whitelist channels for invoke
-      const validChannels = ['open-till', 'get-printers', 'print-receipt-raw'];
+      const validChannels = ['open-till', 'get-printers', 'print-receipt-raw', 'test-print'];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, ...args);
       }

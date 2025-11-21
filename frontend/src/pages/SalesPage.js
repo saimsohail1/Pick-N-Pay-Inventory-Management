@@ -23,7 +23,7 @@ import FullscreenIndicator from '../components/FullscreenIndicator';
 import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
 import EditItemDialog from '../components/EditItemDialog';
 import JsBarcode from 'jsbarcode';
-import { directPrint, createReceiptHTML } from '../utils/printUtils';
+import { directPrint, createReceiptHTML, printReceiptRaw } from '../utils/printUtils';
 
 const SalesPage = () => {
   const [cart, setCart] = useState([]);
@@ -305,6 +305,25 @@ const SalesPage = () => {
         // Use existing state if fetch fails
       }
       
+      // Try raw ESC/POS printing first (bypasses print spooler - no drawer interference)
+      if (window.electron && window.electron.ipcRenderer) {
+        try {
+          console.log('🖨️ Attempting raw ESC/POS print (bypasses print spooler)');
+          await printReceiptRaw(
+            lastSale,
+            currentCompanySettings.companyName,
+            currentCompanySettings.address
+          );
+          setSuccess('Receipt printed successfully!');
+          setTimeout(() => setSuccess(null), 3000);
+          return;
+        } catch (rawPrintError) {
+          console.warn('⚠️ Raw ESC/POS print failed, falling back to regular print:', rawPrintError);
+          // Fall through to regular print
+        }
+      }
+      
+      // Fallback to regular print (for non-Electron or if raw print fails)
       const receiptContent = createReceiptHTML(
         lastSale, 
         currentCompanySettings.companyName, 

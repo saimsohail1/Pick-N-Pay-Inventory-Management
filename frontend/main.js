@@ -447,7 +447,7 @@ async function openCashDrawerViaPrinter(printerName = null) {
         // This avoids interfering with normal print jobs
         const printersToTry = printerName 
           ? [printerName]
-          : ['UDiiPOS D2 SGT-116Receipt']; // Primary printer name
+          : ['SGT-116Receipt']; // Primary printer name
         
         const targetPrinter = printersToTry[0];
         console.log(`📤 Sending drawer command to printer: ${targetPrinter}`);
@@ -600,7 +600,7 @@ async function sendRawEscPosToPrinter(escPosData, printerName = null) {
       console.log(`📤 ESC/POS data (first 200 bytes): ${hexDump.substring(0, 200)}...`);
       logToFile('INFO', 'ESC/POS data hex dump', { hexDump: hexDump.substring(0, 500) });
       
-      const targetPrinter = printerName || 'UDiiPOS D2 SGT-116Receipt';
+      const targetPrinter = printerName || 'SGT-116Receipt';
       console.log(`📤 Sending raw ESC/POS data to printer: ${targetPrinter}`);
       console.log(`📤 Data length: ${escPosData.length} bytes`);
       logToFile('INFO', '📤 Sending raw ESC/POS print data', { 

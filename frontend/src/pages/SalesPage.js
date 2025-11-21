@@ -990,18 +990,18 @@ const SalesPage = () => {
       // Update the item in the database (without changing stock quantity)
       await itemsAPI.update(itemToEdit.itemId, itemData);
 
-      // Update the item in the cart only
-      // IMPORTANT: Keep the original cart quantity unchanged - don't update it from form
+      // Update the item in the cart
+      // Update cart quantity from the form value
       const updatedCart = cart.map(item => {
         if (item.id === itemToEdit.id) {
-          // Keep original cart quantity - don't change it
-          const originalQuantity = item.quantity;
+          // Use the quantity from the form (user can edit it)
+          const newQuantity = parseInt(formData.stockQuantity) || item.quantity;
           const updatedItem = {
             ...item,
             itemName: formData.name || item.itemName,
             unitPrice: parseFloat(formData.price),
-            quantity: originalQuantity, // Keep original cart quantity
-            totalPrice: parseFloat(formData.price) * originalQuantity,
+            quantity: newQuantity, // Update cart quantity from form
+            totalPrice: parseFloat(formData.price) * newQuantity,
             itemBarcode: formData.barcode || item.itemBarcode,
             description: formData.description || item.description,
             categoryId: formData.categoryId || item.categoryId,
@@ -1016,7 +1016,7 @@ const SalesPage = () => {
 
       setCart(updatedCart);
       setEditItemDialogOpen(false);
-      setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart. Database stock unchanged until checkout.`);
+      setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart (quantity: ${parseInt(formData.stockQuantity) || itemToEdit.quantity}). Database stock unchanged until checkout.`);
       addTimeout(() => setSuccess(null), 3000);
       
       // Show print label dialog

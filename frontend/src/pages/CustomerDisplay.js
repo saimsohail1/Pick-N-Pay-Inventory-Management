@@ -14,7 +14,7 @@ const CustomerDisplay = () => {
         console.log('CustomerDisplay: Received cart update', cartData);
         if (cartData) {
           console.log('CustomerDisplay: Setting total to', cartData.total);
-          setTotal(cartData.total || 0);
+        setTotal(cartData.total || 0);
         } else {
           console.log('CustomerDisplay: No cart data received');
         }
@@ -26,14 +26,14 @@ const CustomerDisplay = () => {
       // Request initial cart state after a short delay to ensure IPC is ready
       setTimeout(() => {
         if (window.electron && window.electron.ipcRenderer) {
-          window.electron.ipcRenderer.send('request-cart-state');
+      window.electron.ipcRenderer.send('request-cart-state');
           console.log('CustomerDisplay: Requested initial cart state');
         }
       }, 1000);
 
       return () => {
         if (window.electron && window.electron.ipcRenderer) {
-          window.electron.ipcRenderer.removeListener('cart-updated', handleCartUpdate);
+        window.electron.ipcRenderer.removeListener('cart-updated', handleCartUpdate);
         }
       };
     }
@@ -75,7 +75,7 @@ const CustomerDisplay = () => {
       padding: '1rem'
     }}>
       {/* Company Name - Small at top */}
-      <div style={{
+        <div style={{
         position: 'absolute',
         top: '1rem',
         left: '50%',
@@ -84,17 +84,17 @@ const CustomerDisplay = () => {
         backgroundColor: '#2a2a2a',
         border: '1px solid #333333',
         borderRadius: '6px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
         <h2 style={{
           fontSize: '1.75rem',
           fontWeight: '600',
           color: '#aaaaaa',
-          margin: 0
-        }}>
-          {companyName}
+            margin: 0
+          }}>
+            {companyName}
         </h2>
-      </div>
+        </div>
 
       {/* Total Display - Large and Prominent */}
       <div style={{
@@ -135,7 +135,7 @@ const CustomerDisplay = () => {
             lineHeight: '1.1',
             textShadow: '0 2px 10px rgba(255,255,255,0.1)',
             fontFamily: 'Arial, sans-serif'
-          }}>
+        }}>
             €{total.toFixed(2)}
           </div>
         </div>

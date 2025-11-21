@@ -160,8 +160,8 @@ const Dashboard = () => {
                 <div className="text-center">
                   <h1 className="page-title" style={{ color: '#ffffff', margin: 0 }}>
                     <i className="bi bi-speedometer2 me-3" style={{ color: '#ffffff' }}></i>
-                    Welcome to {companyName}
-                  </h1>
+                Welcome to {companyName}
+              </h1>
                   <p className="page-subtitle" style={{ color: '#ffffff', marginTop: '0.5rem', marginBottom: 0 }}>Modern Point of Sale System</p>
                 </div>
               </div>
@@ -179,39 +179,39 @@ const Dashboard = () => {
           padding: '2rem',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
         }}>
-          {/* Navigation Cards Grid */}
+        {/* Navigation Cards Grid */}
           <Row className="g-4 mb-0">
-            {navigationCards.map((card, index) => (
-              <Col xs={12} sm={6} md={4} lg={3} key={index}>
-                <Card 
-                  className="h-100 stats-card hover-lift" 
-                  style={{ 
-                    cursor: 'pointer',
+          {navigationCards.map((card, index) => (
+            <Col xs={12} sm={6} md={4} lg={3} key={index}>
+              <Card 
+                className="h-100 stats-card hover-lift" 
+                style={{ 
+                  cursor: 'pointer',
                     animationDelay: `${index * 0.1}s`,
                     backgroundColor: '#2a2a2a',
                     border: '1px solid #333333',
                     color: '#ffffff'
-                  }}
-                  onClick={() => navigate(card.path)}
-                >
+                }}
+                onClick={() => navigate(card.path)}
+              >
                   <Card.Body className="d-flex flex-column justify-content-center align-items-center py-4" style={{ backgroundColor: '#2a2a2a' }}>
-                    <div 
-                      className="icon-xl mx-auto mb-3"
-                      style={{ 
+                  <div 
+                    className="icon-xl mx-auto mb-3"
+                    style={{ 
                         background: `linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 100%)`,
                         color: '#ffffff'
-                      }}
-                    >
+                    }}
+                  >
                       <i className={`${card.icon}`} style={{ color: '#ffffff' }}></i>
-                    </div>
+                  </div>
                     <Card.Title className="mb-0 fw-bold text-center" style={{ color: '#ffffff' }}>
-                      {card.title}
-                    </Card.Title>
-                  </Card.Body>
-                </Card>
-              </Col>
-            ))}
-          </Row>
+                    {card.title}
+                  </Card.Title>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
         </div>
       </div>
     </div>

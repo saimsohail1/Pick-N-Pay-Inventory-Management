@@ -4,7 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
-      send: (channel, data) => {
+    send: (channel, data) => {
       // Whitelist channels
       const validChannels = ['cart-updated', 'request-cart-state', 'app-closing', 'app-minimize', 'toggle-fullscreen'];
       if (validChannels.includes(channel)) {

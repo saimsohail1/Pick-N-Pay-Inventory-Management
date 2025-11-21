@@ -324,17 +324,17 @@ const DailyReport = () => {
             <div className="d-flex justify-content-between align-items-center">
               <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
                 <i className="bi bi-file-earmark-text me-2" style={{ color: '#ffffff' }}></i>
-                {startDate === endDate ? 'Daily Report' : 'Date Range Report'}
+              {startDate === endDate ? 'Daily Report' : 'Date Range Report'}
               </h1>
-              <Button
-                onClick={handlePrintReport}
-                className="no-print"
+          <Button
+            onClick={handlePrintReport}
+            className="no-print"
                 style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
-              >
-                <i className="bi bi-printer me-2"></i>
-                PRINT
-              </Button>
-            </div>
+          >
+            <i className="bi bi-printer me-2"></i>
+            PRINT
+          </Button>
+        </div>
           </Card.Header>
           <Card.Body className="p-0">
             {/* Filters Container - Grey with Outline */}
@@ -394,11 +394,11 @@ const DailyReport = () => {
                   style={{ borderRadius: '10px', width: '200px', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                 />
               </div>
+              </div>
             </div>
-            </div>
-            </div>
+      </div>
 
-          {error && (
+      {error && (
             <Alert variant="danger" className="mb-3" style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
           {error}
         </Alert>

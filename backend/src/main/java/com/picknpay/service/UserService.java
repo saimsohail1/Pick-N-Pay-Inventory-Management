@@ -116,8 +116,8 @@ public class UserService {
             throw new RuntimeException("Cannot delete user: User has sales records. Please deactivate the user instead.");
         }
         
-        userRepository.deleteById(id);
-        return true;
+            userRepository.deleteById(id);
+            return true;
     }
 
     public Optional<UserDTO> toggleUserStatus(Long id) {

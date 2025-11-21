@@ -41,9 +41,6 @@ const EditItemDialog = ({
       });
     }
   }, [itemToEdit, reset]);
-  
-  // Get DB stock quantity for display
-  const dbStockQuantity = itemToEdit?.dbStockQuantity ?? null;
 
   const handleFormSubmit = (data) => {
     if (onSave) {
@@ -197,22 +194,22 @@ const EditItemDialog = ({
             <Col md={6}>
               <Form.Group>
                 <Form.Label className="fw-semibold" style={{ color: '#ffffff' }}>
-                  <i className="bi bi-cart me-1"></i>
-                  Cart Quantity *
+                  <i className="bi bi-box-seam me-1"></i>
+                  Database Stock Quantity *
                 </Form.Label>
                 <Controller
                   name="stockQuantity"
                   control={control}
                   rules={{ 
-                    required: 'Quantity is required',
-                    min: { value: 1, message: 'Quantity must be at least 1' }
+                    required: 'Stock quantity is required',
+                    min: { value: 0, message: 'Stock quantity must be 0 or greater' }
                   }}
                   render={({ field }) => (
                     <Form.Control
                       {...field}
                       type="number"
-                      min="1"
-                      placeholder="1"
+                      min="0"
+                      placeholder="0"
                       className={errors.stockQuantity ? 'is-invalid' : ''}
                       style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                     />
@@ -221,10 +218,10 @@ const EditItemDialog = ({
                 {errors.stockQuantity && (
                   <div className="invalid-feedback" style={{ color: '#ff6b6b' }}>{errors.stockQuantity.message}</div>
                 )}
-                {dbStockQuantity !== null && (
+                {itemToEdit?.cartQuantity !== undefined && (
                   <Form.Text className="text-muted" style={{ color: '#aaaaaa', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
                     <i className="bi bi-info-circle me-1"></i>
-                    Database Stock: {dbStockQuantity} (for reference only)
+                    Cart Quantity: {itemToEdit.cartQuantity} (for reference only - not changed by this edit)
                   </Form.Text>
                 )}
               </Form.Group>

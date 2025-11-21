@@ -176,9 +176,9 @@ const Layout = ({ children }) => {
       }}>
         <Container fluid>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/')} 
             className="btn btn-3d-nav fw-bold text-white d-flex align-items-center"
-            style={{
+            style={{ 
               fontSize: '1.2rem',
               padding: '0.75rem 1.25rem',
               fontWeight: '500',
@@ -333,8 +333,8 @@ const Layout = ({ children }) => {
       {/* Content Container - Separate from navbar, starts below it */}
       <div className="layout-content-container" style={{ backgroundColor: '#000000' }}>
         <Container fluid className="py-4" style={{ paddingTop: '2rem', paddingBottom: '2rem', backgroundColor: '#000000' }}>
-          {children}
-        </Container>
+        {children}
+      </Container>
       </div>
       
       {/* Fullscreen indicator */}

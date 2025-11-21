@@ -161,35 +161,35 @@ const CategoryPage = () => {
           <div className="d-flex justify-content-between align-items-center">
             <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
               <i className="bi bi-tags me-2" style={{ color: '#ffffff' }}></i>
-              Categories
-            </h1>
+          Categories
+        </h1>
             <div className="d-flex align-items-center gap-2">
               <span className="badge fs-6" style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
-                {categories.length} Categories
-              </span>
-              <Button
-                onClick={handleInitializeCategories}
-                disabled={initializing}
+            {categories.length} Categories
+          </span>
+          <Button
+            onClick={handleInitializeCategories}
+            disabled={initializing}
                 style={{ backgroundColor: '#3a3a3a', border: '1px solid #333333', color: '#ffffff' }}
                 className="fw-bold"
-              >
-                {initializing ? (
-                  <Spinner animation="border" size="sm" className="me-2" />
-                ) : (
-                  <i className="bi bi-download me-2"></i>
-                )}
-                Initialize Default
-              </Button>
+          >
+            {initializing ? (
+              <Spinner animation="border" size="sm" className="me-2" />
+            ) : (
+              <i className="bi bi-download me-2"></i>
+            )}
+            Initialize Default
+          </Button>
               <Button 
                 onClick={handleCreateCategory} 
                 style={{ backgroundColor: '#3a3a3a', border: '1px solid #333333', color: '#ffffff' }}
                 className="fw-bold"
               >
-                <i className="bi bi-plus-circle me-2"></i>
-                Add Category
-              </Button>
-            </div>
-          </div>
+            <i className="bi bi-plus-circle me-2"></i>
+            Add Category
+          </Button>
+        </div>
+      </div>
         </Card.Header>
         <Card.Body className="p-0" style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           {categories.length === 0 ? (

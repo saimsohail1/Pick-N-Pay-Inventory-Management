@@ -922,8 +922,9 @@ const SalesPage = () => {
       // Store both cart quantity and DB stock quantity
       const itemToEditData = {
         ...selectedCartItem,
-        stockQuantity: selectedCartItem.quantity, // Cart quantity (editable)
-        dbStockQuantity: fullItemData.stockQuantity, // DB stock quantity (for display only)
+        stockQuantity: fullItemData.stockQuantity, // DB stock quantity (editable - this updates DB)
+        cartQuantity: selectedCartItem.quantity, // Cart quantity (for reference only - not editable)
+        dbStockQuantity: fullItemData.stockQuantity, // DB stock quantity (same as stockQuantity, for display)
         categoryId: fullItemData.categoryId, // Use actual DB category
         generalExpiryDate: fullItemData.generalExpiryDate,
         batchId: fullItemData.batchId,
@@ -973,13 +974,12 @@ const SalesPage = () => {
     setLoading(true);
     try {
       // Prepare item data for database update
-      // IMPORTANT: Do NOT update stockQuantity in database - only update other fields
-      // Stock quantity will be updated on checkout, not during cart editing
+      // IMPORTANT: Update stockQuantity in database (this is the DB stock, not cart quantity)
       const itemData = {
         name: formData.name,
         barcode: formData.barcode,
         price: parseFloat(formData.price),
-        // stockQuantity: NOT included - keep database stock unchanged
+        stockQuantity: parseInt(formData.stockQuantity) || itemToEdit.stockQuantity, // Update DB stock quantity
         vatRate: parseFloat(formData.vatRate),
         categoryId: formData.categoryId || null,
         description: formData.description || '',
@@ -987,21 +987,21 @@ const SalesPage = () => {
         generalExpiryDate: formData.generalExpiryDate || null
       };
 
-      // Update the item in the database (without changing stock quantity)
+      // Update the item in the database (including stock quantity)
       await itemsAPI.update(itemToEdit.itemId, itemData);
 
       // Update the item in the cart
-      // Update cart quantity from the form value
+      // IMPORTANT: Keep cart quantity unchanged - it's independent of DB stock
       const updatedCart = cart.map(item => {
         if (item.id === itemToEdit.id) {
-          // Use the quantity from the form (user can edit it)
-          const newQuantity = parseInt(formData.stockQuantity) || item.quantity;
+          // Keep original cart quantity - do NOT change it
+          const originalCartQuantity = item.quantity;
           const updatedItem = {
             ...item,
             itemName: formData.name || item.itemName,
             unitPrice: parseFloat(formData.price),
-            quantity: newQuantity, // Update cart quantity from form
-            totalPrice: parseFloat(formData.price) * newQuantity,
+            quantity: originalCartQuantity, // Keep cart quantity unchanged
+            totalPrice: parseFloat(formData.price) * originalCartQuantity,
             itemBarcode: formData.barcode || item.itemBarcode,
             description: formData.description || item.description,
             categoryId: formData.categoryId || item.categoryId,
@@ -1016,7 +1016,7 @@ const SalesPage = () => {
 
       setCart(updatedCart);
       setEditItemDialogOpen(false);
-      setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart (quantity: ${parseInt(formData.stockQuantity) || itemToEdit.quantity}). Database stock unchanged until checkout.`);
+      setSuccess(`Updated ${formData.name || itemToEdit.itemName} in database (DB stock: ${parseInt(formData.stockQuantity)}). Cart quantity unchanged (${itemToEdit.cartQuantity || itemToEdit.quantity}).`);
       addTimeout(() => setSuccess(null), 3000);
       
       // Show print label dialog

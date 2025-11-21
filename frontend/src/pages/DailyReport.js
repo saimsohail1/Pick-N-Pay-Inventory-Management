@@ -262,7 +262,9 @@ const DailyReport = () => {
         '' // Phone field removed as it doesn't exist in CompanySettings
       );
       
-      // Try direct print first, fallback to window.open for Safari
+      // Z-Report is for standard paper (not thermal), but we'll use direct print
+      // Note: This will use the default printer. If your thermal printer is default,
+      // it may trigger the drawer. Consider setting a different default printer for reports.
       try {
         await directPrint(reportContent, `Z-Report - ${dateRangeText}`);
       } catch (printError) {

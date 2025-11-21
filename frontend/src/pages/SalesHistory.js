@@ -245,10 +245,10 @@ const SalesHistory = () => {
         // Use existing state if fetch fails
       }
       
-      // Try raw ESC/POS printing first (bypasses print spooler - no drawer interference)
+      // ALWAYS use raw ESC/POS printing (bypasses print spooler - NO drawer opening)
       if (window.electron && window.electron.ipcRenderer) {
         try {
-          console.log('🖨️ Attempting raw ESC/POS print (bypasses print spooler)');
+          console.log('🖨️ Printing receipt using raw ESC/POS (no drawer will open)');
           await printReceiptRaw(
             sale,
             currentCompanySettings.companyName,
@@ -256,33 +256,12 @@ const SalesHistory = () => {
           );
           return;
         } catch (rawPrintError) {
-          console.warn('⚠️ Raw ESC/POS print failed, falling back to regular print:', rawPrintError);
-          // Fall through to regular print
+          console.error('❌ Raw ESC/POS print failed:', rawPrintError);
+          alert(`Print failed: ${rawPrintError.message || 'Please check printer connection'}`);
+          return;
         }
-      }
-      
-      // Fallback to regular print (for non-Electron or if raw print fails)
-      const receiptContent = createReceiptHTML(
-        sale, 
-        currentCompanySettings.companyName, 
-        currentCompanySettings.address
-      );
-      try {
-        await directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
-      } catch (printError) {
-        console.log('Direct print failed, trying Safari-compatible method');
-        const printWindow = window.open('', '_blank', 'width=600,height=600');
-        if (printWindow) {
-          printWindow.document.write(receiptContent);
-          printWindow.document.close();
-          printWindow.focus();
-          setTimeout(() => {
-            printWindow.print();
-            setTimeout(() => printWindow.close(), 1000);
-          }, 500);
-        } else {
-          throw new Error('Popup blocked. Please allow popups for this site.');
-        }
+      } else {
+        alert('Receipt printing is only available in Electron app');
       }
     } catch (error) {
       console.error('Print error:', error);

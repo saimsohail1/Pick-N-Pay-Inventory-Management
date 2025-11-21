@@ -305,10 +305,10 @@ const SalesPage = () => {
         // Use existing state if fetch fails
       }
       
-      // Try raw ESC/POS printing first (bypasses print spooler - no drawer interference)
+      // ALWAYS use raw ESC/POS printing (bypasses print spooler - NO drawer opening)
       if (window.electron && window.electron.ipcRenderer) {
         try {
-          console.log('🖨️ Attempting raw ESC/POS print (bypasses print spooler)');
+          console.log('🖨️ Printing receipt using raw ESC/POS (no drawer will open)');
           await printReceiptRaw(
             lastSale,
             currentCompanySettings.companyName,
@@ -318,33 +318,15 @@ const SalesPage = () => {
           setTimeout(() => setSuccess(null), 3000);
           return;
         } catch (rawPrintError) {
-          console.warn('⚠️ Raw ESC/POS print failed, falling back to regular print:', rawPrintError);
-          // Fall through to regular print
+          console.error('❌ Raw ESC/POS print failed:', rawPrintError);
+          setError(`Print failed: ${rawPrintError.message || 'Please check printer connection'}`);
+          setTimeout(() => setError(null), 5000);
+          return;
         }
-      }
-      
-      // Fallback to regular print (for non-Electron or if raw print fails)
-      const receiptContent = createReceiptHTML(
-        lastSale, 
-        currentCompanySettings.companyName, 
-        currentCompanySettings.address
-      );
-      try {
-        await directPrint(receiptContent, `Receipt - Sale #${lastSale.id}`);
-      } catch (printError) {
-        console.log('Direct print failed, trying Safari-compatible method');
-        const printWindow = window.open('', '_blank', 'width=600,height=600');
-        if (printWindow) {
-          printWindow.document.write(receiptContent);
-          printWindow.document.close();
-          printWindow.focus();
-          setTimeout(() => {
-            printWindow.print();
-            setTimeout(() => printWindow.close(), 1000);
-          }, 500);
-        } else {
-          throw new Error('Popup blocked. Please allow popups for this site.');
-        }
+      } else {
+        // Not in Electron - show error
+        setError('Receipt printing is only available in Electron app');
+        setTimeout(() => setError(null), 5000);
       }
     } catch (error) {
       console.error('Print error:', error);
@@ -1981,7 +1963,11 @@ const SalesPage = () => {
                           console.log('💰 IPC invoke function exists:', typeof window.electron.ipcRenderer.invoke === 'function');
                           
                           try {
-                            const result = await window.electron.ipcRenderer.invoke('open-till');
+                            // Pass company info for the "Till Opened" receipt
+                            const result = await window.electron.ipcRenderer.invoke('open-till', {
+                              companyName: companyName,
+                              companyAddress: companyAddress
+                            });
                             
                             console.log('💰 Open Till IPC result received:', result);
                             console.log('💰 Result type:', typeof result);

@@ -695,8 +695,11 @@ function convertReceiptToEscPos(sale, companyName, companyAddress) {
   // Initialize printer (CRITICAL - must be first)
   appendBytes([ESC, 0x40]); // ESC @ - Initialize printer
   
-  // Simple text mode - no fancy formatting that might confuse the printer
-  appendBytes([ESC, 0x61, 0x01]); // ESC a 1 - Center align
+  // Reset all formatting to defaults
+  appendBytes([ESC, 0x61, 0x00]); // Left align
+  appendBytes([ESC, 0x45, 0x00]); // Bold off
+  appendBytes([ESC, 0x21, 0x00]); // Normal size
+  appendBytes([ESC, 0x61, 0x01]); // Center align for header
   appendText((companyName || 'ADAMS GREEN').toUpperCase());
   appendBytes([LF, CR]); // Line feed + carriage return
   
@@ -798,27 +801,111 @@ function convertReceiptToEscPos(sale, companyName, companyAddress) {
 }
 
 /**
+ * Create a simple "Till Opened" receipt
+ */
+function createTillOpenedReceipt(companyName, companyAddress) {
+  const ESC = 0x1B;
+  const LF = 0x0A;
+  const CR = 0x0D;
+  
+  const buffers = [];
+  
+  const appendText = (text) => {
+    if (!text) return;
+    const asciiText = String(text).replace(/[^\x00-\x7F]/g, '?');
+    buffers.push(Buffer.from(asciiText, 'ascii'));
+  };
+  
+  const appendBytes = (bytes) => {
+    buffers.push(Buffer.from(bytes));
+  };
+  
+  // Initialize printer
+  appendBytes([ESC, 0x40]);
+  
+  // Center align
+  appendBytes([ESC, 0x61, 0x01]);
+  appendText((companyName || 'ADAMS GREEN').toUpperCase());
+  appendBytes([LF, CR]);
+  
+  if (companyAddress) {
+    appendText(companyAddress);
+    appendBytes([LF, CR]);
+  }
+  
+  appendText('TILL OPENED');
+  appendBytes([LF, CR]);
+  
+  // Date and time
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  
+  appendBytes([ESC, 0x61, 0x00]); // Left align
+  appendText(`Date: ${dateStr}`);
+  appendBytes([LF, CR]);
+  appendText(`Time: ${timeStr}`);
+  appendBytes([LF, CR, LF, LF]);
+  
+  // Cut paper
+  appendBytes([0x1D, 0x56, 0x41, 0x00]); // GS V A 0 - Partial cut
+  appendBytes([LF, LF, LF]);
+  
+  return Buffer.concat(buffers);
+}
+
+/**
  * IPC handler for opening cash drawer via USB printer
+ * Prints a small receipt via window.print() which triggers the drawer via printer driver
  */
 ipcMain.handle('open-till', async (event, options = {}) => {
   logToFile('INFO', '💰 Open Till button clicked', options);
   try {
-    logToFile('INFO', 'Using printer-based cash drawer');
-    const result = await openCashDrawerViaPrinter(options.printerName);
-    return { 
-      success: true, 
-      message: `Cash drawer opened successfully via printer${result.printer ? ` (${result.printer})` : ''}`, 
-      type: 'printer',
-      printer: result.printer || result.port,
-      commandUsed: result.commandUsed,
-      logFile: logFile
-    };
+    // Create HTML receipt that will be printed via window.print()
+    // This goes through the print spooler which triggers the drawer
+    const tillReceiptHTML = createTillOpenedReceipt(
+      options.companyName || 'ADAMS GREEN',
+      options.companyAddress || ''
+    );
+    
+    // Send HTML to renderer to print via window.print()
+    // This will trigger the drawer because it goes through the print spooler
+    if (event.sender) {
+      event.sender.webContents.executeJavaScript(`
+        (function() {
+          const printWindow = window.open('', '_blank', 'width=300,height=200');
+          if (printWindow) {
+            printWindow.document.write(\`${tillReceiptHTML.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+              printWindow.print();
+              setTimeout(() => printWindow.close(), 500);
+            }, 200);
+            return true;
+          }
+          return false;
+        })();
+      `);
+      
+      logToFile('INFO', '✅ Till opened receipt sent to print (will trigger drawer)');
+      console.log('✅ Till opened receipt sent to print (will trigger drawer)');
+      
+      return { 
+        success: true, 
+        message: `Till opened successfully`, 
+        type: 'printer',
+        logFile: logFile
+      };
+    } else {
+      throw new Error('Cannot access renderer process');
+    }
   } catch (error) {
-    logToFile('ERROR', '❌ Failed to open cash drawer', { error: error.message, stack: error.stack });
-    console.error('❌ Failed to open cash drawer:', error);
+    logToFile('ERROR', '❌ Failed to open till', { error: error.message, stack: error.stack });
+    console.error('❌ Failed to open till:', error);
     return { 
       success: false, 
-      message: error.message || 'Failed to open cash drawer. Please check printer connection.',
+      message: error.message || 'Failed to open till. Please check printer connection.',
       error: error.toString(),
       logFile: logFile
     };

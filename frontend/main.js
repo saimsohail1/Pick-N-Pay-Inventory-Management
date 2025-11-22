@@ -465,6 +465,55 @@ ipcMain.on('show-customer-display', () => {
 });
 
 /**
+ * IPC handler for silent printing (no dialog) - used for receipts, reports, labels
+ */
+ipcMain.handle('print-silent', async (event, options = {}) => {
+  try {
+    const { html, printerName } = options;
+    
+    if (!html) {
+      throw new Error('HTML content is required for printing');
+    }
+
+    // Use Electron's built-in silent printing (no dialog)
+    const printWindow = new BrowserWindow({
+      show: false,
+      webPreferences: { sandbox: true }
+    });
+
+    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+    printWindow.loadURL(dataUrl);
+
+    return new Promise((resolve, reject) => {
+      printWindow.webContents.on('did-finish-load', () => {
+        printWindow.webContents.print({
+          silent: true,
+          printBackground: true,
+          deviceName: printerName || DEFAULT_PRINTER
+        }, (success, failureReason) => {
+          if (!printWindow.isDestroyed()) {
+            setTimeout(() => printWindow.close(), 300);
+          }
+          if (success) {
+            resolve({ success: true, message: 'Printed successfully' });
+          } else {
+            reject(new Error(failureReason || 'Print failed'));
+          }
+        });
+      });
+
+      printWindow.on('error', (err) => {
+        if (!printWindow.isDestroyed()) printWindow.close();
+        reject(err);
+      });
+    });
+  } catch (error) {
+    console.error('❌ Silent print error:', error);
+    return { success: false, message: error.message || 'Print failed' };
+  }
+});
+
+/**
  * IPC handler to get list of available serial ports (unchanged)
  */
 ipcMain.handle('get-serial-ports', async () => {

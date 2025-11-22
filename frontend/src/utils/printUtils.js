@@ -11,35 +11,11 @@
  * @param {string} printerName - Optional printer name
  */
 export const printReceiptRaw = async (sale, companyName = 'ADAMS GREEN', companyAddress = '', printerName = null) => {
-  // Check if running in Electron
-  if (window.electron && window.electron.ipcRenderer) {
-    try {
-      console.log('🖨️ Printing receipt using raw ESC/POS (bypasses print spooler)');
-      const result = await window.electron.ipcRenderer.invoke('print-receipt-raw', {
-        sale: sale,
-        companyName: companyName,
-        companyAddress: companyAddress,
-        printerName: printerName,
-        saleId: sale.id
-      });
-      
-      if (result.success) {
-        console.log('✅ Receipt printed successfully:', result);
-        return true;
-      } else {
-        console.error('❌ Print failed:', result);
-        throw new Error(result.message || 'Failed to print receipt');
-      }
-    } catch (error) {
-      console.error('❌ Raw print error:', error);
-      throw error;
-    }
-  } else {
-    // Fallback to regular print if not in Electron
-    console.warn('⚠️ Not in Electron, falling back to regular print');
-    const receiptContent = createReceiptHTML(sale, companyName, companyAddress);
-    return directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
-  }
+  // Always use directPrint (browser's window.print) - this is what worked in the original version
+  // The IPC handler is just a passthrough, so we use the browser's native printing
+  console.log('🖨️ Printing receipt using browser print (window.print)');
+  const receiptContent = createReceiptHTML(sale, companyName, companyAddress);
+  return directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
 };
 
 /**

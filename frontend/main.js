@@ -492,6 +492,7 @@ ipcMain.handle('print-silent', async (event, options = {}) => {
           // Don't specify deviceName - let it use the default printer
           // deviceName can cause errors if the printer name doesn't match exactly
         }, (success, failureReason) => {
+          console.log('📄 Print callback:', { success, failureReason });
           if (!printWindow.isDestroyed()) {
             setTimeout(() => printWindow.close(), 300);
           }

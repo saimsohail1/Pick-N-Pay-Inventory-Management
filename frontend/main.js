@@ -488,8 +488,9 @@ ipcMain.handle('print-silent', async (event, options = {}) => {
       printWindow.webContents.on('did-finish-load', () => {
         printWindow.webContents.print({
           silent: true,
-          printBackground: true,
-          deviceName: printerName || DEFAULT_PRINTER
+          printBackground: true
+          // Don't specify deviceName - let it use the default printer
+          // deviceName can cause errors if the printer name doesn't match exactly
         }, (success, failureReason) => {
           if (!printWindow.isDestroyed()) {
             setTimeout(() => printWindow.close(), 300);

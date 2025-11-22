@@ -28,28 +28,25 @@ export const directPrint = (content, title = 'Print Document', options = {}) => 
   return new Promise((resolve, reject) => {
     // If in Electron, use silent IPC printing (no dialog)
     if (window.electron && window.electron.ipcRenderer) {
-      try {
-        console.log('🖨️ Printing silently via Electron IPC (no dialog)');
-        window.electron.ipcRenderer.invoke('print-silent', {
-          html: content,
-          printerName: options.printerName || null
-        }).then((result) => {
-          if (result.success) {
-            console.log('✅ Silent print completed');
-            resolve(true);
-          } else {
-            console.error('❌ Silent print failed:', result);
-            reject(new Error(result.message || 'Print failed'));
-          }
-        }).catch((error) => {
-          console.error('❌ Silent print error:', error);
-          reject(error);
-        });
-        return;
-      } catch (error) {
-        console.error('❌ IPC print error, falling back to window.print:', error);
-        // Fall through to window.print() fallback
-      }
+      console.log('🖨️ Printing silently via Electron IPC (no dialog)');
+      window.electron.ipcRenderer.invoke('print-silent', {
+        html: content,
+        printerName: options.printerName || null
+      }).then((result) => {
+        if (result && result.success) {
+          console.log('✅ Silent print completed');
+          resolve(true);
+        } else {
+          console.error('❌ Silent print failed:', result);
+          // Don't fall back to window.print() in Electron - just reject
+          reject(new Error(result?.message || 'Print failed'));
+        }
+      }).catch((error) => {
+        console.error('❌ Silent print error:', error);
+        // Don't fall back to window.print() in Electron - just reject
+        reject(error);
+      });
+      return; // Important: return early to prevent fallback
     }
 
     // Fallback: Use window.print() (will show dialog in browser)

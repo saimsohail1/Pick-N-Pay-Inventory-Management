@@ -1151,28 +1151,16 @@ const SalesPage = () => {
       </html>
     `;
     
-    // Create hidden iframe for printing
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '-9999px';
-    document.body.appendChild(iframe);
-    
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    doc.open();
-    doc.write(labelHTML);
-    doc.close();
-    
-    // Wait for content to load then print
-    setTimeout(() => {
-      iframe.contentWindow.print();
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
-    }, 500);
-    
-    setPrintLabelDialogOpen(false);
-    setItemToPrint(null);
+    // Use silent printing (no dialog) via directPrint
+    try {
+      await directPrint(labelHTML, `Item Label - ${itemToPrint.name}`);
+      setPrintLabelDialogOpen(false);
+      setItemToPrint(null);
+    } catch (error) {
+      console.error('Error printing label:', error);
+      setError('Failed to print label');
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   const handleConfirmDelete = () => {

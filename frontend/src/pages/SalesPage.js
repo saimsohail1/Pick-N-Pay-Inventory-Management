@@ -1040,7 +1040,7 @@ const SalesPage = () => {
     }
   };
 
-  const handlePrintItemLabel = () => {
+  const handlePrintItemLabel = async () => {
     if (!itemToPrint) return;
     
     // Generate barcode SVG

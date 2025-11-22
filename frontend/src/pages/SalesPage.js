@@ -1890,32 +1890,6 @@ const SalesPage = () => {
                       On Hold
                     </Button>
                     <Button 
-                      size="sm" 
-                      className="fw-bold btn-3d" 
-                      style={{ padding: '0.5rem', fontSize: '0.9rem', minHeight: '40px', backgroundColor: '#2a2a2a', color: '#ffffff', marginBottom: '0.5rem' }}
-                      onClick={async () => {
-                        try {
-                          if (window.electron && window.electron.ipcRenderer) {
-                            const result = await window.electron.ipcRenderer.invoke('test-print');
-                            if (result.success) {
-                              setSuccess('Test print sent! Check printer.');
-                              addTimeout(() => setSuccess(null), 3000);
-                            } else {
-                              setError(result.message || 'Test print failed');
-                              addTimeout(() => setError(null), 5000);
-                            }
-                          }
-                        } catch (err) {
-                          setError(`Test print error: ${err.message}`);
-                          addTimeout(() => setError(null), 5000);
-                        }
-                      }}
-                      title="Send test print to verify printer works"
-                    >
-                      <i className="bi bi-printer me-1"></i>
-                      Test Print
-                    </Button>
-                    <Button 
                       size="lg" 
                       className="fw-bold btn-3d" 
                       style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }}

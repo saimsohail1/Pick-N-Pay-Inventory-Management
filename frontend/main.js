@@ -51,6 +51,8 @@ if (process.platform !== 'win32') {
   app.disableHardwareAcceleration();
 }
 
+const DEFAULT_PRINTER = 'SGT-116Receipt'; // ✅ Your actual printer name
+
 let mainWindow;
 let customerDisplayWindow;
 let backendProcess;
@@ -143,23 +145,19 @@ function createWindow() {
     mainWindow.setFullScreen(true);
     mainWindow.setMenuBarVisibility(false);
 
-    // Open DevTools in development mode or if F12 is pressed
     if (isDev) {
-      // mainWindow.webContents.openDevTools(); // Uncomment to auto-open DevTools
+      // mainWindow.webContents.openDevTools();
     }
   });
 
-  // 🔹 Handle keyboard shortcuts (F12 for DevTools, F11/Escape for fullscreen)
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
 
-    // F12 - Toggle DevTools (works in both dev and production)
     if (input.key === 'F12') {
       mainWindow.webContents.toggleDevTools();
       return;
     }
 
-    // Escape - Exit fullscreen
     if (input.key === 'Escape' && mainWindow.isFullScreen()) {
       mainWindow.setFullScreen(false);
       mainWindow.setMenuBarVisibility(true);
@@ -167,7 +165,6 @@ function createWindow() {
       return;
     }
 
-    // F11 - Toggle fullscreen
     if (input.key === 'F11') {
       const isFullScreen = mainWindow.isFullScreen();
       mainWindow.setFullScreen(!isFullScreen);
@@ -177,7 +174,6 @@ function createWindow() {
   });
 
   mainWindow.on('close', (event) => {
-    // If app is not quitting, prevent default and send IPC message
     if (!app.isQuitting) {
       event.preventDefault();
       try {
@@ -186,7 +182,6 @@ function createWindow() {
         console.error('Error sending app-closing event:', err);
       }
     } else {
-      // If app is quitting, force destroy customer display window
       if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
         customerDisplayWindow.removeAllListeners();
         customerDisplayWindow.destroy();
@@ -207,18 +202,15 @@ function createWindow() {
 
 /**
  * Create the customer display window on second monitor
- * Creates on second monitor if available, otherwise on primary monitor
  */
 function createCustomerDisplayWindow() {
   if (customerDisplayWindow) return;
 
-  // Get all displays
   const displays = screen.getAllDisplays();
 
   let targetDisplay;
   let windowX, windowY;
 
-  // Use the second display if available, otherwise use primary display
   if (displays.length >= 2) {
     targetDisplay = displays[1];
     console.log(`📺 Creating customer display window on display 2 (second monitor)`);
@@ -227,7 +219,6 @@ function createCustomerDisplayWindow() {
   } else {
     targetDisplay = displays[0];
     console.log(`📺 Creating customer display window on primary display (only one monitor detected)`);
-    // Position on the right side of the primary display
     windowX = targetDisplay.bounds.x + targetDisplay.bounds.width - 1024 - 20;
     windowY = targetDisplay.bounds.y + 20;
   }
@@ -265,7 +256,6 @@ function createCustomerDisplayWindow() {
     customerDisplayWindow.focus();
     customerDisplayWindow.setMenuBarVisibility(false);
 
-    // Send current cart state when window is ready
     setTimeout(() => {
       try {
         console.log('📺 Sending initial cart state to customer display:', currentCartState);
@@ -273,10 +263,9 @@ function createCustomerDisplayWindow() {
       } catch (error) {
         console.error('Error sending initial cart state:', error);
       }
-    }, 500); // Small delay to ensure window is fully ready
+    }, 500);
   });
 
-  // Also show window if it loads successfully
   customerDisplayWindow.webContents.once('did-finish-load', () => {
     console.log('📺 Customer display window finished loading');
     if (!customerDisplayWindow.isDestroyed()) {
@@ -289,7 +278,6 @@ function createCustomerDisplayWindow() {
     customerDisplayWindow = null;
   });
 
-  // Prevent closing customer display window - just hide it instead
   customerDisplayWindow.on('close', (event) => {
     if (!app.isQuitting) {
       event.preventDefault();
@@ -298,7 +286,6 @@ function createCustomerDisplayWindow() {
     }
   });
 
-  // Add error handling
   customerDisplayWindow.webContents.on('crashed', () => {
     console.error('📺 Customer display window crashed');
     customerDisplayWindow = null;
@@ -316,32 +303,24 @@ function createCustomerDisplayWindow() {
 ipcMain.on('app-closing', () => {
   console.log('📩 Received app-closing from renderer');
 
-  // Set quitting flag so windows can close properly
   app.isQuitting = true;
 
-  // Force destroy customer display window if it exists
   if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
     console.log('🔄 Destroying customer display window...');
-    // Remove all event listeners to prevent interference
     customerDisplayWindow.removeAllListeners();
-    // Force destroy the window
     customerDisplayWindow.destroy();
     customerDisplayWindow = null;
   }
 
-  // Close main window
   if (mainWindow && !mainWindow.isDestroyed()) {
     console.log('🔄 Closing main window...');
     mainWindow.close();
   }
 
-  // Stop backend gracefully
   stopBackend();
 
-  // Give a moment for cleanup, then quit
   setTimeout(() => {
     console.log('🔄 Quitting application...');
-    // Force quit - exit all processes
     app.exit(0);
   }, 300);
 });
@@ -362,7 +341,7 @@ ipcMain.on('toggle-fullscreen', () => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     const isFullScreen = mainWindow.isFullScreen();
     mainWindow.setFullScreen(!isFullScreen);
-    mainWindow.setMenuBarVisibility(isFullScreen); // Show menu bar when not fullscreen
+    mainWindow.setMenuBarVisibility(isFullScreen);
     console.log(`🖥️ Fullscreen ${!isFullScreen ? 'enabled' : 'disabled'}`);
   }
 });
@@ -371,7 +350,6 @@ ipcMain.on('toggle-fullscreen', () => {
  * IPC handlers for cart synchronization
  */
 ipcMain.on('cart-updated', (event, cartData) => {
-  // Store current cart state
   currentCartState = {
     cart: cartData.cart || [],
     subtotal: cartData.subtotal || 0,
@@ -379,7 +357,6 @@ ipcMain.on('cart-updated', (event, cartData) => {
     total: cartData.total || 0
   };
 
-  // Send to customer display window if it exists and is not destroyed
   if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
     try {
       customerDisplayWindow.webContents.send('cart-updated', currentCartState);
@@ -389,8 +366,7 @@ ipcMain.on('cart-updated', (event, cartData) => {
   }
 });
 
-ipcMain.on('request-cart-state', (event) => {
-  // Send current cart state to requesting window if customer display exists
+ipcMain.on('request-cart-state', () => {
   if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
     try {
       customerDisplayWindow.webContents.send('cart-updated', currentCartState);
@@ -409,312 +385,158 @@ ipcMain.on('show-customer-display', () => {
     customerDisplayWindow.focus();
     console.log('📺 Customer display window shown via IPC');
   } else {
-    // Recreate window if it doesn't exist
     console.log('📺 Customer display window not found, recreating...');
     createCustomerDisplayWindow();
   }
 });
 
-/**
- * Open cash drawer using ESC/POS command sent to USB printer
- * The drawer is connected to the printer's RJ11 DK port
- * ESC/POS command: ESC p (0x1B 0x70) m t1 t2
- * Standard command: 0x1B 0x70 0x00 0x3C 0xFF (opens drawer 1)
- */
-async function openCashDrawerViaPrinter(printerName = "SGT-116Receipt") {
+/* ------------------------------------------------------------------
+   🔹 SHARED HTML PRINT HELPER (SILENT, NO POPUP)
+   Uses the Windows printer driver (no raw ports, no USB001).
+------------------------------------------------------------------- */
+function printHtmlSilently(html, printerName = DEFAULT_PRINTER) {
   return new Promise((resolve, reject) => {
     try {
-      // Standard ESC/POS drawer kick command
-      // 0x1B = ESC
-      // 0x70 = 'p' (drawer kick command)
-      // 0x00 = drawer number (0 = drawer 1)
-      // 0x3C = on time (60 * 2ms = 120ms pulse)
-      // 0xFF = off time (255 * 2ms = 510ms)
-      const openDrawerCommand = Buffer.from([0x1B, 0x70, 0x00, 0x3C, 0xFF]);
-
-      logToFile('INFO', '💰 Opening cash drawer via printer', { printerName });
-
       if (process.platform !== 'win32') {
-        return reject(new Error('Printer-based cash drawer is currently only supported on Windows'));
+        return reject(new Error('Silent printing is currently implemented only for Windows'));
       }
 
-      const { exec } = require('child_process');
-      const tempFile = path.join(app.getPath('temp'), `drawer_${Date.now()}.raw`);
-
-      // Write ESC/POS command to temp file
-      fs.writeFileSync(tempFile, openDrawerCommand);
-
-      // Use Windows PRINT command so the installed driver routes to the correct USB endpoint
-      const targetPrinter = printerName || 'SGT-116Receipt';
-      const printCommand = `print /D:USB001 "${tempFile}"`;
-      logToFile('INFO', '📤 Sending drawer command via print', { command: printCommand });
-
-      exec(printCommand, { timeout: 8000 }, (error, stdout, stderr) => {
-        // Best-effort cleanup
-        try {
-          if (fs.existsSync(tempFile)) {
-            fs.unlinkSync(tempFile);
-          }
-        } catch (e) {
-          // ignore
+      const printWindow = new BrowserWindow({
+        show: false,
+        webPreferences: {
+          sandbox: true
         }
-
-        if (error) {
-          logToFile('ERROR', '❌ Drawer print command failed', {
-            printer: targetPrinter,
-            error: error.message,
-            stdout,
-            stderr,
-          });
-          return reject(new Error(`Could not send drawer command to printer "${targetPrinter}".`));
-        }
-
-        logToFile('INFO', '✅ Cash drawer command sent successfully', {
-          printer: targetPrinter,
-          stdout,
-        });
-
-        resolve({
-          success: true,
-          type: 'printer',
-          printer: targetPrinter,
-          commandUsed: 'ESC p 0 60 255',
-        });
       });
-    } catch (error) {
-      logToFile('ERROR', '❌ Error opening cash drawer via printer', { error: error.message });
-      reject(error);
+
+      const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+
+      printWindow.loadURL(dataUrl);
+
+      printWindow.webContents.on('did-finish-load', () => {
+        logToFile('INFO', '🖨️ Starting silent print job', { printerName });
+
+        printWindow.webContents.print(
+          {
+            silent: true,
+            printBackground: true,
+            deviceName: printerName
+          },
+          (success, failureReason) => {
+            if (!success) {
+              logToFile('ERROR', '❌ Silent print failed', { printerName, failureReason });
+              if (!printWindow.isDestroyed()) printWindow.close();
+              return reject(new Error(failureReason || 'Silent print failed'));
+            }
+
+            logToFile('INFO', '✅ Silent print completed', { printerName });
+            if (!printWindow.isDestroyed()) {
+              setTimeout(() => {
+                if (!printWindow.isDestroyed()) printWindow.close();
+              }, 300);
+            }
+            resolve({ success: true, printer: printerName });
+          }
+        );
+      });
+
+      printWindow.on('error', (err) => {
+        logToFile('ERROR', '❌ Error in print window', { error: err.message });
+        if (!printWindow.isDestroyed()) printWindow.close();
+        reject(err);
+      });
+    } catch (err) {
+      logToFile('ERROR', '❌ Exception in printHtmlSilently', { error: err.message });
+      reject(err);
     }
   });
 }
 
-/**
- * Send raw ESC/POS data directly to printer (via Windows print command).
- * This is safe and lets the installed printer driver handle routing to USB.
- */
-async function sendRawEscPosToPrinter(escPosData, printerName = "SGT-116Receipt") {
-  return new Promise((resolve, reject) => {
-    try {
-      if (process.platform !== 'win32') {
-        return reject(new Error('Raw ESC/POS printing is currently only supported on Windows'));
-      }
+/* ------------------------------------------------------------------
+   🔹 OPEN TILL (ONLY): prints a tiny HTML slip AND sends ESC p
+   - Drawer opens ONLY when this is called
+   - Sales receipts will NOT send ESC p
+------------------------------------------------------------------- */
+function createTillOpenedHtml(companyName, companyAddress) {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+  const timeStr = now.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
 
-      const { exec } = require('child_process');
-      const tempFile = path.join(app.getPath('temp'), `receipt_${Date.now()}.raw`);
-
-      // Write ESC/POS bytes to a temp file
-      fs.writeFileSync(tempFile, escPosData);
-
-      const targetPrinter = printerName || 'SGT-116Receipt';
-      const printCommand = `print /D:USB001 "${tempFile}"`;
-
-      const hexPreview = Array.from(escPosData.slice(0, 50))
-        .map((b) => '0x' + b.toString(16).toUpperCase().padStart(2, '0'))
-        .join(' ');
-
-      logToFile('INFO', '📤 Sending raw ESC/POS via print command', {
-        command: printCommand,
-        dataLength: escPosData.length,
-        firstBytes: hexPreview,
-      });
-
-      exec(printCommand, { timeout: 15000 }, (error, stdout, stderr) => {
-        // Cleanup temp file
-        try {
-          if (fs.existsSync(tempFile)) {
-            fs.unlinkSync(tempFile);
-          }
-        } catch (e) {
-          // ignore
-        }
-
-        if (error) {
-          logToFile('ERROR', '❌ Failed to send raw ESC/POS data', {
-            printer: targetPrinter,
-            error: error.message,
-            stdout,
-            stderr,
-          });
-          return reject(new Error(`Could not send print data to printer "${targetPrinter}".`));
-        }
-
-        logToFile('INFO', '✅ Raw ESC/POS data sent successfully', {
-          printer: targetPrinter,
-          stdout,
-        });
-
-        resolve({
-          success: true,
-          printer: targetPrinter,
-        });
-      });
-    } catch (error) {
-      logToFile('ERROR', '❌ Error sending raw ESC/POS print data', { error: error.message });
-      reject(error);
+  // We embed ESC p 0 60 255 as raw control characters in textContent.
+  // Some drivers will pass this to the printer as ESC/POS.
+  // Even if driver ignores it, the print job itself may still trigger the drawer
+  // if configured in the driver.
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Till Opened</title>
+  <style>
+    @page { size: 80mm auto; margin: 2mm; }
+    body {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      margin: 0;
+      padding: 4mm;
+      text-align: center;
     }
-  });
+    .header { font-weight: bold; margin-bottom: 6px; }
+    .title { font-weight: bold; font-size: 13px; margin: 8px 0; }
+    .info { margin: 2px 0; }
+  </style>
+</head>
+<body>
+  <div class="header">${(companyName || 'ADAMS GREEN').toUpperCase()}</div>
+  ${companyAddress ? `<div class="info">${companyAddress}</div>` : ''}
+  <div class="title">TILL OPENED</div>
+  <div class="info">Date: ${dateStr}</div>
+  <div class="info">Time: ${timeStr}</div>
+  <pre id="escPayload" style="margin-top:8px;"></pre>
+  <script>
+    // ESC p 0 60 255 drawer kick sequence
+    const esc = '\\x1B\\x70\\x00\\x3C\\xFF';
+    const node = document.getElementById('escPayload');
+    try {
+      node.textContent = esc + '\\n';
+    } catch (e) {
+      // ignore
+    }
+  </script>
+</body>
+</html>
+`;
 }
 
 /**
- * Convert receipt data to ESC/POS format
- * Using simpler, more compatible ESC/POS commands
- */
-function convertReceiptToEscPos(sale, companyName, companyAddress) {
-  const ESC = 0x1B;
-  const GS = 0x1D;
-  const LF = 0x0A;
-  const CR = 0x0D;
-
-  const buffers = [];
-
-  // Helper to append text (use ASCII for maximum compatibility)
-  const appendText = (text) => {
-    if (!text) return;
-    // Convert to ASCII-safe string
-    const asciiText = String(text)
-      .replace(/€/g, 'EUR')
-      .replace(/[^\x00-\x7F]/g, '?'); // Replace non-ASCII with ?
-    buffers.push(Buffer.from(asciiText, 'ascii'));
-  };
-
-  // Helper to append bytes
-  const appendBytes = (bytes) => {
-    buffers.push(Buffer.from(bytes));
-  };
-
-  // Log the sale data for debugging
-  console.log('📄 Converting sale to ESC/POS:', JSON.stringify(sale, null, 2));
-  logToFile('INFO', 'Converting sale to ESC/POS', {
-    saleId: sale.id,
-    itemCount: sale.saleItems?.length || 0,
-    saleItems: sale.saleItems
-  });
-
-  // Initialize printer (CRITICAL - must be first)
-  appendBytes([ESC, 0x40]); // ESC @ - Initialize printer
-
-  // Reset all formatting to defaults
-  appendBytes([ESC, 0x61, 0x00]); // Left align
-  appendBytes([ESC, 0x45, 0x00]); // Bold off
-  appendBytes([ESC, 0x21, 0x00]); // Normal size
-  appendBytes([ESC, 0x61, 0x01]); // Center align for header
-  appendText((companyName || 'ADAMS GREEN').toUpperCase());
-  appendBytes([LF, CR]); // Line feed + carriage return
-
-  if (companyAddress) {
-    appendText(companyAddress);
-    appendBytes([LF, CR]);
-  }
-
-  appendText('SALE RECEIPT');
-  appendBytes([LF, CR]);
-  appendBytes([ESC, 0x61, 0x00]); // ESC a 0 - Left align
-
-  // Format date
-  const saleDate = new Date(sale.saleDate);
-  const dateStr = saleDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const timeStr = saleDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  appendText(`Date: ${dateStr}`);
-  appendBytes([LF, CR]);
-  appendText(`Time: ${timeStr}`);
-  appendBytes([LF, CR]);
-  appendText(`Sale ID: ${sale.id}`);
-  appendBytes([LF, CR]);
-  appendText(`Cashier: ${sale.user?.username || sale.user?.fullName || 'Unknown'}`);
-  appendBytes([LF, CR]);
-
-  // Divider
-  appendText('--------------------------------');
-  appendBytes([LF, CR]);
-
-  // Items
-  if (sale.saleItems && sale.saleItems.length > 0) {
-    console.log('📦 Processing sale items:', sale.saleItems.length);
-    sale.saleItems.forEach((item, index) => {
-      console.log(`  Item ${index + 1}:`, item);
-      const name = (item.itemName || item.name || 'Unknown Item').substring(0, 32);
-      const price = parseFloat(item.unitPrice || item.price || 0).toFixed(2);
-      const qty = item.quantity || 1;
-      const total = parseFloat(item.totalPrice || 0).toFixed(2);
-
-      // Item name
-      appendText(name);
-      appendBytes([LF, CR]);
-      // Quantity and prices
-      appendText(`${qty}x  EUR${price}  EUR${total}`);
-      appendBytes([LF, CR]);
-    });
-  } else {
-    console.warn('⚠️ No sale items found in sale data');
-    appendText('No items');
-    appendBytes([LF, CR]);
-  }
-
-  // Divider
-  appendText('--------------------------------');
-  appendBytes([LF, CR]);
-
-  // Calculate totals
-  const subtotalExcludingVat = sale.saleItems ? sale.saleItems.reduce((sum, item) =>
-    sum + parseFloat(item.priceExcludingVat || 0), 0
-  ) : parseFloat(sale.subtotalAmount || sale.totalAmount || 0);
-  const totalVat = sale.saleItems ? sale.saleItems.reduce((sum, item) =>
-    sum + parseFloat(item.vatAmount || 0), 0
-  ) : 0;
-
-  appendText(`Subtotal (excl. VAT): EUR${subtotalExcludingVat.toFixed(2)}`);
-  appendBytes([LF, CR]);
-  if (totalVat > 0) {
-    appendText(`VAT (23%): EUR${totalVat.toFixed(2)}`);
-    appendBytes([LF, CR]);
-  }
-  appendText(`TOTAL: EUR${parseFloat(sale.totalAmount || 0).toFixed(2)}`);
-  appendBytes([LF, CR]);
-
-  // Footer
-  appendText('--------------------------------');
-  appendBytes([LF, CR]);
-  appendBytes([ESC, 0x61, 0x01]); // Center align
-  appendText('Thank you for your purchase!');
-  appendBytes([LF, CR]);
-  appendText(companyName || 'ADAMS GREEN');
-  appendBytes([LF, CR]);
-
-  // Feed lines before cut
-  appendBytes([LF, LF, LF]);
-
-  // Cut paper (partial cut)
-  appendBytes([GS, 0x56, 0x41, 0x00]); // GS V A 0 - Partial cut
-  appendBytes([LF, LF, LF]); // Feed after cut
-
-  const finalBuffer = Buffer.concat(buffers);
-  console.log(`✅ ESC/POS buffer created: ${finalBuffer.length} bytes`);
-  console.log(`📤 First 100 bytes: ${Array.from(finalBuffer.slice(0, 100)).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ')}`);
-  logToFile('INFO', 'ESC/POS buffer created', {
-    bufferLength: finalBuffer.length,
-    firstBytes: Array.from(finalBuffer.slice(0, 50)).map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ')
-  });
-
-  return finalBuffer;
-}
-
-/**
- * IPC handler for opening cash drawer via USB printer
- * Opens drawer ONLY (no slip printing), using ESC/POS kick
+ * IPC handler for opening cash drawer via printer
+ * ONLY prints the Till Opened slip (no sale receipt)
  */
 ipcMain.handle('open-till', async (event, options = {}) => {
   logToFile('INFO', '💰 Open Till button clicked', options);
+
   try {
-    // Open drawer ONLY (no slip printing), using ESC/POS drawer kick via printer
-    const result = await openCashDrawerViaPrinter(options.printerName || 'SGT-116Receipt');
+    const html = createTillOpenedHtml(
+      options.companyName || 'ADAMS GREEN Provision',
+      options.companyAddress || ''
+    );
+
+    const printerName = options.printerName || DEFAULT_PRINTER;
+    const result = await printHtmlSilently(html, printerName);
 
     return {
       success: true,
       message: 'Till opened successfully',
       type: 'printer',
       printer: result.printer,
-      commandUsed: result.commandUsed,
-      logFile,
+      logFile
     };
   } catch (error) {
     logToFile('ERROR', '❌ Failed to open till', { error: error.message, stack: error.stack });
@@ -723,71 +545,173 @@ ipcMain.handle('open-till', async (event, options = {}) => {
       success: false,
       message: error.message || 'Failed to open till. Please check printer connection.',
       error: error.toString(),
-      logFile,
+      logFile
     };
   }
 });
 
-/**
- * Test print function - sends simple text to verify printer works
- */
-async function testPrint(printerName = null) {
-  const ESC = 0x1B;
-  const LF = 0x0A;
+/* ------------------------------------------------------------------
+   🔹 RECEIPT PRINTING (HTML) – NO DRAWER KICK
+   We keep the IPC name "print-receipt-raw" for compatibility, but
+   now generate HTML instead of ESC/POS.
+------------------------------------------------------------------- */
+function buildReceiptHtml(receiptData) {
+  const sale = receiptData.sale;
+  const companyName = (receiptData.companyName || 'ADAMS GREEN Provision').toUpperCase();
+  const companyAddress = receiptData.companyAddress || '';
+  const ESCAPED = (str) =>
+    String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
 
-  const testData = Buffer.concat([
-    Buffer.from([ESC, 0x40]), // Initialize
-    Buffer.from('TEST PRINT\n', 'ascii'),
-    Buffer.from('If you see this, printer is working!\n', 'ascii'),
-    Buffer.from([LF, LF, LF])
-  ]);
+  const saleDate = new Date(sale.saleDate);
+  const dateStr = saleDate.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+  const timeStr = saleDate.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 
-  console.log('🧪 Sending test print...');
-  return await sendRawEscPosToPrinter(testData, printerName);
+  let itemsHtml = '';
+  if (sale.saleItems && sale.saleItems.length > 0) {
+    sale.saleItems.forEach((item) => {
+      const name = ESCAPED(item.itemName || item.name || 'Unknown Item');
+      const qty = item.quantity || 1;
+      const price = parseFloat(item.unitPrice || item.price || 0).toFixed(2);
+      const total = parseFloat(item.totalPrice || 0).toFixed(2);
+      itemsHtml += `
+        <tr>
+          <td class="left">${name}</td>
+          <td class="right">${qty}</td>
+          <td class="right">€${price}</td>
+          <td class="right">€${total}</td>
+        </tr>
+      `;
+    });
+  } else {
+    itemsHtml = `
+      <tr>
+        <td colspan="4" class="center">No items</td>
+      </tr>
+    `;
+  }
+
+  const subtotalExclVat = sale.saleItems
+    ? sale.saleItems.reduce((sum, item) => sum + parseFloat(item.priceExcludingVat || 0), 0)
+    : parseFloat(sale.subtotalAmount || sale.totalAmount || 0);
+  const totalVat = sale.saleItems
+    ? sale.saleItems.reduce((sum, item) => sum + parseFloat(item.vatAmount || 0), 0)
+    : 0;
+
+  const totalAmount = parseFloat(sale.totalAmount || 0).toFixed(2);
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Receipt</title>
+  <style>
+    @page { size: 80mm auto; margin: 2mm; }
+    body {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      margin: 0;
+      padding: 4mm;
+    }
+    .center { text-align: center; }
+    .right { text-align: right; }
+    .left  { text-align: left; }
+    .bold  { font-weight: bold; }
+    .line  { border-top: 1px dashed #000; margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 1px 0; }
+    .header { text-align: center; margin-bottom: 4px; }
+    .footer { text-align: center; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="bold">${ESCAPED(companyName)}</div>
+    ${companyAddress ? `<div>${ESCAPED(companyAddress)}</div>` : ''}
+    <div>SALE RECEIPT</div>
+  </div>
+
+  <div>Date: ${ESCAPED(dateStr)}</div>
+  <div>Time: ${ESCAPED(timeStr)}</div>
+  <div>Sale ID: ${ESCAPED(sale.id)}</div>
+  <div class="line"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <td class="left bold">Item</td>
+        <td class="right bold">Qty</td>
+        <td class="right bold">Price</td>
+        <td class="right bold">Total</td>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemsHtml}
+    </tbody>
+  </table>
+
+  <div class="line"></div>
+  <table>
+    <tr>
+      <td class="left">Subtotal (excl. VAT):</td>
+      <td class="right">€${subtotalExclVat.toFixed(2)}</td>
+    </tr>
+    ${
+      totalVat > 0
+        ? `<tr>
+      <td class="left">VAT (23%):</td>
+      <td class="right">€${totalVat.toFixed(2)}</td>
+    </tr>`
+        : ''
+    }
+    <tr>
+      <td class="left bold">TOTAL:</td>
+      <td class="right bold">€${totalAmount}</td>
+    </tr>
+  </table>
+
+  <div class="footer">
+    <div>Thank you for your purchase!</div>
+    <div>${ESCAPED(companyName)}</div>
+  </div>
+</body>
+</html>
+`;
 }
 
 /**
- * IPC handler for raw ESC/POS printing (bypasses print spooler dialog)
+ * IPC handler for printing receipt (HTML, silent, NO drawer kick logic here)
+ * Keeps the same IPC name "print-receipt-raw" for compatibility.
  */
 ipcMain.handle('print-receipt-raw', async (event, receiptData) => {
-  logToFile('INFO', '🖨️ Raw receipt print requested', {
+  logToFile('INFO', '🖨️ Raw receipt print requested (HTML mode)', {
     saleId: receiptData.saleId,
     sale: receiptData.sale,
     companyName: receiptData.companyName,
     companyAddress: receiptData.companyAddress
   });
-  console.log('🖨️ Raw receipt print requested:', {
-    saleId: receiptData.saleId,
-    saleItemsCount: receiptData.sale?.saleItems?.length || 0,
-    totalAmount: receiptData.sale?.totalAmount
-  });
 
   try {
-    // Validate sale data
     if (!receiptData.sale) {
       throw new Error('Sale data is missing');
     }
 
-    if (!receiptData.sale.saleItems || receiptData.sale.saleItems.length === 0) {
-      console.warn('⚠️ Sale has no items, but proceeding with print');
-    }
+    const html = buildReceiptHtml(receiptData);
+    const printerName = receiptData.printerName || DEFAULT_PRINTER;
+    const result = await printHtmlSilently(html, printerName);
 
-    const escPosData = convertReceiptToEscPos(
-      receiptData.sale,
-      receiptData.companyName || 'ADAMS GREEN',
-      receiptData.companyAddress || ''
-    );
-
-    if (escPosData.length === 0) {
-      throw new Error('ESC/POS data is empty - nothing to print');
-    }
-
-    console.log(`📤 Sending ${escPosData.length} bytes to printer...`);
-    const result = await sendRawEscPosToPrinter(escPosData, receiptData.printerName);
-
-    logToFile('INFO', '✅ Receipt printed successfully', {
-      printer: result.printer,
-      dataLength: escPosData.length
+    logToFile('INFO', '✅ Receipt printed successfully (HTML)', {
+      printer: result.printer
     });
 
     return {
@@ -796,13 +720,12 @@ ipcMain.handle('print-receipt-raw', async (event, receiptData) => {
       printer: result.printer
     };
   } catch (error) {
-    logToFile('ERROR', '❌ Failed to print receipt', {
+    logToFile('ERROR', '❌ Failed to print receipt (HTML)', {
       error: error.message,
       stack: error.stack,
       saleId: receiptData.saleId
     });
-    console.error('❌ Failed to print receipt:', error);
-    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Failed to print receipt (HTML):', error);
     return {
       success: false,
       message: error.message || 'Failed to print receipt. Please check printer connection.',
@@ -812,12 +735,35 @@ ipcMain.handle('print-receipt-raw', async (event, receiptData) => {
 });
 
 /**
- * IPC handler for test print
+ * IPC handler for test print (simple HTML test)
  */
 ipcMain.handle('test-print', async (event, options = {}) => {
   logToFile('INFO', '🧪 Test print requested', options);
   try {
-    const result = await testPrint(options.printerName);
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Test Print</title>
+  <style>
+    @page { size: 80mm auto; margin: 3mm; }
+    body {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      margin: 0;
+      padding: 4mm;
+    }
+  </style>
+</head>
+<body>
+  <div>TEST PRINT</div>
+  <div>If you can read this, the printer works.</div>
+</body>
+</html>
+`;
+    const printerName = options.printerName || DEFAULT_PRINTER;
+    const result = await printHtmlSilently(html, printerName);
     return {
       success: true,
       message: `Test print sent${result.printer ? ` (${result.printer})` : ''}`,
@@ -834,7 +780,7 @@ ipcMain.handle('test-print', async (event, options = {}) => {
 });
 
 /**
- * IPC handler to get list of available serial ports
+ * IPC handler to get list of available serial ports (unchanged)
  */
 ipcMain.handle('get-serial-ports', async () => {
   if (!SerialPort) {
@@ -861,7 +807,6 @@ ipcMain.handle('get-serial-ports', async () => {
 app.whenReady().then(() => {
   startBackend();
   createWindow();
-  // Create customer display window after a short delay to ensure main window is ready
   setTimeout(() => {
     createCustomerDisplayWindow();
   }, 1000);
@@ -870,7 +815,6 @@ app.whenReady().then(() => {
 app.on('before-quit', stopBackend);
 
 app.on('window-all-closed', () => {
-  // Force quit on all platforms when all windows are closed
   app.exit(0);
 });
 

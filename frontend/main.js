@@ -551,10 +551,257 @@ ipcMain.handle('open-till', async (event, options = {}) => {
 });
 
 /* ------------------------------------------------------------------
-   🔹 RECEIPT PRINTING (HTML) – NO DRAWER KICK
-   We keep the IPC name "print-receipt-raw" for compatibility, but
-   now generate HTML instead of ESC/POS.
+   🔹 RAW ESC/POS PRINTING – Direct to printer port (bypasses spooler)
+   This sends raw ESC/POS commands directly to the printer port,
+   which is what thermal printers need. NO drawer kick commands.
 ------------------------------------------------------------------- */
+/**
+ * Send raw ESC/POS data directly to printer port (bypasses print spooler)
+ */
+async function sendRawEscPosToPrinter(escPosData, printerName = null) {
+  return new Promise((resolve, reject) => {
+    try {
+      if (process.platform !== 'win32') {
+        reject(new Error('Raw ESC/POS printing is currently only supported on Windows'));
+        return;
+      }
+
+      const { exec } = require('child_process');
+      const tempFile = path.join(app.getPath('temp'), `receipt_${Date.now()}.raw`);
+      
+      // Write ESC/POS data to temp file
+      fs.writeFileSync(tempFile, escPosData);
+      
+      const targetPrinter = printerName || DEFAULT_PRINTER;
+      console.log(`📤 Sending raw ESC/POS data to printer: ${targetPrinter}`);
+      console.log(`📤 Data length: ${escPosData.length} bytes`);
+      logToFile('INFO', '📤 Sending raw ESC/POS print data', { 
+        printer: targetPrinter, 
+        dataLength: escPosData.length
+      });
+      
+      const psScript = `
+        # Try exact name first
+        $printer = Get-Printer -Name "${targetPrinter}" -ErrorAction SilentlyContinue;
+        
+        # If not found, try partial match (case-insensitive)
+        if (-not $printer) {
+          $allPrinters = Get-Printer -ErrorAction SilentlyContinue;
+          $printer = $allPrinters | Where-Object { $_.Name -like "*${targetPrinter}*" -or $_.Name -like "*SGT*116*" -or $_.Name -like "*UDiiPOS*" -or $_.Name -like "*Receipt*" } | Select-Object -First 1;
+        }
+        
+        $port = $null;
+        if ($printer) {
+          $port = $printer.PortName;
+          Write-Host "Found printer: $($printer.Name) on port: $port";
+        } else {
+          # Try direct port access (USB001 is the known port)
+          $directPorts = @("USB001", "LPT1", "COM1", "COM2", "COM3");
+          foreach ($testPort in $directPorts) {
+            try {
+              $testStream = New-Object System.IO.FileStream($testPort, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite) -ErrorAction Stop;
+              $testStream.Close();
+              $port = $testPort;
+              Write-Host "Found accessible port: $port";
+              break;
+            } catch {
+              # Port not accessible, try next
+            }
+          }
+        }
+        
+        if ($port) {
+          $bytes = [System.IO.File]::ReadAllBytes("${tempFile.replace(/\\/g, '/')}");
+          Write-Host "Read $($bytes.Length) bytes from file";
+          try {
+            $fileStream = New-Object System.IO.FileStream($port, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite);
+            $bytesWritten = $fileStream.Write($bytes, 0, $bytes.Length);
+            Write-Host "Wrote $bytesWritten bytes to port $port";
+            $fileStream.Flush();
+            $fileStream.Close();
+            Write-Host "Print data sent successfully";
+            Write-Output "OK"
+          } catch {
+            Write-Host "Error writing to port $port : $($_.Exception.Message)";
+            Write-Output "ERROR: $($_.Exception.Message)"
+          }
+        } else {
+          Write-Output "NOTFOUND"
+        }
+      `;
+      
+      const psScriptFile = path.join(app.getPath('temp'), `print_script_${Date.now()}.ps1`);
+      fs.writeFileSync(psScriptFile, psScript);
+      
+      exec(`powershell -ExecutionPolicy Bypass -File "${psScriptFile}"`, { timeout: 15000 }, (psError, psStdout, psStderr) => {
+        // Clean up script file
+        try {
+          if (fs.existsSync(psScriptFile)) {
+            fs.unlinkSync(psScriptFile);
+          }
+        } catch (e) {}
+        
+        // Clean up temp file
+        try {
+          if (fs.existsSync(tempFile)) {
+            fs.unlinkSync(tempFile);
+          }
+        } catch (e) {}
+        
+        if (!psError && psStdout && psStdout.trim().includes('OK')) {
+          logToFile('INFO', `✅ Raw ESC/POS print data sent successfully to: ${targetPrinter}`);
+          console.log(`✅ Print data sent successfully to: ${targetPrinter}`);
+          resolve({ 
+            success: true, 
+            printer: targetPrinter
+          });
+        } else {
+          const errorDetails = psStdout || psStderr || psError?.message || 'Unknown error';
+          console.error(`❌ Failed to send print data: ${errorDetails}`);
+          logToFile('ERROR', '❌ Failed to send print data', { 
+            printer: targetPrinter,
+            error: errorDetails
+          });
+          reject(new Error(`Could not send print data to printer "${targetPrinter}": ${errorDetails}`));
+        }
+      });
+    } catch (error) {
+      logToFile('ERROR', '❌ Error sending raw ESC/POS print data', { error: error.message });
+      reject(error);
+    }
+  });
+}
+
+/**
+ * Convert receipt data to ESC/POS format
+ */
+function convertReceiptToEscPos(sale, companyName, companyAddress) {
+  const ESC = 0x1B;
+  const GS = 0x1D;
+  const LF = 0x0A;
+  const CR = 0x0D;
+  
+  const buffers = [];
+  
+  // Helper to append text (use ASCII for maximum compatibility)
+  const appendText = (text) => {
+    if (!text) return;
+    // Convert to ASCII-safe string
+    const asciiText = String(text)
+      .replace(/€/g, 'EUR')
+      .replace(/[^\x00-\x7F]/g, '?'); // Replace non-ASCII with ?
+    buffers.push(Buffer.from(asciiText, 'ascii'));
+  };
+  
+  // Helper to append bytes
+  const appendBytes = (bytes) => {
+    buffers.push(Buffer.from(bytes));
+  };
+  
+  logToFile('INFO', 'Converting sale to ESC/POS', { 
+    saleId: sale.id, 
+    itemCount: sale.saleItems?.length || 0
+  });
+  
+  // Initialize printer (CRITICAL - must be first)
+  appendBytes([ESC, 0x40]); // ESC @ - Initialize printer
+  
+  // Reset printer to default state
+  appendBytes([ESC, 0x61, 0x00]); // Left align
+  appendBytes([ESC, 0x45, 0x00]); // Bold off
+  appendBytes([ESC, 0x21, 0x00]); // Normal size
+  appendBytes([ESC, 0x61, 0x01]); // Center align for header
+  appendText((companyName || 'ADAMS GREEN').toUpperCase());
+  appendBytes([LF, CR]);
+  
+  if (companyAddress) {
+    appendText(companyAddress);
+    appendBytes([LF, CR]);
+  }
+  
+  appendText('SALE RECEIPT');
+  appendBytes([LF, CR]);
+  appendBytes([ESC, 0x61, 0x00]); // Left align
+  
+  // Format date
+  const saleDate = new Date(sale.saleDate);
+  const dateStr = saleDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const timeStr = saleDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  appendText(`Date: ${dateStr}`);
+  appendBytes([LF, CR]);
+  appendText(`Time: ${timeStr}`);
+  appendBytes([LF, CR]);
+  appendText(`Sale ID: ${sale.id}`);
+  appendBytes([LF, CR]);
+  appendText(`Cashier: ${sale.user?.username || sale.user?.fullName || 'Unknown'}`);
+  appendBytes([LF, CR]);
+  
+  // Divider
+  appendText('--------------------------------');
+  appendBytes([LF, CR]);
+  
+  // Items
+  if (sale.saleItems && sale.saleItems.length > 0) {
+    sale.saleItems.forEach((item) => {
+      const name = (item.itemName || item.name || 'Unknown Item').substring(0, 32);
+      const price = parseFloat(item.unitPrice || item.price || 0).toFixed(2);
+      const qty = item.quantity || 1;
+      const total = parseFloat(item.totalPrice || 0).toFixed(2);
+      
+      // Item name
+      appendText(name);
+      appendBytes([LF, CR]);
+      // Quantity and prices
+      appendText(`${qty}x  EUR${price}  EUR${total}`);
+      appendBytes([LF, CR]);
+    });
+  } else {
+    appendText('No items');
+    appendBytes([LF, CR]);
+  }
+  
+  // Divider
+  appendText('--------------------------------');
+  appendBytes([LF, CR]);
+  
+  // Calculate totals
+  const subtotalExcludingVat = sale.saleItems ? sale.saleItems.reduce((sum, item) => 
+    sum + parseFloat(item.priceExcludingVat || 0), 0
+  ) : parseFloat(sale.subtotalAmount || sale.totalAmount || 0);
+  const totalVat = sale.saleItems ? sale.saleItems.reduce((sum, item) => 
+    sum + parseFloat(item.vatAmount || 0), 0
+  ) : 0;
+  
+  appendText(`Subtotal (excl. VAT): EUR${subtotalExcludingVat.toFixed(2)}`);
+  appendBytes([LF, CR]);
+  if (totalVat > 0) {
+    appendText(`VAT (23%): EUR${totalVat.toFixed(2)}`);
+    appendBytes([LF, CR]);
+  }
+  appendText(`TOTAL: EUR${parseFloat(sale.totalAmount || 0).toFixed(2)}`);
+  appendBytes([LF, CR]);
+  
+  // Footer
+  appendText('--------------------------------');
+  appendBytes([LF, CR]);
+  appendBytes([ESC, 0x61, 0x01]); // Center align
+  appendText('Thank you for your purchase!');
+  appendBytes([LF, CR]);
+  appendText(companyName || 'ADAMS GREEN');
+  appendBytes([LF, CR]);
+  
+  // Cut paper (partial cut)
+  appendBytes([GS, 0x56, 0x41, 0x00]); // GS V A 0 - Partial cut
+  appendBytes([LF, LF, LF]); // Feed a few lines
+  
+  const finalBuffer = Buffer.concat(buffers);
+  logToFile('INFO', `✅ ESC/POS buffer created: ${finalBuffer.length} bytes`);
+  return finalBuffer;
+}
+
+/**
+ * OLD HTML BUILDING FUNCTION (kept for reference, not used for receipts)
+ */
 function buildReceiptHtml(receiptData) {
   const sale = receiptData.sale;
   const companyName = (receiptData.companyName || 'ADAMS GREEN Provision').toUpperCase();
@@ -690,15 +937,15 @@ function buildReceiptHtml(receiptData) {
 }
 
 /**
- * IPC handler for printing receipt (HTML, silent, NO drawer kick logic here)
- * Keeps the same IPC name "print-receipt-raw" for compatibility.
+ * IPC handler for printing receipt (RAW ESC/POS - direct to printer port)
+ * This bypasses the print spooler and sends raw ESC/POS commands directly.
+ * NO drawer kick commands are included - drawer only opens via "Open Till" button.
  */
 ipcMain.handle('print-receipt-raw', async (event, receiptData) => {
-  logToFile('INFO', '🖨️ Raw receipt print requested (HTML mode)', {
+  logToFile('INFO', '🖨️ Raw receipt print requested (ESC/POS mode)', {
     saleId: receiptData.saleId,
-    sale: receiptData.sale,
-    companyName: receiptData.companyName,
-    companyAddress: receiptData.companyAddress
+    saleItemsCount: receiptData.sale?.saleItems?.length || 0,
+    totalAmount: receiptData.sale?.totalAmount
   });
 
   try {
@@ -706,11 +953,18 @@ ipcMain.handle('print-receipt-raw', async (event, receiptData) => {
       throw new Error('Sale data is missing');
     }
 
-    const html = buildReceiptHtml(receiptData);
-    const printerName = receiptData.printerName || DEFAULT_PRINTER;
-    const result = await printHtmlSilently(html, printerName);
+    // Convert sale data to ESC/POS format
+    const escPosData = convertReceiptToEscPos(
+      receiptData.sale,
+      receiptData.companyName || 'ADAMS GREEN',
+      receiptData.companyAddress || ''
+    );
 
-    logToFile('INFO', '✅ Receipt printed successfully (HTML)', {
+    // Send raw ESC/POS data directly to printer port
+    const printerName = receiptData.printerName || DEFAULT_PRINTER;
+    const result = await sendRawEscPosToPrinter(escPosData, printerName);
+
+    logToFile('INFO', '✅ Receipt printed successfully (ESC/POS)', {
       printer: result.printer
     });
 
@@ -720,12 +974,12 @@ ipcMain.handle('print-receipt-raw', async (event, receiptData) => {
       printer: result.printer
     };
   } catch (error) {
-    logToFile('ERROR', '❌ Failed to print receipt (HTML)', {
+    logToFile('ERROR', '❌ Failed to print receipt (ESC/POS)', {
       error: error.message,
       stack: error.stack,
       saleId: receiptData.saleId
     });
-    console.error('❌ Failed to print receipt (HTML):', error);
+    console.error('❌ Failed to print receipt (ESC/POS):', error);
     return {
       success: false,
       message: error.message || 'Failed to print receipt. Please check printer connection.',

@@ -402,7 +402,10 @@ ipcMain.handle('open-till', async (event, options = {}) => {
         printWindow.webContents.print({
           silent: true,
           printBackground: true
+          // Don't specify deviceName - let it use the default printer
+          // deviceName can cause errors if the printer name doesn't match exactly
         }, (success, failureReason) => {
+          console.log('📄 Till open print callback:', { success, failureReason });
           if (!printWindow.isDestroyed()) {
             setTimeout(() => printWindow.close(), 300);
           }
@@ -412,6 +415,11 @@ ipcMain.handle('open-till', async (event, options = {}) => {
             reject(new Error(failureReason || 'Failed to open till'));
           }
         });
+      });
+
+      printWindow.on('error', (err) => {
+        if (!printWindow.isDestroyed()) printWindow.close();
+        reject(err);
       });
     });
   } catch (error) {

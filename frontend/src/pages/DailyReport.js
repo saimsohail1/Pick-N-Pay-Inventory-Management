@@ -262,29 +262,8 @@ const DailyReport = () => {
         '' // Phone field removed as it doesn't exist in CompanySettings
       );
       
-      // Z-Report is for standard paper (not thermal), but we'll use direct print
-      // Note: This will use the default printer. If your thermal printer is default,
-      // it may trigger the drawer. Consider setting a different default printer for reports.
-      try {
-        await directPrint(reportContent, `Z-Report - ${dateRangeText}`);
-      } catch (printError) {
-        console.log('Direct print failed, trying Safari-compatible method');
-        // Fallback: open in new window for printing (Safari compatible)
-        const printWindow = window.open('', '_blank', 'width=800,height=600');
-        if (printWindow) {
-          printWindow.document.write(reportContent);
-          printWindow.document.close();
-          printWindow.focus();
-          // Wait a moment for content to load
-          setTimeout(() => {
-            printWindow.print();
-            // Close window after printing
-            setTimeout(() => printWindow.close(), 1000);
-          }, 500);
-        } else {
-          throw new Error('Popup blocked. Please allow popups for this site.');
-        }
-      }
+      // Use silent printing (no dialog) - works in Electron
+      await directPrint(reportContent, `Z-Report - ${dateRangeText}`);
       
     } catch (error) {
       console.error('Print error:', error);

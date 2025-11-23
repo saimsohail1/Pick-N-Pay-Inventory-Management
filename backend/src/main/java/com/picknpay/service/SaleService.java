@@ -4,6 +4,7 @@ import com.picknpay.dto.SaleDTO;
 import com.picknpay.dto.SaleItemDTO;
 import com.picknpay.dto.DailyReportDTO;
 import com.picknpay.dto.CategorySummaryDTO;
+import com.picknpay.dto.VatSummaryDTO;
 import com.picknpay.entity.Item;
 import com.picknpay.entity.Sale;
 import com.picknpay.entity.SaleItem;
@@ -251,9 +252,10 @@ public class SaleService {
         Double cardAmountDouble = saleRepository.getTotalSalesByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CARD);
         BigDecimal cardAmount = cardAmountDouble != null ? BigDecimal.valueOf(cardAmountDouble) : BigDecimal.ZERO;
 
-        // Calculate VAT totals
+        // Calculate VAT totals and breakdown by rate
         BigDecimal totalVatAmount = BigDecimal.ZERO;
         BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
+        Map<BigDecimal, VatSummaryDTO> vatMap = new HashMap<>();
         
         // Get all sales for the day to calculate VAT
         List<Sale> allSales = saleRepository.findSalesByDateRange(startOfDay, endOfDay);
@@ -265,8 +267,34 @@ public class SaleService {
                 if (item.getPriceExcludingVat() != null) {
                     totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
                 }
+                
+                // Group by VAT rate for breakdown
+                if (item.getVatRate() != null) {
+                    BigDecimal vatRate = item.getVatRate();
+                    VatSummaryDTO vatSummary = vatMap.getOrDefault(vatRate, 
+                        new VatSummaryDTO(vatRate, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+                    
+                    // Gross = totalPrice (including VAT)
+                    vatSummary.setGross(vatSummary.getGross().add(item.getTotalPrice()));
+                    
+                    // VAT amount
+                    if (item.getVatAmount() != null) {
+                        vatSummary.setVatAmount(vatSummary.getVatAmount().add(item.getVatAmount()));
+                    }
+                    
+                    // Net = priceExcludingVat
+                    if (item.getPriceExcludingVat() != null) {
+                        vatSummary.setNet(vatSummary.getNet().add(item.getPriceExcludingVat()));
+                    }
+                    
+                    vatMap.put(vatRate, vatSummary);
+                }
             }
         }
+        
+        // Convert VAT map to sorted list (by VAT rate ascending)
+        List<VatSummaryDTO> vatBreakdown = new ArrayList<>(vatMap.values());
+        vatBreakdown.sort((a, b) -> a.getVatRate().compareTo(b.getVatRate()));
         
         // Calculate category summaries for all sales
         Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
@@ -305,6 +333,7 @@ public class SaleService {
         report.setTotalVatAmount(totalVatAmount);
         report.setTotalAmountExcludingVat(totalAmountExcludingVat);
         report.setCategories(categories);
+        report.setVatBreakdown(vatBreakdown);
         
         return report;
     }
@@ -340,9 +369,10 @@ public class SaleService {
                 .map(Sale::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Calculate VAT totals for user sales
+        // Calculate VAT totals and breakdown by rate for user sales
         BigDecimal totalVatAmount = BigDecimal.ZERO;
         BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
+        Map<BigDecimal, VatSummaryDTO> vatMap = new HashMap<>();
         
         for (Sale sale : userSales) {
             for (SaleItem item : sale.getSaleItems()) {
@@ -352,8 +382,29 @@ public class SaleService {
                 if (item.getPriceExcludingVat() != null) {
                     totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
                 }
+                
+                // Group by VAT rate for breakdown
+                if (item.getVatRate() != null) {
+                    BigDecimal vatRate = item.getVatRate();
+                    VatSummaryDTO vatSummary = vatMap.getOrDefault(vatRate, 
+                        new VatSummaryDTO(vatRate, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+                    
+                    vatSummary.setGross(vatSummary.getGross().add(item.getTotalPrice()));
+                    if (item.getVatAmount() != null) {
+                        vatSummary.setVatAmount(vatSummary.getVatAmount().add(item.getVatAmount()));
+                    }
+                    if (item.getPriceExcludingVat() != null) {
+                        vatSummary.setNet(vatSummary.getNet().add(item.getPriceExcludingVat()));
+                    }
+                    
+                    vatMap.put(vatRate, vatSummary);
+                }
             }
         }
+        
+        // Convert VAT map to sorted list (by VAT rate ascending)
+        List<VatSummaryDTO> vatBreakdown = new ArrayList<>(vatMap.values());
+        vatBreakdown.sort((a, b) -> a.getVatRate().compareTo(b.getVatRate()));
         
         // Calculate category summaries
         Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
@@ -393,6 +444,7 @@ public class SaleService {
         report.setTotalVatAmount(totalVatAmount);
         report.setTotalAmountExcludingVat(totalAmountExcludingVat);
         report.setCategories(categories);
+        report.setVatBreakdown(vatBreakdown);
         
         return report;
     }
@@ -428,9 +480,10 @@ public class SaleService {
                 .map(Sale::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Calculate VAT totals for user sales
+        // Calculate VAT totals and breakdown by rate for user sales
         BigDecimal totalVatAmount = BigDecimal.ZERO;
         BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
+        Map<BigDecimal, VatSummaryDTO> vatMap = new HashMap<>();
         
         for (Sale sale : userSales) {
             for (SaleItem item : sale.getSaleItems()) {
@@ -440,8 +493,29 @@ public class SaleService {
                 if (item.getPriceExcludingVat() != null) {
                     totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
                 }
+                
+                // Group by VAT rate for breakdown
+                if (item.getVatRate() != null) {
+                    BigDecimal vatRate = item.getVatRate();
+                    VatSummaryDTO vatSummary = vatMap.getOrDefault(vatRate, 
+                        new VatSummaryDTO(vatRate, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+                    
+                    vatSummary.setGross(vatSummary.getGross().add(item.getTotalPrice()));
+                    if (item.getVatAmount() != null) {
+                        vatSummary.setVatAmount(vatSummary.getVatAmount().add(item.getVatAmount()));
+                    }
+                    if (item.getPriceExcludingVat() != null) {
+                        vatSummary.setNet(vatSummary.getNet().add(item.getPriceExcludingVat()));
+                    }
+                    
+                    vatMap.put(vatRate, vatSummary);
+                }
             }
         }
+        
+        // Convert VAT map to sorted list (by VAT rate ascending)
+        List<VatSummaryDTO> vatBreakdown = new ArrayList<>(vatMap.values());
+        vatBreakdown.sort((a, b) -> a.getVatRate().compareTo(b.getVatRate()));
         
         // Calculate category summaries
         Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
@@ -481,6 +555,7 @@ public class SaleService {
         report.setTotalVatAmount(totalVatAmount);
         report.setTotalAmountExcludingVat(totalAmountExcludingVat);
         report.setCategories(categories);
+        report.setVatBreakdown(vatBreakdown);
         
         return report;
     }
@@ -516,9 +591,10 @@ public class SaleService {
                 .map(Sale::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Calculate VAT totals for all sales
+        // Calculate VAT totals and breakdown by rate for all sales
         BigDecimal totalVatAmount = BigDecimal.ZERO;
         BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
+        Map<BigDecimal, VatSummaryDTO> vatMap = new HashMap<>();
         
         for (Sale sale : allSales) {
             for (SaleItem item : sale.getSaleItems()) {
@@ -528,8 +604,29 @@ public class SaleService {
                 if (item.getPriceExcludingVat() != null) {
                     totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
                 }
+                
+                // Group by VAT rate for breakdown
+                if (item.getVatRate() != null) {
+                    BigDecimal vatRate = item.getVatRate();
+                    VatSummaryDTO vatSummary = vatMap.getOrDefault(vatRate, 
+                        new VatSummaryDTO(vatRate, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+                    
+                    vatSummary.setGross(vatSummary.getGross().add(item.getTotalPrice()));
+                    if (item.getVatAmount() != null) {
+                        vatSummary.setVatAmount(vatSummary.getVatAmount().add(item.getVatAmount()));
+                    }
+                    if (item.getPriceExcludingVat() != null) {
+                        vatSummary.setNet(vatSummary.getNet().add(item.getPriceExcludingVat()));
+                    }
+                    
+                    vatMap.put(vatRate, vatSummary);
+                }
             }
         }
+        
+        // Convert VAT map to sorted list (by VAT rate ascending)
+        List<VatSummaryDTO> vatBreakdown = new ArrayList<>(vatMap.values());
+        vatBreakdown.sort((a, b) -> a.getVatRate().compareTo(b.getVatRate()));
         
         // Calculate category summaries
         Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
@@ -569,6 +666,7 @@ public class SaleService {
         report.setTotalVatAmount(totalVatAmount);
         report.setTotalAmountExcludingVat(totalAmountExcludingVat);
         report.setCategories(categories);
+        report.setVatBreakdown(vatBreakdown);
         
         return report;
     }

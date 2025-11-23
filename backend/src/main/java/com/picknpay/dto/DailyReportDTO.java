@@ -14,6 +14,7 @@ public class DailyReportDTO {
     private BigDecimal totalVatAmount;
     private BigDecimal totalAmountExcludingVat;
     private java.util.List<CategorySummaryDTO> categories;
+    private java.util.List<VatSummaryDTO> vatBreakdown;
 
     // Constructors
     public DailyReportDTO() {}
@@ -108,5 +109,13 @@ public class DailyReportDTO {
     
     public void setCategories(java.util.List<CategorySummaryDTO> categories) {
         this.categories = categories;
+    }
+    
+    public java.util.List<VatSummaryDTO> getVatBreakdown() {
+        return vatBreakdown;
+    }
+    
+    public void setVatBreakdown(java.util.List<VatSummaryDTO> vatBreakdown) {
+        this.vatBreakdown = vatBreakdown;
     }
 }

@@ -329,16 +329,60 @@ export const createZReportHTML = (reportData, companyName = 'ADAMS GREEN', start
     return formatSingleDate(dateStr);
   };
 
-  // Process VAT info into table format
-  const vatRows = [];
-  if (reportData.vatInfo) {
-    // Extract VAT breakdown if available
-    const vatRates = [
-      { rate: '0%', gross: reportData.vatInfo.totalAmountExcludingVat || 0, vat: 0, net: reportData.vatInfo.totalAmountExcludingVat || 0 },
-      { rate: '23%', gross: reportData.vatInfo.totalAmountIncludingVat || 0, vat: reportData.vatInfo.totalVatAmount || 0, net: reportData.vatInfo.totalAmountExcludingVat || 0 }
-    ];
-    vatRows.push(...vatRates);
+  // Process VAT breakdown from backend
+  let vatRows = [];
+  let totalGross = 0;
+  let totalVat = 0;
+  let totalNet = 0;
+  let weightedVatSum = 0;
+  let totalGrossForAvg = 0;
+  
+  if (reportData.vatBreakdown && reportData.vatBreakdown.length > 0) {
+    // Use backend-provided VAT breakdown
+    vatRows = reportData.vatBreakdown.map(vat => {
+      const gross = parseFloat(vat.gross || 0);
+      const vatAmount = parseFloat(vat.vatAmount || 0);
+      const net = parseFloat(vat.net || 0);
+      const rate = parseFloat(vat.vatRate || 0);
+      
+      totalGross += gross;
+      totalVat += vatAmount;
+      totalNet += net;
+      
+      // Calculate weighted average (weight by gross amount)
+      weightedVatSum += rate * gross;
+      totalGrossForAvg += gross;
+      
+      return {
+        rate: `${rate.toFixed(1)}%`,
+        gross: gross,
+        vat: vatAmount,
+        net: net
+      };
+    });
+  } else if (reportData.vatInfo) {
+    // Fallback to old format if breakdown not available
+    const gross = parseFloat(reportData.vatInfo.totalAmountIncludingVat || 0);
+    const vat = parseFloat(reportData.vatInfo.totalVatAmount || 0);
+    const net = parseFloat(reportData.vatInfo.totalAmountExcludingVat || 0);
+    
+    // Calculate average VAT percentage
+    const avgVatRate = gross > 0 ? (vat / net) * 100 : 0;
+    
+    vatRows = [{
+      rate: `${Math.round(avgVatRate)}%`,
+      gross: gross,
+      vat: vat,
+      net: net
+    }];
+    
+    totalGross = gross;
+    totalVat = vat;
+    totalNet = net;
   }
+  
+  // Calculate weighted average VAT percentage
+  const avgVatPercentage = totalGrossForAvg > 0 ? weightedVatSum / totalGrossForAvg : 0;
 
   return `
     <!DOCTYPE html>
@@ -424,12 +468,12 @@ export const createZReportHTML = (reportData, companyName = 'ADAMS GREEN', start
         }
         
         .divider {
-          border-top: 1px dashed #000;
-          margin: 8px 0;
+          border-top: 1px solid #000;
+          margin: 12px 0;
         }
         
         .section { 
-          margin: 10px 0; 
+          margin: 12px 0; 
           page-break-inside: avoid;
         }
         
@@ -585,23 +629,31 @@ export const createZReportHTML = (reportData, companyName = 'ADAMS GREEN', start
             ${vatRows.length > 0 ? vatRows.map(vat => `
               <tr>
                 <td>${vat.rate}</td>
-                <td class="currency">€ ${parseFloat(vat.gross || 0).toFixed(2)}</td>
-                <td class="currency">€ ${parseFloat(vat.vat || 0).toFixed(2)}</td>
-                <td class="currency">€ ${parseFloat(vat.net || 0).toFixed(2)}</td>
+                <td class="currency">€ ${vat.gross.toFixed(2)}</td>
+                <td class="currency">€ ${vat.vat.toFixed(2)}</td>
+                <td class="currency">€ ${vat.net.toFixed(2)}</td>
               </tr>
             `).join('') : `
               <tr>
-                <td>23%</td>
-                <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalAmountIncludingVat || 0).toFixed(2)}</td>
-                <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalVatAmount || 0).toFixed(2)}</td>
-                <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalAmountExcludingVat || 0).toFixed(2)}</td>
+                <td>N/A</td>
+                <td class="currency">€ 0.00</td>
+                <td class="currency">€ 0.00</td>
+                <td class="currency">€ 0.00</td>
               </tr>
             `}
+            ${vatRows.length > 0 && avgVatPercentage > 0 ? `
+              <tr>
+                <td>Avg ${Math.round(avgVatPercentage)}%</td>
+                <td class="currency">-</td>
+                <td class="currency">-</td>
+                <td class="currency">-</td>
+              </tr>
+            ` : ''}
             <tr class="total-row">
               <td>Total</td>
-              <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalAmountIncludingVat || 0).toFixed(2)}</td>
-              <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalVatAmount || 0).toFixed(2)}</td>
-              <td class="currency">€ ${parseFloat(reportData.vatInfo?.totalAmountExcludingVat || 0).toFixed(2)}</td>
+              <td class="currency">€ ${totalGross.toFixed(2)}</td>
+              <td class="currency">€ ${totalVat.toFixed(2)}</td>
+              <td class="currency">€ ${totalNet.toFixed(2)}</td>
             </tr>
           </tbody>
         </table>

@@ -122,4 +122,21 @@ export const usersAPI = {
   getRoles: () => api.get('/users/roles'),
 };
 
+// Attendance API
+export const attendanceAPI = {
+  markTimeIn: (userId, date, timeIn) => api.post('/attendances/time-in', { userId, date, timeIn }),
+  markTimeOut: (userId, date, timeOut) => api.post('/attendances/time-out', { userId, date, timeOut }),
+  getByUserAndDate: (userId, date) => api.get(`/attendances/user/${userId}/date/${date}`),
+  getByUserAndDateRange: (userId, startDate, endDate) => 
+    api.get(`/attendances/user/${userId}/date-range?startDate=${startDate}&endDate=${endDate}`),
+  getByDate: (date) => api.get(`/attendances/date/${date}`),
+  getByDateRange: (startDate, endDate) => 
+    api.get(`/attendances/date-range?startDate=${startDate}&endDate=${endDate}`),
+  getWeeklyReportForUser: (userId, weekStart) => 
+    api.get(`/attendances/weekly-report/user/${userId}?weekStart=${weekStart}`),
+  getAllUsersWeeklyReport: (weekStart) => 
+    api.get(`/attendances/weekly-report?weekStart=${weekStart}`),
+  getWeekStart: (date) => api.get(`/attendances/week-start?date=${date}`),
+};
+
 export default api;

@@ -1,27 +1,369 @@
-import React from 'react';
-import { Container, Card } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Container, Card, Table, Button, Form, Row, Col, Alert, Spinner, Badge } from 'react-bootstrap';
+import { attendanceAPI, usersAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import { useTimeoutManager } from '../hooks/useTimeoutManager';
 
 const AttendancePage = () => {
+  const { user, isAdmin } = useAuth();
+  const { addTimeout } = useTimeoutManager();
+  
+  // State
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [attendances, setAttendances] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedWeekStart, setSelectedWeekStart] = useState('');
+  const [weeklyReport, setWeeklyReport] = useState([]);
+  const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+  
+  // Fetch users on mount
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+  
+  // Fetch attendances when date changes
+  useEffect(() => {
+    if (selectedDate) {
+      fetchAttendancesForDate(selectedDate);
+    }
+  }, [selectedDate]);
+  
+  // Calculate week start when component mounts or date changes
+  useEffect(() => {
+    if (selectedDate) {
+      calculateWeekStart(selectedDate);
+    }
+  }, [selectedDate]);
+  
+  const fetchUsers = async () => {
+    try {
+      const response = await usersAPI.getActive();
+      setUsers(response.data);
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+      setError('Failed to load users. Please try again.');
+    }
+  };
+  
+  const fetchAttendancesForDate = async (date) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await attendanceAPI.getByDate(date);
+      setAttendances(response.data);
+    } catch (err) {
+      console.error('Failed to fetch attendances:', err);
+      setError('Failed to load attendance data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const calculateWeekStart = async (date) => {
+    try {
+      const response = await attendanceAPI.getWeekStart(date);
+      const weekStart = response.data.weekStart;
+      setSelectedWeekStart(weekStart);
+    } catch (err) {
+      console.error('Failed to calculate week start:', err);
+    }
+  };
+  
+  const handleMarkTimeIn = async (userId) => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const now = new Date();
+      const timeIn = now.toTimeString().split(' ')[0]; // HH:MM:SS format
+      
+      await attendanceAPI.markTimeIn(userId, selectedDate, timeIn);
+      setSuccess('Time-in marked successfully!');
+      fetchAttendancesForDate(selectedDate);
+    } catch (err) {
+      console.error('Failed to mark time-in:', err);
+      const errorMessage = err.response?.data || err.message || 'Failed to mark time-in. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+      addTimeout(() => setSuccess(null), 3000);
+      addTimeout(() => setError(null), 5000);
+    }
+  };
+  
+  const handleMarkTimeOut = async (userId) => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const now = new Date();
+      const timeOut = now.toTimeString().split(' ')[0]; // HH:MM:SS format
+      
+      await attendanceAPI.markTimeOut(userId, selectedDate, timeOut);
+      setSuccess('Time-out marked successfully!');
+      fetchAttendancesForDate(selectedDate);
+    } catch (err) {
+      console.error('Failed to mark time-out:', err);
+      const errorMessage = err.response?.data || err.message || 'Failed to mark time-out. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+      addTimeout(() => setSuccess(null), 3000);
+      addTimeout(() => setError(null), 5000);
+    }
+  };
+  
+  const handleGenerateWeeklyReport = async () => {
+    if (!selectedWeekStart) {
+      setError('Please select a date first.');
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await attendanceAPI.getAllUsersWeeklyReport(selectedWeekStart);
+      setWeeklyReport(response.data);
+      setShowWeeklyReport(true);
+    } catch (err) {
+      console.error('Failed to generate weekly report:', err);
+      setError('Failed to generate weekly report. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const getAttendanceForUser = (userId) => {
+    return attendances.find(a => a.userId === userId);
+  };
+  
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '-';
+    const [hours, minutes] = timeStr.split(':');
+    return `${hours}:${minutes}`;
+  };
+  
+  const formatHours = (hours) => {
+    if (!hours) return '-';
+    return parseFloat(hours).toFixed(2) + 'h';
+  };
+  
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+  
+  // Only show page if user is admin
+  if (!isAdmin()) {
+    return (
+      <div className="animate-fade-in-up" style={{ backgroundColor: 'transparent', minHeight: '100vh', padding: '2rem 0' }}>
+        <Container>
+          <Alert variant="danger">
+            <Alert.Heading>Access Denied</Alert.Heading>
+            <p>You do not have permission to access this page. Admin access required.</p>
+          </Alert>
+        </Container>
+      </div>
+    );
+  }
+  
   return (
     <div className="animate-fade-in-up" style={{ backgroundColor: 'transparent', minHeight: '100vh', padding: '2rem 0' }}>
       <Container>
+        {/* Header */}
+        <Card className="mb-4" style={{ 
+          backgroundColor: '#1a1a1a', 
+          border: '1px solid #2a2a2a',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+        }}>
+          <Card.Body>
+            <h1 className="page-title" style={{ color: '#ffffff', marginBottom: '1rem' }}>
+              <i className="bi bi-calendar-check me-3" style={{ color: '#ffffff' }}></i>
+              Employee Attendance
+            </h1>
+          </Card.Body>
+        </Card>
+        
+        {/* Alerts */}
+        {error && (
+          <Alert variant="danger" dismissible onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert variant="success" dismissible onClose={() => setSuccess(null)}>
+            {success}
+          </Alert>
+        )}
+        
+        {/* Date Selection */}
+        <Card className="mb-4" style={{ 
+          backgroundColor: '#1a1a1a', 
+          border: '1px solid #2a2a2a',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+        }}>
+          <Card.Body>
+            <Row className="align-items-center">
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label style={{ color: '#ffffff' }}>Select Date</Form.Label>
+                  <Form.Control
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={8}>
+                <div style={{ color: '#ffffff', paddingTop: '2rem' }}>
+                  <strong>Selected Date:</strong> {formatDate(selectedDate)}
+                  {selectedWeekStart && (
+                    <span className="ms-3">
+                      <strong>Week Start:</strong> {formatDate(selectedWeekStart)}
+                    </span>
+                  )}
+                </div>
+              </Col>
+            </Row>
+          </Card.Body>
+        </Card>
+        
+        {/* Daily Attendance Table */}
+        <Card className="mb-4" style={{ 
+          backgroundColor: '#1a1a1a', 
+          border: '1px solid #2a2a2a',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+        }}>
+          <Card.Body>
+            <h3 style={{ color: '#ffffff', marginBottom: '1rem' }}>Daily Attendance - {formatDate(selectedDate)}</h3>
+            {loading ? (
+              <div className="text-center py-4">
+                <Spinner animation="border" variant="light" />
+              </div>
+            ) : (
+              <Table striped bordered hover variant="dark" responsive>
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>Username</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                    <th>Total Hours</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="text-center">No users found</td>
+                    </tr>
+                  ) : (
+                    users.map((user) => {
+                      const attendance = getAttendanceForUser(user.id);
+                      const hasTimeIn = attendance && attendance.timeIn;
+                      const hasTimeOut = attendance && attendance.timeOut;
+                      
+                      return (
+                        <tr key={user.id}>
+                          <td>{user.fullName}</td>
+                          <td>{user.username}</td>
+                          <td>{hasTimeIn ? formatTime(attendance.timeIn) : '-'}</td>
+                          <td>{hasTimeOut ? formatTime(attendance.timeOut) : '-'}</td>
+                          <td>{attendance ? formatHours(attendance.totalHours) : '-'}</td>
+                          <td>
+                            {!hasTimeIn ? (
+                              <Button
+                                variant="success"
+                                size="sm"
+                                onClick={() => handleMarkTimeIn(user.id)}
+                                disabled={loading}
+                              >
+                                <i className="bi bi-clock-history me-1"></i>
+                                Time In
+                              </Button>
+                            ) : !hasTimeOut ? (
+                              <Button
+                                variant="warning"
+                                size="sm"
+                                onClick={() => handleMarkTimeOut(user.id)}
+                                disabled={loading}
+                              >
+                                <i className="bi bi-clock-history me-1"></i>
+                                Time Out
+                              </Button>
+                            ) : (
+                              <Badge bg="success">Complete</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </Table>
+            )}
+          </Card.Body>
+        </Card>
+        
+        {/* Weekly Report Section */}
         <Card style={{ 
           backgroundColor: '#1a1a1a', 
           border: '1px solid #2a2a2a',
           borderRadius: '12px',
-          padding: '2rem',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
         }}>
           <Card.Body>
-            <div className="text-center">
-              <h1 className="page-title" style={{ color: '#ffffff', marginBottom: '1rem' }}>
-                <i className="bi bi-calendar-check me-3" style={{ color: '#ffffff' }}></i>
-                Attendance
-              </h1>
-              <p style={{ color: '#ffffff', fontSize: '1.1rem' }}>
-                User attendance tracking will be available here in the future.
-              </p>
-            </div>
+            <Row className="mb-3">
+              <Col>
+                <h3 style={{ color: '#ffffff' }}>Weekly Report</h3>
+              </Col>
+              <Col xs="auto">
+                <Button
+                  variant="primary"
+                  onClick={handleGenerateWeeklyReport}
+                  disabled={loading || !selectedWeekStart}
+                >
+                  <i className="bi bi-file-earmark-text me-1"></i>
+                  Generate Weekly Report
+                </Button>
+              </Col>
+            </Row>
+            
+            {showWeeklyReport && weeklyReport.length > 0 && (
+              <Table striped bordered hover variant="dark" responsive>
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>Total Hours (Week)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {weeklyReport.map((report) => (
+                    <tr key={report.userId}>
+                      <td>{report.fullName}</td>
+                      <td>{formatHours(report.totalHours)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+            
+            {showWeeklyReport && weeklyReport.length === 0 && (
+              <Alert variant="info">
+                No attendance records found for this week.
+              </Alert>
+            )}
           </Card.Body>
         </Card>
       </Container>
@@ -30,4 +372,3 @@ const AttendancePage = () => {
 };
 
 export default AttendancePage;
-

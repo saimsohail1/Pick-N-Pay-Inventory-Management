@@ -24,6 +24,7 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'picknpay_inventory')\
 -- Drop tables in reverse dependency order to avoid foreign key constraints
 DROP TABLE IF EXISTS sale_items CASCADE;
 DROP TABLE IF EXISTS sales CASCADE;
+DROP TABLE IF EXISTS attendances CASCADE;
 DROP TABLE IF EXISTS batches CASCADE;
 DROP TABLE IF EXISTS items CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
@@ -136,6 +137,19 @@ CREATE TABLE sale_items (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create attendances table
+CREATE TABLE attendances (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    attendance_date DATE NOT NULL,
+    time_in TIME NOT NULL,
+    time_out TIME, -- NULL if still clocked in
+    total_hours DECIMAL(5,2), -- Calculated: time_out - time_in (in hours)
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, attendance_date) -- One record per user per day
+);
+
 -- ============================================
 -- 4. CREATE INDEXES FOR PERFORMANCE
 -- ============================================
@@ -163,6 +177,11 @@ CREATE INDEX idx_sales_payment_method ON sales(payment_method);
 -- Sale items indexes
 CREATE INDEX idx_sale_items_sale_id ON sale_items(sale_id);
 CREATE INDEX idx_sale_items_item_id ON sale_items(item_id);
+
+-- Attendances indexes
+CREATE INDEX idx_attendances_user_id ON attendances(user_id);
+CREATE INDEX idx_attendances_date ON attendances(attendance_date);
+CREATE INDEX idx_attendances_user_date ON attendances(user_id, attendance_date);
 
 -- ============================================
 -- 5. INSERT INITIAL DATA
@@ -205,6 +224,7 @@ CREATE TRIGGER update_items_updated_at BEFORE UPDATE ON items FOR EACH ROW EXECU
 CREATE TRIGGER update_batches_updated_at BEFORE UPDATE ON batches FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_sales_updated_at BEFORE UPDATE ON sales FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_sale_items_updated_at BEFORE UPDATE ON sale_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_attendances_updated_at BEFORE UPDATE ON attendances FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
 -- 7. GRANT PERMISSIONS
@@ -258,6 +278,7 @@ BEGIN
     RAISE NOTICE '- Sales tracking with payment methods';
     RAISE NOTICE '- Sale items with VAT calculations';
     RAISE NOTICE '- Discount support for sales';
+    RAISE NOTICE '- Employee attendance tracking';
     RAISE NOTICE '============================================';
     RAISE NOTICE 'Next Steps:';
     RAISE NOTICE '1. Start the Spring Boot application';

@@ -606,27 +606,6 @@ export const createZReportHTML = (reportData, companyName = 'ADAMS GREEN', start
           </tbody>
         </table>
       </div>
-      
-      <div class="divider"></div>
-      
-      <div class="section">
-        <table>
-          <thead>
-            <tr>
-              <th>Reason</th>
-              <th class="right">Count</th>
-              <th class="right">Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="total-row">
-              <td>Total</td>
-              <td class="count">0</td>
-              <td class="currency">€ 0.00</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </body>
     </html>
   `;

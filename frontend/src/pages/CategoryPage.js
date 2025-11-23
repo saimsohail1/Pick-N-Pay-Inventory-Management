@@ -211,11 +211,12 @@ const CategoryPage = () => {
                 <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                   <tr>
                     <th style={{ width: '5%' }}>#</th>
-                    <th style={{ width: '25%' }}>Name</th>
-                    <th style={{ width: '35%' }}>Description</th>
-                    <th style={{ width: '15%' }}>Display on POS</th>
-                    <th style={{ width: '15%' }}>Created</th>
-                    <th style={{ width: '5%' }}>Actions</th>
+                    <th style={{ width: '20%' }}>Name</th>
+                    <th style={{ width: '30%' }}>Description</th>
+                    <th style={{ width: '10%' }}>VAT Rate</th>
+                    <th style={{ width: '12%' }}>Display on POS</th>
+                    <th style={{ width: '13%' }}>Created</th>
+                    <th style={{ width: '10%' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody style={{ backgroundColor: '#1a1a1a' }}>

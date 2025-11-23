@@ -25,6 +25,10 @@ const EditItemDialog = ({
     }
   });
 
+  const selectedCategoryId = watch('categoryId');
+  const currentVatRate = watch('vatRate');
+  const [vatManuallyChanged, setVatManuallyChanged] = React.useState(false);
+
   // Reset form when itemToEdit changes
   React.useEffect(() => {
     if (itemToEdit) {
@@ -39,8 +43,33 @@ const EditItemDialog = ({
         batchId: itemToEdit.batchId || '',
         generalExpiryDate: itemToEdit.generalExpiryDate || ''
       });
+      setVatManuallyChanged(false);
     }
   }, [itemToEdit, reset]);
+
+  // Update VAT when category changes (if user hasn't manually changed it)
+  React.useEffect(() => {
+    if (!vatManuallyChanged && selectedCategoryId) {
+      const selectedCategory = categories.find(cat => cat.id === parseInt(selectedCategoryId));
+      if (selectedCategory && selectedCategory.vatRate) {
+        const categoryVat = parseFloat(selectedCategory.vatRate).toFixed(2);
+        if (currentVatRate !== categoryVat) {
+          reset({
+            ...watch(),
+            vatRate: categoryVat
+          }, { keepDirty: true });
+        }
+      }
+    } else if (!vatManuallyChanged && !selectedCategoryId) {
+      // No category selected - use default 23%
+      if (currentVatRate !== '23.00') {
+        reset({
+          ...watch(),
+          vatRate: '23.00'
+        }, { keepDirty: true });
+      }
+    }
+  }, [selectedCategoryId, categories, vatManuallyChanged, currentVatRate, reset, watch]);
 
   const handleFormSubmit = (data) => {
     if (onSave) {
@@ -251,6 +280,10 @@ const EditItemDialog = ({
                       placeholder="23.00"
                       className={errors.vatRate ? 'is-invalid' : ''}
                       style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setVatManuallyChanged(true); // Mark as manually changed
+                      }}
                     />
                   )}
                 />

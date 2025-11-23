@@ -29,7 +29,8 @@ const CategoryPage = () => {
   const { control, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: {
       name: '',
-      description: ''
+      description: '',
+      vatRate: '23.00'
     }
   });
 
@@ -52,7 +53,7 @@ const CategoryPage = () => {
 
   const handleCreateCategory = () => {
     setEditingCategory(null);
-    reset({ name: '', description: '' });
+    reset({ name: '', description: '', vatRate: '23.00' });
     setShowModal(true);
   };
 
@@ -60,7 +61,8 @@ const CategoryPage = () => {
     setEditingCategory(category);
     reset({
       name: category.name,
-      description: category.description || ''
+      description: category.description || '',
+      vatRate: category.vatRate ? parseFloat(category.vatRate).toFixed(2) : '23.00'
     });
     setShowModal(true);
   };
@@ -223,6 +225,9 @@ const CategoryPage = () => {
                         )}
                       </td>
                       <td>
+                        <strong>{category.vatRate ? parseFloat(category.vatRate).toFixed(2) : '23.00'}%</strong>
+                      </td>
+                      <td>
                         <Badge bg={category.displayOnPos ? 'success' : 'secondary'}>
                           {category.displayOnPos ? 'Yes' : 'No'}
                         </Badge>
@@ -322,6 +327,37 @@ const CategoryPage = () => {
                   />
                 )}
               />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label style={{ color: '#ffffff' }}>VAT Rate (%) *</Form.Label>
+              <Controller
+                name="vatRate"
+                control={control}
+                rules={{ 
+                  required: 'VAT rate is required',
+                  min: { value: 0, message: 'VAT rate must be 0 or greater' },
+                  max: { value: 100, message: 'VAT rate must be 100 or less' }
+                }}
+                render={({ field }) => (
+                  <Form.Control
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    placeholder="23.00"
+                    {...field}
+                    isInvalid={!!errors.vatRate}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                  />
+                )}
+              />
+              <Form.Control.Feedback type="invalid">
+                {errors.vatRate && errors.vatRate.message}
+              </Form.Control.Feedback>
+              <Form.Text style={{ color: '#aaaaaa' }}>
+                Default VAT rate for items in this category (e.g., 23.00 for 23%)
+              </Form.Text>
             </Form.Group>
 
             <Form.Group className="mb-3">

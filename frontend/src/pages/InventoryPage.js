@@ -40,6 +40,7 @@ const InventoryPage = () => {
     categoryFilter: 'all' // 'all' or specific category ID
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [vatManuallyChanged, setVatManuallyChanged] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -119,10 +120,35 @@ const InventoryPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // If category is changed, update VAT from category (unless manually changed)
+    if (name === 'categoryId') {
+      const selectedCategory = categories.find(cat => cat.id === parseInt(value));
+      setFormData(prev => {
+        const newData = { ...prev, [name]: value };
+        // Update VAT from category if not manually changed
+        if (!vatManuallyChanged) {
+          if (selectedCategory && selectedCategory.vatRate) {
+            newData.vatRate = parseFloat(selectedCategory.vatRate).toFixed(2);
+          } else {
+            newData.vatRate = '23.00'; // Default if no category
+          }
+        }
+        return newData;
+      });
+    } else if (name === 'vatRate') {
+      // VAT is being manually changed
+      setVatManuallyChanged(true);
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -148,6 +174,7 @@ const InventoryPage = () => {
       setShowAddModal(false);
       setShowEditModal(false);
       setEditingItem(null);
+      setVatManuallyChanged(false);
       setFormData({
         name: '',
         description: '',
@@ -528,6 +555,7 @@ const InventoryPage = () => {
             </h1>
             <Button 
               onClick={() => {
+                setVatManuallyChanged(false);
                 setFormData({
                   name: '',
                   description: '',

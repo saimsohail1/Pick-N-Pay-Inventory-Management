@@ -50,6 +50,7 @@ public class CategoryService {
                     existingCategory.setDescription(categoryDTO.getDescription());
                     existingCategory.setIsActive(categoryDTO.getIsActive());
                     existingCategory.setDisplayOnPos(categoryDTO.getDisplayOnPos());
+                    existingCategory.setVatRate(categoryDTO.getVatRate() != null ? categoryDTO.getVatRate() : new java.math.BigDecimal("23.00"));
                     Category updatedCategory = categoryRepository.save(existingCategory);
                     return convertToDTO(updatedCategory);
                 });
@@ -76,6 +77,7 @@ public class CategoryService {
         category.setDescription(dto.getDescription());
         category.setIsActive(dto.getIsActive());
         category.setDisplayOnPos(dto.getDisplayOnPos());
+        category.setVatRate(dto.getVatRate() != null ? dto.getVatRate() : new java.math.BigDecimal("23.00"));
         return category;
     }
 
@@ -86,6 +88,7 @@ public class CategoryService {
         dto.setDescription(category.getDescription());
         dto.setIsActive(category.getIsActive());
         dto.setDisplayOnPos(category.getDisplayOnPos());
+        dto.setVatRate(category.getVatRate());
         dto.setCreatedAt(category.getCreatedAt());
         dto.setUpdatedAt(category.getUpdatedAt());
         return dto;

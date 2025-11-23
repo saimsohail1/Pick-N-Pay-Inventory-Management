@@ -108,14 +108,12 @@ public class ItemService {
                     existingItem.setPrice(itemDTO.getPrice());
                     existingItem.setStockQuantity(itemDTO.getStockQuantity());
                     existingItem.setBarcode(itemDTO.getBarcode());
-                    existingItem.setVatRate(itemDTO.getVatRate() != null ? itemDTO.getVatRate() : new BigDecimal("23.00"));
-                    existingItem.setBatchId(itemDTO.getBatchId());
-                    existingItem.setGeneralExpiryDate(itemDTO.getGeneralExpiryDate());
                     
                     // Update category if provided
+                    Category category = null;
                     if (itemDTO.getCategoryId() != null && !itemDTO.getCategoryId().toString().trim().isEmpty()) {
                         try {
-                            Category category = categoryRepository.findById(itemDTO.getCategoryId()).orElse(null);
+                            category = categoryRepository.findById(itemDTO.getCategoryId()).orElse(null);
                             existingItem.setCategory(category);
                         } catch (Exception e) {
                             // If category lookup fails, set category to null
@@ -124,6 +122,21 @@ public class ItemService {
                     } else {
                         existingItem.setCategory(null);
                     }
+                    
+                    // VAT logic: Use provided VAT, or category's VAT, or default 23%
+                    if (itemDTO.getVatRate() != null) {
+                        // User explicitly set VAT - use it
+                        existingItem.setVatRate(itemDTO.getVatRate());
+                    } else if (category != null && category.getVatRate() != null) {
+                        // No VAT provided, but category has VAT - use category's VAT
+                        existingItem.setVatRate(category.getVatRate());
+                    } else {
+                        // No VAT and no category - use default 23%
+                        existingItem.setVatRate(new BigDecimal("23.00"));
+                    }
+                    
+                    existingItem.setBatchId(itemDTO.getBatchId());
+                    existingItem.setGeneralExpiryDate(itemDTO.getGeneralExpiryDate());
                     
                     Item updatedItem = itemRepository.save(existingItem);
                     return convertToDTO(updatedItem);
@@ -185,9 +198,12 @@ public class ItemService {
         item.setPrice(dto.getPrice());
         item.setStockQuantity(dto.getStockQuantity());
         item.setBarcode(dto.getBarcode());
+        
+        // Set category and use category's VAT as default if category exists and VAT not explicitly set
+        Category category = null;
         if (dto.getCategoryId() != null && !dto.getCategoryId().toString().trim().isEmpty()) {
             try {
-                Category category = categoryRepository.findById(dto.getCategoryId()).orElse(null);
+                category = categoryRepository.findById(dto.getCategoryId()).orElse(null);
                 item.setCategory(category);
             } catch (Exception e) {
                 // If category lookup fails, set category to null
@@ -196,7 +212,19 @@ public class ItemService {
         } else {
             item.setCategory(null);
         }
-        item.setVatRate(dto.getVatRate() != null ? dto.getVatRate() : new BigDecimal("23.00"));
+        
+        // VAT logic: Use provided VAT, or category's VAT, or default 23%
+        if (dto.getVatRate() != null) {
+            // User explicitly set VAT - use it
+            item.setVatRate(dto.getVatRate());
+        } else if (category != null && category.getVatRate() != null) {
+            // No VAT provided, but category has VAT - use category's VAT
+            item.setVatRate(category.getVatRate());
+        } else {
+            // No VAT and no category - use default 23%
+            item.setVatRate(new BigDecimal("23.00"));
+        }
+        
         item.setBatchId(dto.getBatchId());
         item.setGeneralExpiryDate(dto.getGeneralExpiryDate());
         return item;

@@ -23,6 +23,9 @@ public class Category {
     @Column(name = "display_on_pos")
     private Boolean displayOnPos = true;
 
+    @Column(name = "vat_rate", precision = 5, scale = 2, nullable = false)
+    private java.math.BigDecimal vatRate = new java.math.BigDecimal("23.00"); // Default 23% VAT
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -99,6 +102,13 @@ public class Category {
         this.updatedAt = updatedAt;
     }
 
+    public java.math.BigDecimal getVatRate() {
+        return vatRate;
+    }
+
+    public void setVatRate(java.math.BigDecimal vatRate) {
+        this.vatRate = vatRate;
+    }
 
     @PreUpdate
     public void preUpdate() {

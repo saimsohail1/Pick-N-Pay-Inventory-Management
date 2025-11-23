@@ -9,6 +9,7 @@ public class CategoryDTO {
     private String description;
     private Boolean isActive;
     private Boolean displayOnPos;
+    private java.math.BigDecimal vatRate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -16,12 +17,13 @@ public class CategoryDTO {
     public CategoryDTO() {}
 
     public CategoryDTO(Long id, String name, String description, Boolean isActive, 
-                      Boolean displayOnPos, LocalDateTime createdAt, LocalDateTime updatedAt) {
+                      Boolean displayOnPos, java.math.BigDecimal vatRate, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.isActive = isActive;
         this.displayOnPos = displayOnPos;
+        this.vatRate = vatRate;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -81,6 +83,14 @@ public class CategoryDTO {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public java.math.BigDecimal getVatRate() {
+        return vatRate;
+    }
+
+    public void setVatRate(java.math.BigDecimal vatRate) {
+        this.vatRate = vatRate;
     }
 
 }

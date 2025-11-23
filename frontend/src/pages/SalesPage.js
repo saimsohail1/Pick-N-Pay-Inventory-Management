@@ -54,6 +54,7 @@ const SalesPage = () => {
   const [itemNotFoundDialogOpen, setItemNotFoundDialogOpen] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [registerItemDialogOpen, setRegisterItemDialogOpen] = useState(false);
+  const [vatManuallyChanged, setVatManuallyChanged] = useState(false);
   const [newItem, setNewItem] = useState({
     name: '',
     barcode: '',
@@ -2512,6 +2513,7 @@ const SalesPage = () => {
                 
                 if (cachedData) {
                   // Restore cached form data
+                  setVatManuallyChanged(true); // Assume VAT was manually set if cached
                   setNewItem({
                     name: cachedData.name || '',
                     barcode: scannedBarcode,
@@ -2524,14 +2526,15 @@ const SalesPage = () => {
                   addTimeout(() => setSuccess(null), 3000);
                 } else {
                   // No cached data, start fresh
-                setNewItem({
-                  name: '',
-                  barcode: scannedBarcode,
-                  price: '',
-                  stockQuantity: '',
-                  vatRate: '23.00',
-                  categoryId: ''
-                });
+                  setVatManuallyChanged(false);
+                  setNewItem({
+                    name: '',
+                    barcode: scannedBarcode,
+                    price: '',
+                    stockQuantity: '',
+                    vatRate: '23.00',
+                    categoryId: ''
+                  });
                 }
                 
                 setRegisterItemDialogOpen(true);
@@ -2628,6 +2631,7 @@ const SalesPage = () => {
                   placeholder="23.00"
                   value={newItem.vatRate}
                   onChange={(e) => {
+                    setVatManuallyChanged(true); // Mark as manually changed
                     const updatedItem = { ...newItem, vatRate: e.target.value };
                     setNewItem(updatedItem);
                     saveFormToCache(newItem.barcode, updatedItem);
@@ -2644,7 +2648,19 @@ const SalesPage = () => {
               <Form.Select
                 value={newItem.categoryId}
                 onChange={(e) => {
-                  const updatedItem = { ...newItem, categoryId: e.target.value };
+                  const selectedCategoryId = e.target.value;
+                  const selectedCategory = categories.find(cat => cat.id === parseInt(selectedCategoryId));
+                  const updatedItem = { ...newItem, categoryId: selectedCategoryId };
+                  
+                  // Update VAT from category if not manually changed
+                  if (!vatManuallyChanged) {
+                    if (selectedCategory && selectedCategory.vatRate) {
+                      updatedItem.vatRate = parseFloat(selectedCategory.vatRate).toFixed(2);
+                    } else {
+                      updatedItem.vatRate = '23.00'; // Default if no category
+                    }
+                  }
+                  
                   setNewItem(updatedItem);
                   saveFormToCache(newItem.barcode, updatedItem);
                 }}

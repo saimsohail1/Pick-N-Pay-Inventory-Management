@@ -15,7 +15,8 @@ const DailyReport = () => {
       totalVatAmount: 0,
       totalAmountExcludingVat: 0,
       totalAmountIncludingVat: 0
-    }
+    },
+    vatBreakdown: []
   });
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
@@ -111,7 +112,8 @@ const DailyReport = () => {
             totalVatAmount: 0,
             totalAmountExcludingVat: 0,
             totalAmountIncludingVat: 0
-          }
+          },
+          vatBreakdown: []
         });
         return;
       }
@@ -135,6 +137,9 @@ const DailyReport = () => {
         total: parseFloat(cat.total || 0)
       }));
 
+      // Process VAT breakdown from API response
+      const vatBreakdown = dailyReport.vatBreakdown || [];
+
       setReportData({
         paymentMethods: [
           { label: 'cash', count: cashCount, total: cashTotal },
@@ -146,7 +151,8 @@ const DailyReport = () => {
           totalVatAmount,
           totalAmountExcludingVat,
           totalAmountIncludingVat: totalAmount
-        }
+        },
+        vatBreakdown: vatBreakdown
       });
 
     } catch (err) {
@@ -176,7 +182,8 @@ const DailyReport = () => {
           totalVatAmount: 0,
           totalAmountExcludingVat: 0,
           totalAmountIncludingVat: 0
-        }
+        },
+        vatBreakdown: []
       });
     } finally {
       setLoading(false);
@@ -435,8 +442,77 @@ const DailyReport = () => {
             </div>
           )}
 
-          {/* VAT Summary Section */}
-          {reportData && reportData.vatInfo && (
+              {/* VAT Breakdown Table */}
+              {reportData && reportData.vatBreakdown && reportData.vatBreakdown.length > 0 && (
+                <div className="mb-4 p-4 rounded" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '8px' }}>
+                  <h5 className="mb-3" style={{ color: '#ffffff' }}>VAT Summary</h5>
+                  <Table striped bordered hover className="mb-0">
+                    <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+                      <tr>
+                        <th style={{ color: '#ffffff' }}>VAT %</th>
+                        <th style={{ color: '#ffffff' }}>Gross</th>
+                        <th style={{ color: '#ffffff' }}>VAT</th>
+                        <th style={{ color: '#ffffff' }}>Net</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportData.vatBreakdown.map((vat, index) => {
+                        const gross = parseFloat(vat.gross || 0);
+                        const vatAmount = parseFloat(vat.vatAmount || 0);
+                        const net = parseFloat(vat.net || 0);
+                        const rate = parseFloat(vat.vatRate || 0);
+                        return (
+                          <tr key={index} style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+                            <td className="fw-bold" style={{ color: '#ffffff' }}>{rate.toFixed(1)}%</td>
+                            <td className="text-end" style={{ color: '#ffffff' }}>€ {gross.toFixed(2)}</td>
+                            <td className="text-end" style={{ color: '#ffffff' }}>€ {vatAmount.toFixed(2)}</td>
+                            <td className="text-end" style={{ color: '#ffffff' }}>€ {net.toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
+                      {(() => {
+                        // Calculate weighted average VAT percentage
+                        let totalGross = 0;
+                        let weightedVatSum = 0;
+                        reportData.vatBreakdown.forEach(vat => {
+                          const gross = parseFloat(vat.gross || 0);
+                          const rate = parseFloat(vat.vatRate || 0);
+                          totalGross += gross;
+                          weightedVatSum += rate * gross;
+                        });
+                        const avgVatPercentage = totalGross > 0 ? weightedVatSum / totalGross : 0;
+                        
+                        // Calculate totals
+                        const totalGross = reportData.vatBreakdown.reduce((sum, vat) => sum + parseFloat(vat.gross || 0), 0);
+                        const totalVat = reportData.vatBreakdown.reduce((sum, vat) => sum + parseFloat(vat.vatAmount || 0), 0);
+                        const totalNet = reportData.vatBreakdown.reduce((sum, vat) => sum + parseFloat(vat.net || 0), 0);
+                        
+                        return (
+                          <>
+                            {avgVatPercentage > 0 && (
+                              <tr style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+                                <td className="fw-bold" style={{ color: '#ffffff' }}>Avg {Math.round(avgVatPercentage)}%</td>
+                                <td className="text-end" style={{ color: '#ffffff' }}>-</td>
+                                <td className="text-end" style={{ color: '#ffffff' }}>-</td>
+                                <td className="text-end" style={{ color: '#ffffff' }}>-</td>
+                              </tr>
+                            )}
+                            <tr style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+                              <td className="fw-bold" style={{ color: '#ffffff' }}>Total</td>
+                              <td className="text-end fw-bold" style={{ color: '#ffffff' }}>€ {totalGross.toFixed(2)}</td>
+                              <td className="text-end fw-bold" style={{ color: '#ffffff' }}>€ {totalVat.toFixed(2)}</td>
+                              <td className="text-end fw-bold" style={{ color: '#ffffff' }}>€ {totalNet.toFixed(2)}</td>
+                            </tr>
+                          </>
+                        );
+                      })()}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+
+          {/* VAT Summary Section (Fallback if no breakdown) */}
+          {reportData && reportData.vatInfo && (!reportData.vatBreakdown || reportData.vatBreakdown.length === 0) && (
             <div className="col-md-6 mb-4">
               <div className="card h-100" style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333' }}>
                 <div className="card-header" style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>

@@ -92,11 +92,17 @@ const CategoryPage = () => {
     setSuccess(null);
     
     try {
+      // Ensure VAT rate is set - default to 23.00 if empty or null
+      const categoryData = {
+        ...data,
+        vatRate: data.vatRate && data.vatRate.trim() !== '' ? parseFloat(data.vatRate) : 23.00
+      };
+      
       if (editingCategory) {
-        await categoriesAPI.update(editingCategory.id, data);
+        await categoriesAPI.update(editingCategory.id, categoryData);
         setSuccess('Category updated successfully!');
       } else {
-        await categoriesAPI.create(data);
+        await categoriesAPI.create(categoryData);
         setSuccess('Category created successfully!');
       }
       
@@ -330,12 +336,11 @@ const CategoryPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>VAT Rate (%) *</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>VAT Rate (%)</Form.Label>
               <Controller
                 name="vatRate"
                 control={control}
                 rules={{ 
-                  required: 'VAT rate is required',
                   min: { value: 0, message: 'VAT rate must be 0 or greater' },
                   max: { value: 100, message: 'VAT rate must be 100 or less' }
                 }}
@@ -345,7 +350,7 @@ const CategoryPage = () => {
                     step="0.01"
                     min="0"
                     max="100"
-                    placeholder="23.00"
+                    placeholder="23.00 (default)"
                     {...field}
                     isInvalid={!!errors.vatRate}
                     style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
@@ -356,7 +361,7 @@ const CategoryPage = () => {
                 {errors.vatRate && errors.vatRate.message}
               </Form.Control.Feedback>
               <Form.Text style={{ color: '#aaaaaa' }}>
-                Default VAT rate for items in this category (e.g., 23.00 for 23%)
+                Default VAT rate for items in this category. If not specified, defaults to 23.00%
               </Form.Text>
             </Form.Group>
 

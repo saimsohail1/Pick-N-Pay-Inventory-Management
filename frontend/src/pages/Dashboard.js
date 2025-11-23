@@ -48,9 +48,9 @@ const Dashboard = () => {
       color: '#000000'
     },
     {
-      title: 'Product',
-      icon: 'bi-box-seam',
-      path: '/inventory',
+      title: 'Attendance',
+      icon: 'bi-calendar-check',
+      path: '/attendance',
       color: '#000000'
     },
     {

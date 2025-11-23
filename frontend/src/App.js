@@ -14,6 +14,7 @@ import DailyReport from './pages/DailyReport';
 import CompanyPage from './pages/CompanyPage';
 import CategoryPage from './pages/CategoryPage';
 import UserPage from './pages/UserPage';
+import AttendancePage from './pages/AttendancePage';
 import CustomerDisplay from './pages/CustomerDisplay';
 
 function App() {
@@ -80,6 +81,13 @@ function App() {
             <ProtectedRoute requireAdmin={true}>
               <Layout>
                 <UserPage />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/attendance" element={
+            <ProtectedRoute>
+              <Layout>
+                <AttendancePage />
               </Layout>
             </ProtectedRoute>
           } />

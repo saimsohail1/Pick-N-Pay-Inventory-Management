@@ -56,6 +56,7 @@ DO $$
 DECLARE
     column_exists BOOLEAN;
     category_count INTEGER;
+    rec RECORD;
 BEGIN
     -- Check if column exists
     SELECT EXISTS (

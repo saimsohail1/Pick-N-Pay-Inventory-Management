@@ -270,6 +270,7 @@ public class SaleService {
         
         // Calculate category summaries for all sales
         Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
+        Long totalCategoryCount = 0L; // Track total count as we accumulate
         
         for (Sale sale : allSales) {
             for (SaleItem saleItem : sale.getSaleItems()) {
@@ -287,6 +288,9 @@ public class SaleService {
                 categorySummary.setCount(categorySummary.getCount() + saleItem.getQuantity());
                 
                 categoryMap.put(categoryName, categorySummary);
+                
+                // Accumulate total count directly from sale items
+                totalCategoryCount += saleItem.getQuantity();
             }
         }
         
@@ -294,8 +298,8 @@ public class SaleService {
         List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
         categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
         
-        // Add total row
-        categories.add(new CategorySummaryDTO("Total", totalAmount, totalSales));
+        // Add total row with the accumulated count
+        categories.add(new CategorySummaryDTO("Total", totalAmount, totalCategoryCount));
         
         DailyReportDTO report = new DailyReportDTO(date, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
         report.setTotalVatAmount(totalVatAmount);
@@ -377,8 +381,13 @@ public class SaleService {
         List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
         categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
         
+        // Calculate total count as sum of all category counts (not number of transactions)
+        Long totalCategoryCount = categories.stream()
+                .mapToLong(CategorySummaryDTO::getCount)
+                .sum();
+        
         // Add total row
-        categories.add(new CategorySummaryDTO("Total", totalAmount, totalSales));
+        categories.add(new CategorySummaryDTO("Total", totalAmount, totalCategoryCount));
         
         DailyReportDTO report = new DailyReportDTO(date, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
         report.setTotalVatAmount(totalVatAmount);
@@ -460,8 +469,13 @@ public class SaleService {
         List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
         categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
         
+        // Calculate total count as sum of all category counts (not number of transactions)
+        Long totalCategoryCount = categories.stream()
+                .mapToLong(CategorySummaryDTO::getCount)
+                .sum();
+        
         // Add total row
-        categories.add(new CategorySummaryDTO("Total", totalAmount, totalSales));
+        categories.add(new CategorySummaryDTO("Total", totalAmount, totalCategoryCount));
         
         DailyReportDTO report = new DailyReportDTO(startDate, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
         report.setTotalVatAmount(totalVatAmount);
@@ -543,8 +557,13 @@ public class SaleService {
         List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
         categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
         
+        // Calculate total count as sum of all category counts (not number of transactions)
+        Long totalCategoryCount = categories.stream()
+                .mapToLong(CategorySummaryDTO::getCount)
+                .sum();
+        
         // Add total row
-        categories.add(new CategorySummaryDTO("Total", totalAmount, totalSales));
+        categories.add(new CategorySummaryDTO("Total", totalAmount, totalCategoryCount));
         
         DailyReportDTO report = new DailyReportDTO(startDate, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
         report.setTotalVatAmount(totalVatAmount);

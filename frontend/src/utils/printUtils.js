@@ -440,28 +440,28 @@ export const createZReportHTML = (reportData, companyName = 'ADAMS GREEN', start
         }
         
         .header .company-name {
-          font-size: 13px;
+          font-size: 16px;
+          font-weight: 700;
+          margin-bottom: 4px;
+          text-align: center;
+        }
+        
+        .header .address {
+          font-size: 14px;
           font-weight: 700;
           margin-bottom: 3px;
           text-align: center;
         }
         
-        .header .address {
-          font-size: 13px;
-          font-weight: 700;
-          margin-bottom: 2px;
-          text-align: center;
-        }
-        
         .header .phone {
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 700;
-          margin-bottom: 2px;
+          margin-bottom: 3px;
           text-align: center;
         }
         
         .header .date {
-          font-size: 13px;
+          font-size: 15px;
           font-weight: 700;
           margin-bottom: 6px;
           text-align: center;

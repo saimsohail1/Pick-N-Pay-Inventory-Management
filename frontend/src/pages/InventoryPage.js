@@ -35,7 +35,7 @@ const InventoryPage = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [filters, setFilters] = useState({
-    stockFilter: 'all', // 'all', 'low', 'out', 'normal'
+    stockFilter: 'all', // 'all', 'low', 'out', 'medium', 'normal'
     expiryFilter: 'all', // 'all', 'expired', 'expiring', 'valid'
     categoryFilter: 'all' // 'all' or specific category ID
   });
@@ -366,8 +366,10 @@ const InventoryPage = () => {
       filteredItems = filteredItems.filter(item => item.stockQuantity <= 0);
     } else if (filters.stockFilter === 'low') {
       filteredItems = filteredItems.filter(item => item.stockQuantity > 0 && item.stockQuantity <= 10);
+    } else if (filters.stockFilter === 'medium') {
+      filteredItems = filteredItems.filter(item => item.stockQuantity > 10 && item.stockQuantity <= 50);
     } else if (filters.stockFilter === 'normal') {
-      filteredItems = filteredItems.filter(item => item.stockQuantity > 10);
+      filteredItems = filteredItems.filter(item => item.stockQuantity > 50);
     }
 
     // Apply expiry filters
@@ -604,7 +606,8 @@ const InventoryPage = () => {
                   <option value="all">All Items</option>
                   <option value="out">Out of Stock (0)</option>
                   <option value="low">Low Stock (1-10)</option>
-                  <option value="normal">Normal Stock (10+)</option>
+                  <option value="medium">Medium Stock (10-50)</option>
+                  <option value="normal">Normal Stock (50+)</option>
                 </Form.Select>
               </div>
               <div className="col-md-3">

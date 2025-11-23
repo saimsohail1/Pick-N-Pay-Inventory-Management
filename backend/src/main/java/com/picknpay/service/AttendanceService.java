@@ -30,55 +30,38 @@ public class AttendanceService {
     
     /**
      * Mark time-in for a user on a specific date
+     * Allows multiple time-in entries per day
      */
     public AttendanceDTO markTimeIn(Long userId, LocalDate date, LocalTime timeIn) {
         // Validate user exists
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
         
-        // Check if attendance already exists for this user and date
-        Optional<Attendance> existingAttendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, date);
-        
-        if (existingAttendance.isPresent()) {
-            Attendance attendance = existingAttendance.get();
-            // If time-in already exists, update it
-            if (attendance.getTimeIn() != null) {
-                throw new RuntimeException("Time-in already marked for user " + user.getFullName() + " on " + date);
-            }
-            attendance.setTimeIn(timeIn);
-            attendance = attendanceRepository.save(attendance);
-            return convertToDTO(attendance);
-        } else {
-            // Create new attendance record
-            Attendance attendance = new Attendance();
-            attendance.setUser(user);
-            attendance.setAttendanceDate(date);
-            attendance.setTimeIn(timeIn);
-            attendance = attendanceRepository.save(attendance);
-            return convertToDTO(attendance);
-        }
+        // Always create a new attendance record for time-in
+        Attendance attendance = new Attendance();
+        attendance.setUser(user);
+        attendance.setAttendanceDate(date);
+        attendance.setTimeIn(timeIn);
+        attendance = attendanceRepository.save(attendance);
+        return convertToDTO(attendance);
     }
     
     /**
      * Mark time-out for a user on a specific date
+     * Finds the latest open entry (time-out is null) and marks time-out
      */
     public AttendanceDTO markTimeOut(Long userId, LocalDate date, LocalTime timeOut) {
         // Validate user exists
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
         
-        // Find existing attendance
-        Attendance attendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, date)
-                .orElseThrow(() -> new RuntimeException("No time-in found for user " + user.getFullName() + " on " + date));
+        // Find the latest open attendance (time-out is null)
+        Attendance attendance = attendanceRepository.findLatestOpenAttendanceByUserIdAndDate(userId, date)
+                .orElseThrow(() -> new RuntimeException("No open time-in found for user " + user.getFullName() + " on " + date));
         
         // Validate time-out is after time-in
         if (attendance.getTimeIn() != null && timeOut.isBefore(attendance.getTimeIn())) {
             throw new RuntimeException("Time-out cannot be before time-in");
-        }
-        
-        // Check if time-out already exists
-        if (attendance.getTimeOut() != null) {
-            throw new RuntimeException("Time-out already marked for user " + user.getFullName() + " on " + date);
         }
         
         attendance.setTimeOut(timeOut);
@@ -87,11 +70,41 @@ public class AttendanceService {
     }
     
     /**
-     * Get attendance for a user on a specific date
+     * Get attendance for a user on a specific date (returns first one for backward compatibility)
      */
     public Optional<AttendanceDTO> getAttendanceByUserAndDate(Long userId, LocalDate date) {
         return attendanceRepository.findByUserIdAndAttendanceDate(userId, date)
                 .map(this::convertToDTO);
+    }
+    
+    /**
+     * Get all attendances for a user on a specific date
+     */
+    public List<AttendanceDTO> getAllAttendancesByUserAndDate(Long userId, LocalDate date) {
+        return attendanceRepository.findAllByUserIdAndAttendanceDate(userId, date).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Automatically mark time-out for all open attendances at 11:59 PM
+     * This method is called by a scheduled task
+     */
+    public void autoTimeOutAtEndOfDay() {
+        LocalDate today = LocalDate.now();
+        LocalTime endOfDay = LocalTime.of(23, 59, 0);
+        
+        // Find all open attendances for today
+        List<Attendance> openAttendances = attendanceRepository.findByAttendanceDate(today).stream()
+                .filter(a -> a.getTimeOut() == null)
+                .collect(Collectors.toList());
+        
+        for (Attendance attendance : openAttendances) {
+            attendance.setTimeOut(endOfDay);
+            attendanceRepository.save(attendance);
+        }
+        
+        System.out.println("Auto time-out completed for " + openAttendances.size() + " open attendances on " + today);
     }
     
     /**

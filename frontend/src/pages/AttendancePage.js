@@ -198,8 +198,28 @@ const AttendancePage = () => {
     }
   };
   
-  const getAttendanceForUser = (userId) => {
-    return attendances.find(a => a.userId === userId);
+  const getAttendancesForUser = (userId) => {
+    return attendances.filter(a => a.userId === userId).sort((a, b) => {
+      // Sort by time-in, earliest first
+      if (a.timeIn && b.timeIn) {
+        return a.timeIn.localeCompare(b.timeIn);
+      }
+      return 0;
+    });
+  };
+  
+  const getLatestOpenAttendance = (userId) => {
+    const userAttendances = getAttendancesForUser(userId);
+    // Find the latest entry without time-out
+    return userAttendances.find(a => !a.timeOut) || null;
+  };
+  
+  const getTotalHoursForUser = (userId) => {
+    const userAttendances = getAttendancesForUser(userId);
+    const total = userAttendances.reduce((sum, a) => {
+      return sum + (parseFloat(a.totalHours) || 0);
+    }, 0);
+    return total.toFixed(2);
   };
   
   const formatTime = (timeStr) => {
@@ -325,6 +345,7 @@ const AttendancePage = () => {
                     <th>Username</th>
                     <th>Time In</th>
                     <th>Time Out</th>
+                    <th>Hours</th>
                     <th>Total Hours</th>
                     <th>Actions</th>
                   </tr>
@@ -332,23 +353,26 @@ const AttendancePage = () => {
                 <tbody>
                   {users.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="text-center">No users found</td>
+                      <td colSpan="7" className="text-center">No users found</td>
                     </tr>
                   ) : (
                     users.map((user) => {
-                      const attendance = getAttendanceForUser(user.id);
-                      const hasTimeIn = attendance && attendance.timeIn;
-                      const hasTimeOut = attendance && attendance.timeOut;
+                      const userAttendances = getAttendancesForUser(user.id);
+                      const latestOpen = getLatestOpenAttendance(user.id);
+                      const totalHours = getTotalHoursForUser(user.id);
+                      const hasOpenEntry = latestOpen !== null;
                       
-                      return (
-                        <tr key={user.id}>
-                          <td>{user.fullName}</td>
-                          <td>{user.username}</td>
-                          <td>{hasTimeIn ? formatTime(attendance.timeIn) : '-'}</td>
-                          <td>{hasTimeOut ? formatTime(attendance.timeOut) : '-'}</td>
-                          <td>{attendance ? formatHours(attendance.totalHours) : '-'}</td>
-                          <td>
-                            {!hasTimeIn ? (
+                      if (userAttendances.length === 0) {
+                        // No attendance records, show single row with Time In button
+                        return (
+                          <tr key={user.id}>
+                            <td>{user.fullName}</td>
+                            <td>{user.username}</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td style={{ fontWeight: 'bold' }}>0.00h</td>
+                            <td>
                               <Button
                                 variant="success"
                                 size="sm"
@@ -358,22 +382,62 @@ const AttendancePage = () => {
                                 <i className="bi bi-clock-history me-1"></i>
                                 Time In
                               </Button>
-                            ) : !hasTimeOut ? (
-                              <Button
-                                variant="warning"
-                                size="sm"
-                                onClick={() => handleMarkTimeOut(user.id)}
-                                disabled={loading}
-                              >
-                                <i className="bi bi-clock-history me-1"></i>
-                                Time Out
-                              </Button>
-                            ) : (
-                              <Badge bg="success">Complete</Badge>
+                            </td>
+                          </tr>
+                        );
+                      }
+                      
+                      // Show all entries for this user
+                      return userAttendances.map((attendance, index) => {
+                        const isFirstRow = index === 0;
+                        const isLastRow = index === userAttendances.length - 1;
+                        const isOpenEntry = !attendance.timeOut;
+                        
+                        return (
+                          <tr key={`${user.id}-${attendance.id}`}>
+                            {isFirstRow && (
+                              <>
+                                <td rowSpan={userAttendances.length}>{user.fullName}</td>
+                                <td rowSpan={userAttendances.length}>{user.username}</td>
+                              </>
                             )}
-                          </td>
-                        </tr>
-                      );
+                            <td>{formatTime(attendance.timeIn)}</td>
+                            <td>{attendance.timeOut ? formatTime(attendance.timeOut) : <Badge bg="warning">Open</Badge>}</td>
+                            <td>{attendance.totalHours ? formatHours(attendance.totalHours) : '-'}</td>
+                            {isFirstRow && (
+                              <td rowSpan={userAttendances.length} style={{ fontWeight: 'bold' }}>
+                                {totalHours}h
+                              </td>
+                            )}
+                            {isLastRow && (
+                              <td>
+                                {hasOpenEntry ? (
+                                  <Button
+                                    variant="warning"
+                                    size="sm"
+                                    onClick={() => handleMarkTimeOut(user.id)}
+                                    disabled={loading}
+                                  >
+                                    <i className="bi bi-clock-history me-1"></i>
+                                    Time Out
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="success"
+                                    size="sm"
+                                    onClick={() => handleMarkTimeIn(user.id)}
+                                    disabled={loading}
+                                  >
+                                    <i className="bi bi-clock-history me-1"></i>
+                                    Time In
+                                  </Button>
+                                )}
+                              </td>
+                            )}
+                            {!isLastRow && <td></td>}
+                          </tr>
+                        );
+                      });
                     })
                   )}
                 </tbody>

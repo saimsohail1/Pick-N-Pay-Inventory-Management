@@ -146,8 +146,8 @@ CREATE TABLE attendances (
     time_out TIME, -- NULL if still clocked in
     total_hours DECIMAL(5,2), -- Calculated: time_out - time_in (in hours)
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, attendance_date) -- One record per user per day
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    -- Note: No unique constraint - allows multiple entries per user per day
 );
 
 -- ============================================

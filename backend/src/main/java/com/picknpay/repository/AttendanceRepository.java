@@ -17,6 +17,14 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     // Find attendance by user ID and date
     Optional<Attendance> findByUserIdAndAttendanceDate(Long userId, LocalDate attendanceDate);
     
+    // Find the latest open attendance (time-out is null) for a user on a date
+    @Query("SELECT a FROM Attendance a WHERE a.user.id = :userId AND a.attendanceDate = :date AND a.timeOut IS NULL ORDER BY a.timeIn DESC")
+    Optional<Attendance> findLatestOpenAttendanceByUserIdAndDate(@Param("userId") Long userId, @Param("date") LocalDate date);
+    
+    // Find all attendances for a user on a specific date ordered by time-in
+    @Query("SELECT a FROM Attendance a WHERE a.user.id = :userId AND a.attendanceDate = :date ORDER BY a.timeIn ASC")
+    List<Attendance> findAllByUserIdAndAttendanceDate(@Param("userId") Long userId, @Param("date") LocalDate date);
+    
     // Find all attendances by user ID ordered by date descending
     List<Attendance> findByUserIdOrderByAttendanceDateDesc(Long userId);
     

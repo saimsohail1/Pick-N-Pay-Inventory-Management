@@ -30,7 +30,9 @@ const CategoryPage = () => {
     defaultValues: {
       name: '',
       description: '',
-      vatRate: '23.00'
+      vatRate: '0.00',
+      displayOnPos: true,
+      isActive: true
     }
   });
 
@@ -53,7 +55,7 @@ const CategoryPage = () => {
 
   const handleCreateCategory = () => {
     setEditingCategory(null);
-    reset({ name: '', description: '', vatRate: '23.00' });
+    reset({ name: '', description: '', vatRate: '0.00', displayOnPos: true, isActive: true });
     setShowModal(true);
   };
 
@@ -62,7 +64,9 @@ const CategoryPage = () => {
     reset({
       name: category.name,
       description: category.description || '',
-      vatRate: category.vatRate ? parseFloat(category.vatRate).toFixed(2) : '23.00'
+      vatRate: category.vatRate !== null && category.vatRate !== undefined ? parseFloat(category.vatRate).toFixed(2) : '0.00',
+      displayOnPos: category.displayOnPos !== null && category.displayOnPos !== undefined ? category.displayOnPos : true,
+      isActive: category.isActive !== null && category.isActive !== undefined ? category.isActive : true
     });
     setShowModal(true);
   };
@@ -92,17 +96,19 @@ const CategoryPage = () => {
     setSuccess(null);
     
     try {
-      // Ensure VAT rate is set - default to 23.00 if empty or null (shouldn't happen due to validation, but safety check)
-      const vatValue = data.vatRate && data.vatRate.toString().trim() !== '' 
+      // Ensure VAT rate is set - allow 0, default to 0 if empty or null (shouldn't happen due to validation, but safety check)
+      const vatValue = data.vatRate !== null && data.vatRate !== undefined && data.vatRate.toString().trim() !== '' 
         ? parseFloat(data.vatRate) 
-        : 23.00;
+        : 0.00;
       
-      // Ensure it's a valid number and not NaN
-      const finalVatRate = isNaN(vatValue) ? 23.00 : vatValue;
+      // Ensure it's a valid number and not NaN (0 is valid)
+      const finalVatRate = isNaN(vatValue) ? 0.00 : vatValue;
       
       const categoryData = {
         ...data,
-        vatRate: finalVatRate
+        vatRate: finalVatRate,
+        isActive: data.isActive !== null && data.isActive !== undefined ? data.isActive : true,
+        displayOnPos: data.displayOnPos !== null && data.displayOnPos !== undefined ? data.displayOnPos : true
       };
       
       if (editingCategory) {

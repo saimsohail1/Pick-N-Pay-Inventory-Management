@@ -48,12 +48,17 @@ public class CategoryService {
                 .map(existingCategory -> {
                     existingCategory.setName(categoryDTO.getName());
                     existingCategory.setDescription(categoryDTO.getDescription());
-                    existingCategory.setIsActive(categoryDTO.getIsActive());
+                    // Ensure isActive is never null - default to true if not provided
+                    Boolean isActive = categoryDTO.getIsActive();
+                    if (isActive == null) {
+                        isActive = true;
+                    }
+                    existingCategory.setIsActive(isActive);
                     existingCategory.setDisplayOnPos(categoryDTO.getDisplayOnPos());
-                    // VAT should never be null - always ensure a value is set (default 23.00)
+                    // VAT should never be null - allow 0, default to 0 if null
                     java.math.BigDecimal vatRate = categoryDTO.getVatRate();
                     if (vatRate == null) {
-                        vatRate = new java.math.BigDecimal("23.00");
+                        vatRate = new java.math.BigDecimal("0.00");
                     }
                     existingCategory.setVatRate(vatRate);
                     Category updatedCategory = categoryRepository.save(existingCategory);
@@ -80,13 +85,18 @@ public class CategoryService {
         Category category = new Category();
         category.setName(dto.getName());
         category.setDescription(dto.getDescription());
-        category.setIsActive(dto.getIsActive());
+        // Ensure isActive is never null - default to true if not provided
+        Boolean isActive = dto.getIsActive();
+        if (isActive == null) {
+            isActive = true;
+        }
+        category.setIsActive(isActive);
         category.setDisplayOnPos(dto.getDisplayOnPos());
         
-        // VAT should never be null - always ensure a value is set (default 23.00)
+        // VAT should never be null - allow 0, default to 0 if null
         java.math.BigDecimal vatRate = dto.getVatRate();
         if (vatRate == null) {
-            vatRate = new java.math.BigDecimal("23.00");
+            vatRate = new java.math.BigDecimal("0.00");
         }
         category.setVatRate(vatRate);
         

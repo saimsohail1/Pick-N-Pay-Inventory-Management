@@ -123,22 +123,22 @@ public class ItemService {
                         existingItem.setCategory(null);
                     }
                     
-                    // VAT logic: Use provided VAT, or category's VAT, or default 23%
-                    // VAT should never be null - always ensure a value is set
+                    // VAT logic: Use provided VAT, or category's VAT, or default 0%
+                    // VAT should never be null - allow 0, default to 0 if null
                     if (itemDTO.getVatRate() != null) {
-                        // User explicitly set VAT - use it
+                        // User explicitly set VAT (including 0) - use it
                         existingItem.setVatRate(itemDTO.getVatRate());
                     } else if (category != null && category.getVatRate() != null) {
                         // No VAT provided, but category has VAT - use category's VAT
                         existingItem.setVatRate(category.getVatRate());
                     } else {
-                        // No VAT and no category (or category has null VAT) - use default 23%
-                        existingItem.setVatRate(new BigDecimal("23.00"));
+                        // No VAT and no category (or category has null VAT) - use default 0%
+                        existingItem.setVatRate(new BigDecimal("0.00"));
                     }
                     
                     // Final safety check: ensure VAT is never null
                     if (existingItem.getVatRate() == null) {
-                        existingItem.setVatRate(new BigDecimal("23.00"));
+                        existingItem.setVatRate(new BigDecimal("0.00"));
                     }
                     
                     existingItem.setBatchId(itemDTO.getBatchId());
@@ -219,22 +219,22 @@ public class ItemService {
             item.setCategory(null);
         }
         
-        // VAT logic: Use provided VAT, or category's VAT, or default 23%
-        // VAT should never be null - always ensure a value is set
+        // VAT logic: Use provided VAT, or category's VAT, or default 0%
+        // VAT should never be null - allow 0, default to 0 if null
         if (dto.getVatRate() != null) {
-            // User explicitly set VAT - use it
+            // User explicitly set VAT (including 0) - use it
             item.setVatRate(dto.getVatRate());
         } else if (category != null && category.getVatRate() != null) {
             // No VAT provided, but category has VAT - use category's VAT
             item.setVatRate(category.getVatRate());
         } else {
-            // No VAT and no category (or category has null VAT) - use default 23%
-            item.setVatRate(new BigDecimal("23.00"));
+            // No VAT and no category (or category has null VAT) - use default 0%
+            item.setVatRate(new BigDecimal("0.00"));
         }
         
         // Final safety check: ensure VAT is never null
         if (item.getVatRate() == null) {
-            item.setVatRate(new BigDecimal("23.00"));
+            item.setVatRate(new BigDecimal("0.00"));
         }
         
         item.setBatchId(dto.getBatchId());

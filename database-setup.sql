@@ -66,6 +66,7 @@ CREATE TABLE categories (
     description TEXT,
     is_active BOOLEAN DEFAULT true,
     display_on_pos BOOLEAN DEFAULT true,
+    vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

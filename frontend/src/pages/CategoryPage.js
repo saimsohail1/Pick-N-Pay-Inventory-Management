@@ -92,10 +92,17 @@ const CategoryPage = () => {
     setSuccess(null);
     
     try {
-      // Ensure VAT rate is set - default to 23.00 if empty or null
+      // Ensure VAT rate is set - default to 23.00 if empty or null (shouldn't happen due to validation, but safety check)
+      const vatValue = data.vatRate && data.vatRate.toString().trim() !== '' 
+        ? parseFloat(data.vatRate) 
+        : 23.00;
+      
+      // Ensure it's a valid number and not NaN
+      const finalVatRate = isNaN(vatValue) ? 23.00 : vatValue;
+      
       const categoryData = {
         ...data,
-        vatRate: data.vatRate && data.vatRate.trim() !== '' ? parseFloat(data.vatRate) : 23.00
+        vatRate: finalVatRate
       };
       
       if (editingCategory) {
@@ -337,13 +344,24 @@ const CategoryPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>VAT Rate (%)</Form.Label>
+              <Form.Label style={{ color: '#ffffff' }}>VAT Rate (%) *</Form.Label>
               <Controller
                 name="vatRate"
                 control={control}
                 rules={{ 
+                  required: 'VAT rate is required',
                   min: { value: 0, message: 'VAT rate must be 0 or greater' },
-                  max: { value: 100, message: 'VAT rate must be 100 or less' }
+                  max: { value: 100, message: 'VAT rate must be 100 or less' },
+                  validate: (value) => {
+                    if (value === '' || value === null || value === undefined) {
+                      return 'VAT rate is required';
+                    }
+                    const numValue = parseFloat(value);
+                    if (isNaN(numValue)) {
+                      return 'VAT rate must be a valid number';
+                    }
+                    return true;
+                  }
                 }}
                 render={({ field }) => (
                   <Form.Control
@@ -351,7 +369,7 @@ const CategoryPage = () => {
                     step="0.01"
                     min="0"
                     max="100"
-                    placeholder="23.00 (default)"
+                    placeholder="23.00"
                     {...field}
                     isInvalid={!!errors.vatRate}
                     style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
@@ -362,7 +380,7 @@ const CategoryPage = () => {
                 {errors.vatRate && errors.vatRate.message}
               </Form.Control.Feedback>
               <Form.Text style={{ color: '#aaaaaa' }}>
-                Default VAT rate for items in this category. If not specified, defaults to 23.00%
+                VAT rate for items in this category (0-100). Default: 23.00%
               </Form.Text>
             </Form.Group>
 

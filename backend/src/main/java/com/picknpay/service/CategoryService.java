@@ -50,7 +50,12 @@ public class CategoryService {
                     existingCategory.setDescription(categoryDTO.getDescription());
                     existingCategory.setIsActive(categoryDTO.getIsActive());
                     existingCategory.setDisplayOnPos(categoryDTO.getDisplayOnPos());
-                    existingCategory.setVatRate(categoryDTO.getVatRate() != null ? categoryDTO.getVatRate() : new java.math.BigDecimal("23.00"));
+                    // VAT should never be null - always ensure a value is set (default 23.00)
+                    java.math.BigDecimal vatRate = categoryDTO.getVatRate();
+                    if (vatRate == null) {
+                        vatRate = new java.math.BigDecimal("23.00");
+                    }
+                    existingCategory.setVatRate(vatRate);
                     Category updatedCategory = categoryRepository.save(existingCategory);
                     return convertToDTO(updatedCategory);
                 });
@@ -77,7 +82,14 @@ public class CategoryService {
         category.setDescription(dto.getDescription());
         category.setIsActive(dto.getIsActive());
         category.setDisplayOnPos(dto.getDisplayOnPos());
-        category.setVatRate(dto.getVatRate() != null ? dto.getVatRate() : new java.math.BigDecimal("23.00"));
+        
+        // VAT should never be null - always ensure a value is set (default 23.00)
+        java.math.BigDecimal vatRate = dto.getVatRate();
+        if (vatRate == null) {
+            vatRate = new java.math.BigDecimal("23.00");
+        }
+        category.setVatRate(vatRate);
+        
         return category;
     }
 

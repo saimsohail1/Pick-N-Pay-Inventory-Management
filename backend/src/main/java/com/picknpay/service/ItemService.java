@@ -124,6 +124,7 @@ public class ItemService {
                     }
                     
                     // VAT logic: Use provided VAT, or category's VAT, or default 23%
+                    // VAT should never be null - always ensure a value is set
                     if (itemDTO.getVatRate() != null) {
                         // User explicitly set VAT - use it
                         existingItem.setVatRate(itemDTO.getVatRate());
@@ -131,7 +132,12 @@ public class ItemService {
                         // No VAT provided, but category has VAT - use category's VAT
                         existingItem.setVatRate(category.getVatRate());
                     } else {
-                        // No VAT and no category - use default 23%
+                        // No VAT and no category (or category has null VAT) - use default 23%
+                        existingItem.setVatRate(new BigDecimal("23.00"));
+                    }
+                    
+                    // Final safety check: ensure VAT is never null
+                    if (existingItem.getVatRate() == null) {
                         existingItem.setVatRate(new BigDecimal("23.00"));
                     }
                     
@@ -214,6 +220,7 @@ public class ItemService {
         }
         
         // VAT logic: Use provided VAT, or category's VAT, or default 23%
+        // VAT should never be null - always ensure a value is set
         if (dto.getVatRate() != null) {
             // User explicitly set VAT - use it
             item.setVatRate(dto.getVatRate());
@@ -221,7 +228,12 @@ public class ItemService {
             // No VAT provided, but category has VAT - use category's VAT
             item.setVatRate(category.getVatRate());
         } else {
-            // No VAT and no category - use default 23%
+            // No VAT and no category (or category has null VAT) - use default 23%
+            item.setVatRate(new BigDecimal("23.00"));
+        }
+        
+        // Final safety check: ensure VAT is never null
+        if (item.getVatRate() == null) {
             item.setVatRate(new BigDecimal("23.00"));
         }
         

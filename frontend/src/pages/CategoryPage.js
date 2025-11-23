@@ -245,7 +245,7 @@ const CategoryPage = () => {
                         )}
                       </td>
                       <td>
-                        <strong>{category.vatRate ? parseFloat(category.vatRate).toFixed(2) : '23.00'}%</strong>
+                        <strong>{(category.vatRate !== null && category.vatRate !== undefined) ? parseFloat(category.vatRate).toFixed(2) : '0.00'}%</strong>
                       </td>
                       <td>
                         <Badge bg={category.displayOnPos ? 'success' : 'secondary'}>

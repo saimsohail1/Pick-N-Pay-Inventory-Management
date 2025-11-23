@@ -182,6 +182,21 @@ export const createReceiptHTML = (sale, companyName = 'ADAMS GREEN', companyAddr
   const totalVat = sale.saleItems.reduce((sum, item) => 
     sum + parseFloat(item.vatAmount || 0), 0
   );
+  
+  // Calculate average VAT percentage (weighted by amount)
+  // Formula: (Total VAT / Total Excluding VAT) * 100
+  let averageVatRate = 0;
+  if (subtotalExcludingVat > 0) {
+    averageVatRate = (totalVat / subtotalExcludingVat) * 100;
+  } else if (sale.saleItems.length > 0) {
+    // Fallback: simple average of VAT rates if no excluding VAT data
+    const sumOfRates = sale.saleItems.reduce((sum, item) => 
+      sum + parseFloat(item.vatRate || 23), 0
+    );
+    averageVatRate = sumOfRates / sale.saleItems.length;
+  } else {
+    averageVatRate = 23; // Default fallback
+  }
 
   return `
     <!DOCTYPE html>
@@ -260,7 +275,7 @@ export const createReceiptHTML = (sale, companyName = 'ADAMS GREEN', companyAddr
         <span>€${subtotalExcludingVat.toFixed(2)}</span>
       </div>
       <div class="item">
-        <span>VAT (23%):</span>
+        <span>VAT (avg ${averageVatRate.toFixed(2)}%):</span>
         <span>€${totalVat.toFixed(2)}</span>
       </div>
       <div class="total">

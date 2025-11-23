@@ -275,7 +275,7 @@ export const createReceiptHTML = (sale, companyName = 'ADAMS GREEN', companyAddr
         <span>€${subtotalExcludingVat.toFixed(2)}</span>
       </div>
       <div class="item">
-        <span>VAT (avg ${averageVatRate.toFixed(2)}%):</span>
+        <span>VAT (${Math.round(averageVatRate)}%):</span>
         <span>€${totalVat.toFixed(2)}</span>
       </div>
       <div class="total">

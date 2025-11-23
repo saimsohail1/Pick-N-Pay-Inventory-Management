@@ -249,10 +249,14 @@ const SalesHistory = () => {
       if (window.electron && window.electron.ipcRenderer) {
         try {
           console.log('🖨️ Printing receipt using raw ESC/POS (no drawer will open)');
+          // Use logged-in user's name as cashier when printing from SalesHistory
+          const cashierName = user?.username || null;
           await printReceiptRaw(
             sale,
             currentCompanySettings.companyName,
-            currentCompanySettings.address
+            currentCompanySettings.address,
+            null, // printerName
+            cashierName // cashierName - overrides sale.user?.username
           );
           return;
         } catch (rawPrintError) {

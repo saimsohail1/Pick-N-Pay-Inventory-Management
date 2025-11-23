@@ -9,12 +9,13 @@
  * @param {string} companyName - Company name
  * @param {string} companyAddress - Company address
  * @param {string} printerName - Optional printer name
+ * @param {string} cashierName - Optional cashier name (overrides sale.user?.username)
  */
-export const printReceiptRaw = async (sale, companyName = 'ADAMS GREEN', companyAddress = '', printerName = null) => {
+export const printReceiptRaw = async (sale, companyName = 'ADAMS GREEN', companyAddress = '', printerName = null, cashierName = null) => {
   // Always use directPrint (browser's window.print) - this is what worked in the original version
   // The IPC handler is just a passthrough, so we use the browser's native printing
   console.log('🖨️ Printing receipt using browser print (window.print)');
-  const receiptContent = createReceiptHTML(sale, companyName, companyAddress);
+  const receiptContent = createReceiptHTML(sale, companyName, companyAddress, cashierName);
   return directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
 };
 
@@ -163,7 +164,7 @@ export const printWithElectron = (content, title = 'Print Document') => {
  * @param {string} companyAddress - Company address
  * @returns {string} HTML content
  */
-export const createReceiptHTML = (sale, companyName = 'ADAMS GREEN', companyAddress = '') => {
+export const createReceiptHTML = (sale, companyName = 'ADAMS GREEN', companyAddress = '', cashierName = null) => {
   // Helper function to format date as DD/MM/YYYY
   const formatReceiptDate = (dateStr) => {
     if (!dateStr) return '';
@@ -236,7 +237,7 @@ export const createReceiptHTML = (sale, companyName = 'ADAMS GREEN', companyAddr
         <div class="center">Date: ${formatReceiptDate(sale.saleDate)}</div>
         <div class="center">Time: ${new Date(sale.saleDate).toLocaleTimeString()}</div>
         <div class="center">Sale ID: ${sale.id}</div>
-        <div class="center">Cashier: ${sale.user?.username || 'Unknown'}</div>
+        <div class="center">Cashier: ${cashierName || sale.user?.username || 'Unknown'}</div>
       </div>
       
       <div class="divider"></div>

@@ -234,6 +234,8 @@ export const createReceiptHTML = (sale, companyName = 'ADAMS GREEN', companyAddr
           print-color-adjust: exact;
         }
         .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
+        .header .company-name { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
+        .header .company-address { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
         .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; font-weight: 600; }
         .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: 700; }
         .vat-info { margin: 5px 0; font-size: 10px; font-weight: 600; }
@@ -246,8 +248,8 @@ export const createReceiptHTML = (sale, companyName = 'ADAMS GREEN', companyAddr
     </head>
     <body>
       <div class="header">
-        <div class="center"><strong>${companyName.toUpperCase()}</strong></div>
-        ${companyAddress ? `<div class="center">${companyAddress}</div>` : ''}
+        <div class="center company-name">${companyName.toUpperCase()}</div>
+        ${companyAddress ? `<div class="center company-address">${companyAddress}</div>` : ''}
         <div class="center">SALE RECEIPT</div>
         <div class="center">Date: ${formatReceiptDate(sale.saleDate)}</div>
         <div class="center">Time: ${new Date(sale.saleDate).toLocaleTimeString()}</div>

@@ -225,12 +225,16 @@ const AttendancePage = () => {
   // Only show page if user is admin
   if (!isAdmin()) {
     return (
-      <div className="animate-fade-in-up" style={{ backgroundColor: 'transparent', minHeight: '100vh', padding: '2rem 0' }}>
-        <Container>
-          <Alert variant="danger">
-            <Alert.Heading>Access Denied</Alert.Heading>
-            <p>You do not have permission to access this page. Admin access required.</p>
-          </Alert>
+      <div className="animate-fade-in-up" style={{ backgroundColor: '#000000', minHeight: '100vh', padding: '2rem 0' }}>
+        <Container className="py-5">
+          <div className="text-center" style={{ color: '#ffffff' }}>
+            <div className="mb-4">
+              <i className="bi bi-shield-x" style={{ fontSize: '4rem', color: '#aaaaaa' }}></i>
+            </div>
+            <h3 style={{ color: '#ffffff', marginBottom: '1rem' }}>Access Denied</h3>
+            <p style={{ color: '#aaaaaa' }}>You don't have permission to access this page.</p>
+            <p style={{ color: '#aaaaaa' }}>Admin privileges required.</p>
+          </div>
         </Container>
       </div>
     );

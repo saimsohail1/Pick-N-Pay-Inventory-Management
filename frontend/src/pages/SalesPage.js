@@ -1481,6 +1481,32 @@ const SalesPage = () => {
                   if (window && window.require) {
                     try {
                       const { ipcRenderer } = window.require('electron');
+                      ipcRenderer.send('toggle-fullscreen');
+                    } catch (error) {
+                      console.error('Error toggling fullscreen:', error);
+                    }
+                  } else if (window.electron && window.electron.ipcRenderer) {
+                    window.electron.ipcRenderer.send('toggle-fullscreen');
+                  }
+                }}
+                style={{ 
+                  width: '40px', 
+                  height: '40px', 
+                  padding: '0',
+                  backgroundColor: '#3a3a3a', 
+                  color: '#ffffff'
+                }}
+                title="Toggle Fullscreen"
+              >
+                <i className="bi bi-fullscreen" style={{ fontSize: '1.1rem' }}></i>
+              </Button>
+              <Button
+                className="btn-3d d-flex align-items-center justify-content-center"
+                onClick={() => {
+                  // Check if running in Electron
+                  if (window && window.require) {
+                    try {
+                      const { ipcRenderer } = window.require('electron');
                       ipcRenderer.send('app-closing');
                     } catch (error) {
                       console.error('Error closing app:', error);

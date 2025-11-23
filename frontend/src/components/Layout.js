@@ -257,34 +257,6 @@ const Layout = ({ children }) => {
                 </Dropdown>
               )}
 
-              {/* Fullscreen Toggle Button */}
-              <button
-                className="btn btn-outline-light d-flex align-items-center hover-lift btn-3d-nav ms-3"
-                onClick={() => {
-                  // Check if running in Electron
-                  if (window && window.require) {
-                    try {
-                      const { ipcRenderer } = window.require('electron');
-                      ipcRenderer.send('toggle-fullscreen');
-                    } catch (error) {
-                      console.error('Error toggling fullscreen:', error);
-                    }
-                  } else if (window.electron && window.electron.ipcRenderer) {
-                    window.electron.ipcRenderer.send('toggle-fullscreen');
-                  }
-                }}
-                style={{
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '0.75rem 1.25rem',
-                  fontWeight: '500',
-                  background: '#3a3a3a',
-                  color: 'white'
-                }}
-                title="Toggle Fullscreen"
-              >
-                <i className="bi bi-fullscreen" style={{ fontSize: '1.25rem' }}></i>
-              </button>
-
               {/* Minimize App Button */}
               <button
                 className="btn btn-outline-light d-flex align-items-center hover-lift btn-3d-nav ms-3"
@@ -311,6 +283,34 @@ const Layout = ({ children }) => {
                 title="Minimize Application"
               >
                 <i className="bi bi-dash-lg" style={{ fontSize: '1.25rem' }}></i>
+              </button>
+
+              {/* Fullscreen Toggle Button */}
+              <button
+                className="btn btn-outline-light d-flex align-items-center hover-lift btn-3d-nav ms-3"
+                onClick={() => {
+                  // Check if running in Electron
+                  if (window && window.require) {
+                    try {
+                      const { ipcRenderer } = window.require('electron');
+                      ipcRenderer.send('toggle-fullscreen');
+                    } catch (error) {
+                      console.error('Error toggling fullscreen:', error);
+                    }
+                  } else if (window.electron && window.electron.ipcRenderer) {
+                    window.electron.ipcRenderer.send('toggle-fullscreen');
+                  }
+                }}
+                style={{
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '0.75rem 1.25rem',
+                  fontWeight: '500',
+                  background: '#3a3a3a',
+                  color: 'white'
+                }}
+                title="Toggle Fullscreen"
+              >
+                <i className="bi bi-fullscreen" style={{ fontSize: '1.25rem' }}></i>
               </button>
 
               {/* Close App Button */}

@@ -472,15 +472,15 @@ const DailyReport = () => {
                       })}
                       {(() => {
                         // Calculate weighted average VAT percentage
-                        let totalGross = 0;
+                        let totalGrossForAvg = 0;
                         let weightedVatSum = 0;
                         reportData.vatBreakdown.forEach(vat => {
                           const gross = parseFloat(vat.gross || 0);
                           const rate = parseFloat(vat.vatRate || 0);
-                          totalGross += gross;
+                          totalGrossForAvg += gross;
                           weightedVatSum += rate * gross;
                         });
-                        const avgVatPercentage = totalGross > 0 ? weightedVatSum / totalGross : 0;
+                        const avgVatPercentage = totalGrossForAvg > 0 ? weightedVatSum / totalGrossForAvg : 0;
                         
                         // Calculate totals
                         const totalGross = reportData.vatBreakdown.reduce((sum, vat) => sum + parseFloat(vat.gross || 0), 0);

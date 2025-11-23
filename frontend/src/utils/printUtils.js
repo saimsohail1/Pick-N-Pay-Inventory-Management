@@ -259,11 +259,7 @@ export const createReceiptHTML = (sale, companyName = 'ADAMS GREEN', companyAddr
       
       ${sale.saleItems.map(item => `
         <div class="item">
-          <span>${item.itemName}</span>
-          <span>€${parseFloat(item.unitPrice).toFixed(2)}</span>
-        </div>
-        <div class="item" style="margin-left: 10px; font-size: 10px;">
-          <span>${item.quantity}x</span>
+          <span>${item.itemName} ${item.quantity}x</span>
           <span>€${parseFloat(item.totalPrice).toFixed(2)}</span>
         </div>
       `).join('')}

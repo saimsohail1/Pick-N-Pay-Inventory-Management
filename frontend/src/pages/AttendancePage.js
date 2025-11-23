@@ -21,30 +21,49 @@ const AttendancePage = () => {
   
   // Fetch users on mount
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (isAdmin()) {
+      fetchUsers();
+    }
+  }, [isAdmin]);
   
   // Fetch attendances when date changes
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && isAdmin()) {
       fetchAttendancesForDate(selectedDate);
     }
-  }, [selectedDate]);
+  }, [selectedDate, isAdmin]);
   
   // Calculate week start when component mounts or date changes
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && isAdmin()) {
       calculateWeekStart(selectedDate);
     }
-  }, [selectedDate]);
+  }, [selectedDate, isAdmin]);
   
   const fetchUsers = async () => {
+    setLoading(true);
     try {
       const response = await usersAPI.getActive();
-      setUsers(response.data);
+      setUsers(response.data || []);
     } catch (err) {
       console.error('Failed to fetch users:', err);
-      setError('Failed to load users. Please try again.');
+      // Handle both string and object error responses
+      let errorMessage = 'Failed to load users. Please try again.';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else {
+          errorMessage = JSON.stringify(err.response.data);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+      setUsers([]);
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -52,11 +71,27 @@ const AttendancePage = () => {
     setLoading(true);
     setError(null);
     try {
+      console.log('Fetching attendances for date:', date);
       const response = await attendanceAPI.getByDate(date);
-      setAttendances(response.data);
+      console.log('Attendances response:', response.data);
+      setAttendances(response.data || []);
     } catch (err) {
       console.error('Failed to fetch attendances:', err);
-      setError('Failed to load attendance data. Please try again.');
+      // Handle both string and object error responses
+      let errorMessage = 'Failed to load attendance data. Please try again.';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else {
+          errorMessage = JSON.stringify(err.response.data);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+      setAttendances([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -64,11 +99,14 @@ const AttendancePage = () => {
   
   const calculateWeekStart = async (date) => {
     try {
+      console.log('Calculating week start for date:', date);
       const response = await attendanceAPI.getWeekStart(date);
       const weekStart = response.data.weekStart;
+      console.log('Week start calculated:', weekStart);
       setSelectedWeekStart(weekStart);
     } catch (err) {
       console.error('Failed to calculate week start:', err);
+      // Don't show error for week start calculation failure
     }
   };
   
@@ -85,7 +123,19 @@ const AttendancePage = () => {
       fetchAttendancesForDate(selectedDate);
     } catch (err) {
       console.error('Failed to mark time-in:', err);
-      const errorMessage = err.response?.data || err.message || 'Failed to mark time-in. Please try again.';
+      // Handle both string and object error responses
+      let errorMessage = 'Failed to mark time-in. Please try again.';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else {
+          errorMessage = JSON.stringify(err.response.data);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -107,7 +157,19 @@ const AttendancePage = () => {
       fetchAttendancesForDate(selectedDate);
     } catch (err) {
       console.error('Failed to mark time-out:', err);
-      const errorMessage = err.response?.data || err.message || 'Failed to mark time-out. Please try again.';
+      // Handle both string and object error responses
+      let errorMessage = 'Failed to mark time-out. Please try again.';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else {
+          errorMessage = JSON.stringify(err.response.data);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
       setError(errorMessage);
     } finally {
       setLoading(false);

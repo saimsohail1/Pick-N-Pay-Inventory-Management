@@ -29,10 +29,13 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     return (
       <Layout>
         <Container className="py-5">
-          <div className="text-center">
-            <h3 className="text-danger">Access Denied</h3>
-            <p>You don't have permission to access this page.</p>
-            <p>Admin privileges required.</p>
+          <div className="text-center" style={{ color: '#ffffff' }}>
+            <div className="mb-4">
+              <i className="bi bi-shield-x" style={{ fontSize: '4rem', color: '#aaaaaa' }}></i>
+            </div>
+            <h3 style={{ color: '#ffffff', marginBottom: '1rem' }}>Access Denied</h3>
+            <p style={{ color: '#aaaaaa' }}>You don't have permission to access this page.</p>
+            <p style={{ color: '#aaaaaa' }}>Admin privileges required.</p>
           </div>
         </Container>
       </Layout>

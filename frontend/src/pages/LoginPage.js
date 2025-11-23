@@ -130,7 +130,7 @@ const LoginPage = () => {
                     <i className="bi bi-shield-lock"></i>
                   </div>
                   <h2 className="fw-bold text-primary mb-2 gradient-text">
-                    ADAMS GREEN
+                    Pick'N'Pay
                   </h2>
                   <p className="text-muted fs-5">Sign in to your account</p>
                 </div>

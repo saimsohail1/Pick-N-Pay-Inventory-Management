@@ -5,7 +5,7 @@ import { companySettingsAPI } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [companyName, setCompanyName] = useState('ADAMS GREEN');
+  const [companyName, setCompanyName] = useState("Pick'N'Pay");
 
   useEffect(() => {
     const fetchCompanyName = async () => {

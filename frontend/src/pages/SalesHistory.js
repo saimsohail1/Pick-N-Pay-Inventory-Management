@@ -24,7 +24,7 @@ const SalesHistory = () => {
   const [saleToDelete, setSaleToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [removingItem, setRemovingItem] = useState(false);
-  const [companySettings, setCompanySettings] = useState({ companyName: 'ADAMS GREEN', address: '' });
+  const [companySettings, setCompanySettings] = useState({ companyName: "Pick'N'Pay", address: '' });
 
   // Helper function to format date as DD/MM/YYYY
   const formatDate = (dateStr) => {
@@ -110,7 +110,7 @@ const SalesHistory = () => {
       const settingsData = response.data || response;
       if (settingsData) {
         setCompanySettings({
-          companyName: settingsData.companyName || 'ADAMS GREEN',
+          companyName: settingsData.companyName || "Pick'N'Pay",
           address: settingsData.address || ''
         });
       }
@@ -236,7 +236,7 @@ const SalesHistory = () => {
         const settingsData = response.data || response;
         if (settingsData) {
           currentCompanySettings = {
-            companyName: settingsData.companyName || 'ADAMS GREEN',
+            companyName: settingsData.companyName || "Pick'N'Pay",
             address: settingsData.address || ''
           };
         }

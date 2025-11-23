@@ -29,7 +29,7 @@ const SalesPage = () => {
   const [cart, setCart] = useState([]);
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [companyName, setCompanyName] = useState('ADAMS GREEN');
+  const [companyName, setCompanyName] = useState("Pick'N'Pay");
   const [companyAddress, setCompanyAddress] = useState('');
   const [lastSale, setLastSale] = useState(null);
   const { user, logout } = useAuth();
@@ -274,7 +274,7 @@ const SalesPage = () => {
   const fetchCompanyName = async () => {
     try {
       const response = await companySettingsAPI.get();
-      setCompanyName(response.data.companyName || 'ADAMS GREEN');
+      setCompanyName(response.data.companyName || "Pick'N'Pay");
       setCompanyAddress(response.data.address || '');
     } catch (error) {
       console.error('Failed to fetch company name:', error);
@@ -297,7 +297,7 @@ const SalesPage = () => {
         const settingsData = response.data || response;
         if (settingsData) {
           currentCompanySettings = {
-            companyName: settingsData.companyName || 'ADAMS GREEN',
+            companyName: settingsData.companyName || "Pick'N'Pay",
             address: settingsData.address || ''
           };
         }

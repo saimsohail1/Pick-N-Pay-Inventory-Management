@@ -44,7 +44,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     );
     
     // Find attendances by specific date (for daily view)
-    @Query("SELECT a FROM Attendance a WHERE a.attendanceDate = :date ORDER BY a.user.fullName ASC")
+    @Query("SELECT a FROM Attendance a WHERE a.attendanceDate = :date ORDER BY a.user.fullName ASC, a.timeIn ASC")
     List<Attendance> findByAttendanceDate(@Param("date") LocalDate date);
     
     // Check if attendance exists for user and date

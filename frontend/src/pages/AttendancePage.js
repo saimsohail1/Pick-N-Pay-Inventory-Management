@@ -293,9 +293,29 @@ const AttendancePage = () => {
   }
   
   return (
-    <div className="animate-fade-in-up" style={{ backgroundColor: 'transparent', minHeight: '100vh', padding: '2rem 0' }}>
-      <Container>
-        {/* Header */}
+    <>
+      <style>{`
+        /* Ensure date picker calendar is visible */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          cursor: pointer;
+          z-index: 1001;
+        }
+        
+        /* Prevent date picker from being clipped */
+        .date-picker-container {
+          position: relative;
+          z-index: 1000;
+        }
+        
+        /* Ensure calendar dropdown appears above other elements */
+        input[type="date"] {
+          position: relative;
+          z-index: 1000;
+        }
+      `}</style>
+      <div className="animate-fade-in-up" style={{ backgroundColor: 'transparent', minHeight: '100vh', padding: '2rem 0', overflow: 'visible' }}>
+        <Container style={{ position: 'relative', overflow: 'visible' }}>
+          {/* Header */}
         <Card className="mb-4" style={{ 
           backgroundColor: '#1a1a1a', 
           border: '1px solid #2a2a2a',
@@ -363,18 +383,26 @@ const AttendancePage = () => {
           backgroundColor: '#1a1a1a', 
           border: '1px solid #2a2a2a',
           borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+          marginBottom: '2rem',
+          paddingBottom: '1rem'
         }}>
-          <Card.Body>
+          <Card.Body style={{ paddingBottom: '2rem', position: 'relative', zIndex: 1000 }}>
             <Row className="align-items-center">
               <Col md={4}>
-                <Form.Group>
+                <Form.Group className="date-picker-container" style={{ position: 'relative', zIndex: 1001 }}>
                   <Form.Label style={{ color: '#ffffff' }}>Select Date</Form.Label>
                   <Form.Control
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                    style={{ 
+                      backgroundColor: '#2a2a2a', 
+                      border: '1px solid #333333', 
+                      color: '#ffffff',
+                      position: 'relative',
+                      zIndex: 1001
+                    }}
                   />
                 </Form.Group>
               </Col>
@@ -552,8 +580,9 @@ const AttendancePage = () => {
             )}
           </Card.Body>
         </Card>
-      </Container>
-    </div>
+        </Container>
+      </div>
+    </>
   );
 };
 

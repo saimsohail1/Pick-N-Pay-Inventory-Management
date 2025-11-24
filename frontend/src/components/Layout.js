@@ -11,9 +11,7 @@ const Layout = ({ children }) => {
   const [companyName, setCompanyName] = useState("Pick'N'Pay");
   const { user, logout, isAuthenticated } = useAuth();
 
-  const navigationItems = [
-    { path: '/users', label: 'Users', icon: 'bi-people' },
-  ];
+  const navigationItems = [];
 
   useEffect(() => {
     fetchCompanyName();

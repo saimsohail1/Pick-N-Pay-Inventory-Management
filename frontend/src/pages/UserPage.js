@@ -150,10 +150,23 @@ const UserPage = () => {
         if (!updateData.password) {
           delete updateData.password;
         }
+        // Handle empty hourly pay rate (convert to null)
+        if (updateData.hourlyPayRate === '' || updateData.hourlyPayRate === null || updateData.hourlyPayRate === undefined) {
+          updateData.hourlyPayRate = null;
+        } else {
+          updateData.hourlyPayRate = parseFloat(updateData.hourlyPayRate);
+        }
         await usersAPI.update(editingUser.id, updateData);
         setSuccess('User updated successfully!');
       } else {
-        await usersAPI.create(data);
+        // For new users, handle empty hourly pay rate
+        const createData = { ...data };
+        if (createData.hourlyPayRate === '' || createData.hourlyPayRate === null || createData.hourlyPayRate === undefined) {
+          createData.hourlyPayRate = null;
+        } else {
+          createData.hourlyPayRate = parseFloat(createData.hourlyPayRate);
+        }
+        await usersAPI.create(createData);
         setSuccess('User added successfully!');
       }
       setShowModal(false);

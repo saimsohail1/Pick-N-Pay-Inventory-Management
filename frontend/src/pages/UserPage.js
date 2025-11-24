@@ -23,7 +23,8 @@ const UserPage = () => {
       password: '',
       fullName: '',
       role: 'USER',
-      isActive: true
+      isActive: true,
+      hourlyPayRate: ''
     }
   });
 
@@ -80,7 +81,8 @@ const UserPage = () => {
       password: '',
       fullName: '',
       role: 'USER',
-      isActive: true
+      isActive: true,
+      hourlyPayRate: ''
     });
     setShowModal(true);
   };
@@ -93,6 +95,7 @@ const UserPage = () => {
     setValue('fullName', user.fullName);
     setValue('role', user.role);
     setValue('isActive', user.isActive);
+    setValue('hourlyPayRate', user.hourlyPayRate || '');
     setShowModal(true);
   };
 
@@ -258,6 +261,7 @@ const UserPage = () => {
                   <th>Email</th>
                   <th>Role</th>
                   <th>Status</th>
+                  <th>Hourly Rate</th>
                   <th>Created At</th>
                   <th className="text-center">Actions</th>
                 </tr>
@@ -281,6 +285,7 @@ const UserPage = () => {
                         {user.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </td>
+                    <td>{user.hourlyPayRate ? `€${parseFloat(user.hourlyPayRate).toFixed(2)}` : '-'}</td>
                     <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                     <td className="text-center">
                       <div className="d-flex justify-content-center gap-2">
@@ -491,6 +496,38 @@ const UserPage = () => {
               <Form.Control.Feedback type="invalid">
                 {errors.password && errors.password.message}
               </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="hourlyPayRate">
+              <Form.Label style={{ color: '#ffffff' }}>Hourly Pay Rate (Optional)</Form.Label>
+              <Controller
+                name="hourlyPayRate"
+                control={control}
+                rules={{
+                  min: {
+                    value: 0,
+                    message: 'Hourly pay rate cannot be negative'
+                  }
+                }}
+                render={({ field }) => (
+                  <Form.Control
+                    {...field}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="e.g., 15.50"
+                    value={field.value || ''}
+                    isInvalid={!!errors.hourlyPayRate}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                  />
+                )}
+              />
+              <Form.Control.Feedback type="invalid" style={{ color: '#ff6b6b' }}>
+                {errors.hourlyPayRate && errors.hourlyPayRate.message}
+              </Form.Control.Feedback>
+              <Form.Text style={{ color: '#aaaaaa' }}>
+                Used for calculating total pay in employee reports
+              </Form.Text>
             </Form.Group>
 
             {editingUser && (

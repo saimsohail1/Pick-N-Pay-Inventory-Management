@@ -136,6 +136,8 @@ export const attendanceAPI = {
     api.get(`/attendances/weekly-report/user/${userId}?weekStart=${weekStart}`),
   getAllUsersWeeklyReport: (weekStart) => 
     api.get(`/attendances/weekly-report?weekStart=${weekStart}`),
+  getEmployeeReportByDateRange: (startDate, endDate) => 
+    api.get(`/attendances/employee-report?startDate=${startDate}&endDate=${endDate}`),
   getWeekStart: (date) => api.get(`/attendances/week-start?date=${date}`),
 };
 

@@ -131,9 +131,22 @@ public class AttendanceController {
     }
     
     /**
-     * Get weekly report for all users (admin only)
+     * Get employee report for all users by date range (admin only)
+     * GET /api/attendances/employee-report?startDate=2024-01-01&endDate=2024-01-31
+     */
+    @GetMapping("/employee-report")
+    public ResponseEntity<List<AttendanceService.EmployeeReportDTO>> getEmployeeReportByDateRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        List<AttendanceService.EmployeeReportDTO> report = attendanceService.getEmployeeReportByDateRange(startDate, endDate);
+        return ResponseEntity.ok(report);
+    }
+    
+    /**
+     * Get weekly report for all users (admin only) - DEPRECATED, use /employee-report
      * GET /api/attendances/weekly-report?weekStart=2024-01-15
      */
+    @Deprecated
     @GetMapping("/weekly-report")
     public ResponseEntity<List<AttendanceService.WeeklyReportDTO>> getAllUsersWeeklyReport(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {

@@ -101,6 +101,7 @@ public class UserService {
                     existingUser.setFullName(userDTO.getFullName());
                     existingUser.setRole(userDTO.getRole());
                     existingUser.setIsActive(userDTO.getIsActive());
+                    existingUser.setHourlyPayRate(userDTO.getHourlyPayRate());
                     existingUser.setUpdatedAt(LocalDateTime.now());
                     return convertToDTO(userRepository.save(existingUser));
                 });
@@ -156,17 +157,18 @@ public class UserService {
     }
 
     private UserDTO convertToDTO(User user) {
-        return new UserDTO(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getPassword(),
-                user.getFullName(),
-                user.getRole(),
-                user.getIsActive(),
-                user.getCreatedAt(),
-                user.getUpdatedAt()
-        );
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setPassword(user.getPassword());
+        dto.setFullName(user.getFullName());
+        dto.setRole(user.getRole());
+        dto.setIsActive(user.getIsActive());
+        dto.setHourlyPayRate(user.getHourlyPayRate());
+        dto.setCreatedAt(user.getCreatedAt());
+        dto.setUpdatedAt(user.getUpdatedAt());
+        return dto;
     }
 
     private User convertToEntity(UserDTO userDTO) {
@@ -179,6 +181,7 @@ public class UserService {
         user.setFullName(userDTO.getFullName());
         user.setRole(userDTO.getRole());
         user.setIsActive(userDTO.getIsActive());
+        user.setHourlyPayRate(userDTO.getHourlyPayRate());
         user.setCreatedAt(userDTO.getCreatedAt());
         user.setUpdatedAt(userDTO.getUpdatedAt());
         return user;

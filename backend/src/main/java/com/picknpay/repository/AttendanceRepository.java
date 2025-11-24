@@ -58,7 +58,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
         @Param("weekEnd") LocalDate weekEnd
     );
     
-    // Get all users' weekly total hours (admin only)
+    // Get all users' weekly total hours (admin only) - DEPRECATED
     @Query("SELECT a.user.id, a.user.fullName, COALESCE(SUM(a.totalHours), 0) as totalHours " +
            "FROM Attendance a WHERE a.attendanceDate BETWEEN :weekStart AND :weekEnd " +
            "GROUP BY a.user.id, a.user.fullName " +
@@ -66,6 +66,16 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     List<Object[]> getAllUsersWeeklyTotalHours(
         @Param("weekStart") LocalDate weekStart, 
         @Param("weekEnd") LocalDate weekEnd
+    );
+    
+    // Get all users' total hours by date range (for employee report)
+    @Query("SELECT a.user.id, a.user.fullName, COALESCE(SUM(a.totalHours), 0) as totalHours " +
+           "FROM Attendance a WHERE a.attendanceDate BETWEEN :startDate AND :endDate " +
+           "GROUP BY a.user.id, a.user.fullName " +
+           "ORDER BY a.user.fullName ASC")
+    List<Object[]> getAllUsersTotalHoursByDateRange(
+        @Param("startDate") LocalDate startDate, 
+        @Param("endDate") LocalDate endDate
     );
 }
 

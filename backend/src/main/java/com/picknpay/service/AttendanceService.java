@@ -145,9 +145,41 @@ public class AttendanceService {
     }
     
     /**
-     * Get weekly report for all users (admin only)
+     * Get employee report for all users by date range (admin only)
+     * Returns a list of user IDs, names, total hours, hourly rate, and total pay
+     */
+    public List<EmployeeReportDTO> getEmployeeReportByDateRange(LocalDate startDate, LocalDate endDate) {
+        List<Object[]> results = attendanceRepository.getAllUsersTotalHoursByDateRange(startDate, endDate);
+        
+        return results.stream()
+                .map(result -> {
+                    EmployeeReportDTO dto = new EmployeeReportDTO();
+                    dto.setUserId(((Number) result[0]).longValue());
+                    dto.setFullName((String) result[1]);
+                    dto.setTotalHours((BigDecimal) result[2]);
+                    
+                    // Get user's hourly pay rate
+                    Long userId = dto.getUserId();
+                    User user = userRepository.findById(userId).orElse(null);
+                    BigDecimal hourlyRate = (user != null && user.getHourlyPayRate() != null) 
+                            ? user.getHourlyPayRate() 
+                            : BigDecimal.ZERO;
+                    dto.setHourlyPayRate(hourlyRate);
+                    
+                    // Calculate total pay: totalHours × hourlyPayRate
+                    BigDecimal totalPay = dto.getTotalHours().multiply(hourlyRate);
+                    dto.setTotalPay(totalPay);
+                    
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get weekly report for all users (admin only) - DEPRECATED, use getEmployeeReportByDateRange
      * Returns a list of user IDs, names, and their total hours for the week
      */
+    @Deprecated
     public List<WeeklyReportDTO> getAllUsersWeeklyReport(LocalDate weekStart) {
         LocalDate weekEnd = weekStart.plusDays(6); // End of week (Sunday)
         List<Object[]> results = attendanceRepository.getAllUsersWeeklyTotalHours(weekStart, weekEnd);
@@ -189,8 +221,9 @@ public class AttendanceService {
     }
     
     /**
-     * Inner DTO class for weekly report
+     * Inner DTO class for weekly report (deprecated, use EmployeeReportDTO)
      */
+    @Deprecated
     public static class WeeklyReportDTO {
         private Long userId;
         private String fullName;
@@ -218,6 +251,57 @@ public class AttendanceService {
         
         public void setTotalHours(BigDecimal totalHours) {
             this.totalHours = totalHours;
+        }
+    }
+    
+    /**
+     * Inner DTO class for employee report with pay calculation
+     */
+    public static class EmployeeReportDTO {
+        private Long userId;
+        private String fullName;
+        private BigDecimal totalHours;
+        private BigDecimal hourlyPayRate;
+        private BigDecimal totalPay;
+        
+        public Long getUserId() {
+            return userId;
+        }
+        
+        public void setUserId(Long userId) {
+            this.userId = userId;
+        }
+        
+        public String getFullName() {
+            return fullName;
+        }
+        
+        public void setFullName(String fullName) {
+            this.fullName = fullName;
+        }
+        
+        public BigDecimal getTotalHours() {
+            return totalHours;
+        }
+        
+        public void setTotalHours(BigDecimal totalHours) {
+            this.totalHours = totalHours;
+        }
+        
+        public BigDecimal getHourlyPayRate() {
+            return hourlyPayRate;
+        }
+        
+        public void setHourlyPayRate(BigDecimal hourlyPayRate) {
+            this.hourlyPayRate = hourlyPayRate;
+        }
+        
+        public BigDecimal getTotalPay() {
+            return totalPay;
+        }
+        
+        public void setTotalPay(BigDecimal totalPay) {
+            this.totalPay = totalPay;
         }
     }
 }

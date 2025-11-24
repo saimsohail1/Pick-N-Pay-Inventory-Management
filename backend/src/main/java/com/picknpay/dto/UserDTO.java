@@ -31,13 +31,14 @@ public class UserDTO {
     private UserRole role;
 
     private Boolean isActive = true;
+    private java.math.BigDecimal hourlyPayRate; // Optional hourly pay rate
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public UserDTO() {
     }
 
-    public UserDTO(Long id, String username, String email, String password, String fullName, UserRole role, Boolean isActive, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public UserDTO(Long id, String username, String email, String password, String fullName, UserRole role, Boolean isActive, java.math.BigDecimal hourlyPayRate, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -45,6 +46,7 @@ public class UserDTO {
         this.fullName = fullName;
         this.role = role;
         this.isActive = isActive;
+        this.hourlyPayRate = hourlyPayRate;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -120,5 +122,13 @@ public class UserDTO {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public java.math.BigDecimal getHourlyPayRate() {
+        return hourlyPayRate;
+    }
+
+    public void setHourlyPayRate(java.math.BigDecimal hourlyPayRate) {
+        this.hourlyPayRate = hourlyPayRate;
     }
 }

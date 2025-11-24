@@ -15,9 +15,10 @@ const AttendancePage = () => {
   const [users, setUsers] = useState([]);
   const [attendances, setAttendances] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedWeekStart, setSelectedWeekStart] = useState('');
-  const [weeklyReport, setWeeklyReport] = useState([]);
-  const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+  const [reportStartDate, setReportStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [employeeReport, setEmployeeReport] = useState([]);
+  const [showEmployeeReport, setShowEmployeeReport] = useState(false);
   
   // Fetch users on mount
   useEffect(() => {
@@ -33,12 +34,7 @@ const AttendancePage = () => {
     }
   }, [selectedDate, isAdmin]);
   
-  // Calculate week start when component mounts or date changes
-  useEffect(() => {
-    if (selectedDate && isAdmin()) {
-      calculateWeekStart(selectedDate);
-    }
-  }, [selectedDate, isAdmin]);
+  // No longer need week start calculation
   
   const fetchUsers = async () => {
     setLoading(true);
@@ -97,18 +93,6 @@ const AttendancePage = () => {
     }
   };
   
-  const calculateWeekStart = async (date) => {
-    try {
-      console.log('Calculating week start for date:', date);
-      const response = await attendanceAPI.getWeekStart(date);
-      const weekStart = response.data.weekStart;
-      console.log('Week start calculated:', weekStart);
-      setSelectedWeekStart(weekStart);
-    } catch (err) {
-      console.error('Failed to calculate week start:', err);
-      // Don't show error for week start calculation failure
-    }
-  };
   
   const handleMarkTimeIn = async (userId) => {
     setLoading(true);
@@ -178,21 +162,39 @@ const AttendancePage = () => {
     }
   };
   
-  const handleGenerateWeeklyReport = async () => {
-    if (!selectedWeekStart) {
-      setError('Please select a date first.');
+  const handleGenerateEmployeeReport = async () => {
+    if (!reportStartDate || !reportEndDate) {
+      setError('Please select both start and end dates.');
+      return;
+    }
+    
+    if (new Date(reportStartDate) > new Date(reportEndDate)) {
+      setError('Start date cannot be after end date.');
       return;
     }
     
     setLoading(true);
     setError(null);
     try {
-      const response = await attendanceAPI.getAllUsersWeeklyReport(selectedWeekStart);
-      setWeeklyReport(response.data);
-      setShowWeeklyReport(true);
+      const response = await attendanceAPI.getEmployeeReportByDateRange(reportStartDate, reportEndDate);
+      setEmployeeReport(response.data);
+      setShowEmployeeReport(true);
     } catch (err) {
-      console.error('Failed to generate weekly report:', err);
-      setError('Failed to generate weekly report. Please try again.');
+      console.error('Failed to generate employee report:', err);
+      // Handle both string and object error responses
+      let errorMessage = 'Failed to generate employee report. Please try again.';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else {
+          errorMessage = JSON.stringify(err.response.data);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -231,6 +233,11 @@ const AttendancePage = () => {
   const formatHours = (hours) => {
     if (!hours) return '-';
     return parseFloat(hours).toFixed(2) + 'h';
+  };
+  
+  const formatCurrency = (amount) => {
+    if (!amount || amount === 0) return '€0.00';
+    return '€' + parseFloat(amount).toFixed(2);
   };
   
   const formatDate = (dateStr) => {
@@ -313,11 +320,6 @@ const AttendancePage = () => {
               <Col md={8}>
                 <div style={{ color: '#ffffff', paddingTop: '2rem' }}>
                   <strong>Selected Date:</strong> {formatDate(selectedDate)}
-                  {selectedWeekStart && (
-                    <span className="ms-3">
-                      <strong>Week Start:</strong> {formatDate(selectedWeekStart)}
-                    </span>
-                  )}
                 </div>
               </Col>
             </Row>
@@ -446,7 +448,7 @@ const AttendancePage = () => {
           </Card.Body>
         </Card>
         
-        {/* Weekly Report Section */}
+        {/* Employee Report Section */}
         <Card style={{ 
           backgroundColor: '#1a1a1a', 
           border: '1px solid #2a2a2a',
@@ -456,42 +458,76 @@ const AttendancePage = () => {
           <Card.Body>
             <Row className="mb-3">
               <Col>
-                <h3 style={{ color: '#ffffff' }}>Weekly Report</h3>
+                <h3 style={{ color: '#ffffff' }}>Employee Report</h3>
               </Col>
-              <Col xs="auto">
+            </Row>
+            
+            <Row className="mb-3">
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label style={{ color: '#ffffff' }}>Start Date</Form.Label>
+                  <Form.Control
+                    type="date"
+                    value={reportStartDate}
+                    onChange={(e) => setReportStartDate(e.target.value)}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label style={{ color: '#ffffff' }}>End Date</Form.Label>
+                  <Form.Control
+                    type="date"
+                    value={reportEndDate}
+                    onChange={(e) => setReportEndDate(e.target.value)}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4} className="d-flex align-items-end">
                 <Button
                   variant="primary"
-                  onClick={handleGenerateWeeklyReport}
-                  disabled={loading || !selectedWeekStart}
+                  onClick={handleGenerateEmployeeReport}
+                  disabled={loading || !reportStartDate || !reportEndDate}
+                  style={{ width: '100%' }}
                 >
                   <i className="bi bi-file-earmark-text me-1"></i>
-                  Generate Weekly Report
+                  Generate Employee Report
                 </Button>
               </Col>
             </Row>
             
-            {showWeeklyReport && weeklyReport.length > 0 && (
+            {showEmployeeReport && employeeReport.length > 0 && (
               <Table striped bordered hover variant="dark" responsive>
                 <thead>
                   <tr>
                     <th>Employee Name</th>
-                    <th>Total Hours (Week)</th>
+                    <th>Total Hours</th>
+                    <th>Hourly Rate</th>
+                    <th>Total Pay</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {weeklyReport.map((report) => (
+                  {employeeReport.map((report) => (
                     <tr key={report.userId}>
                       <td>{report.fullName}</td>
                       <td>{formatHours(report.totalHours)}</td>
+                      <td>{report.hourlyPayRate ? formatCurrency(report.hourlyPayRate) : 'Not Set'}</td>
+                      <td style={{ fontWeight: 'bold' }}>
+                        {report.hourlyPayRate && report.hourlyPayRate > 0 
+                          ? formatCurrency(report.totalPay) 
+                          : 'N/A'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </Table>
             )}
             
-            {showWeeklyReport && weeklyReport.length === 0 && (
+            {showEmployeeReport && employeeReport.length === 0 && (
               <Alert variant="info">
-                No attendance records found for this week.
+                No attendance records found for the selected date range.
               </Alert>
             )}
           </Card.Body>

@@ -378,11 +378,6 @@ const AttendancePage = () => {
                   />
                 </Form.Group>
               </Col>
-              <Col md={8}>
-                <div style={{ color: '#ffffff', paddingTop: '2rem' }}>
-                  <strong>Selected Date:</strong> {formatDate(selectedDate)}
-                </div>
-              </Col>
             </Row>
           </Card.Body>
         </Card>

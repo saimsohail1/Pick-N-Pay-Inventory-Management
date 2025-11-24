@@ -176,37 +176,18 @@ function createWindow() {
   mainWindow.on('close', (event) => {
     if (!app.isQuitting) {
       event.preventDefault();
-      // Set quitting flag first
-      app.isQuitting = true;
-      
-      // Close customer display window first (force close, don't prevent)
-      if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
-        console.log('🔄 Closing customer display window from main window close...');
-        // Remove the close event listener temporarily to allow close
-        customerDisplayWindow.removeAllListeners('close');
-        customerDisplayWindow.destroy();
-        customerDisplayWindow = null;
-      }
-      
-      // Stop backend
-      stopBackend();
-      
-      // Close main window and quit app
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.removeAllListeners();
-          mainWindow.destroy();
-        }
-        app.exit(0);
-      }, 100);
+    try {
+      mainWindow.webContents.send('app-closing');
+    } catch (err) {
+      console.error('Error sending app-closing event:', err);
+    }
     } else {
-      // Already quitting, ensure customer display is closed
-      if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
-        customerDisplayWindow.removeAllListeners('close');
+    if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+        customerDisplayWindow.removeAllListeners();
         customerDisplayWindow.destroy();
         customerDisplayWindow = null;
-      }
-      stopBackend();
+    }
+    stopBackend();
     }
   });
 

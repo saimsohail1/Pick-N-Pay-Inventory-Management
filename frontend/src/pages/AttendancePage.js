@@ -383,25 +383,18 @@ const AttendancePage = () => {
           backgroundColor: '#1a1a1a', 
           border: '1px solid #2a2a2a',
           borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-          marginBottom: '2rem'
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
         }}>
-          <Card.Body style={{ paddingBottom: '300px', position: 'relative', zIndex: 1000 }}>
+          <Card.Body>
             <Row className="align-items-center">
               <Col md={4}>
-                <Form.Group className="date-picker-container" style={{ position: 'relative', zIndex: 1001 }}>
+                <Form.Group>
                   <Form.Label style={{ color: '#ffffff' }}>Select Date</Form.Label>
                   <Form.Control
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    style={{ 
-                      backgroundColor: '#2a2a2a', 
-                      border: '1px solid #333333', 
-                      color: '#ffffff',
-                      position: 'relative',
-                      zIndex: 1001
-                    }}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
                   />
                 </Form.Group>
               </Col>
@@ -502,7 +495,7 @@ const AttendancePage = () => {
           borderRadius: '12px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
         }}>
-          <Card.Body>
+          <Card.Body style={{ paddingBottom: '300px', position: 'relative', zIndex: 1000 }}>
             <Row className="mb-3">
               <Col>
                 <h3 style={{ color: '#ffffff' }}>Employee Report</h3>
@@ -511,24 +504,36 @@ const AttendancePage = () => {
             
             <Row className="mb-3">
               <Col md={4}>
-                <Form.Group>
+                <Form.Group className="date-picker-container" style={{ position: 'relative', zIndex: 1001 }}>
                   <Form.Label style={{ color: '#ffffff' }}>Start Date</Form.Label>
                   <Form.Control
                     type="date"
                     value={reportStartDate}
                     onChange={(e) => setReportStartDate(e.target.value)}
-                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                    style={{ 
+                      backgroundColor: '#2a2a2a', 
+                      border: '1px solid #333333', 
+                      color: '#ffffff',
+                      position: 'relative',
+                      zIndex: 1001
+                    }}
                   />
                 </Form.Group>
               </Col>
               <Col md={4}>
-                <Form.Group>
+                <Form.Group className="date-picker-container" style={{ position: 'relative', zIndex: 1001 }}>
                   <Form.Label style={{ color: '#ffffff' }}>End Date</Form.Label>
                   <Form.Control
                     type="date"
                     value={reportEndDate}
                     onChange={(e) => setReportEndDate(e.target.value)}
-                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                    style={{ 
+                      backgroundColor: '#2a2a2a', 
+                      border: '1px solid #333333', 
+                      color: '#ffffff',
+                      position: 'relative',
+                      zIndex: 1001
+                    }}
                   />
                 </Form.Group>
               </Col>

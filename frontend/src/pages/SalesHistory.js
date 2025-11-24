@@ -252,8 +252,8 @@ const SalesHistory = () => {
           // Use logged-in user's name as cashier when printing from SalesHistory
           const cashierName = user?.username || null;
           await printReceiptRaw(
-            sale,
-            currentCompanySettings.companyName,
+        sale, 
+        currentCompanySettings.companyName, 
             currentCompanySettings.address,
             null, // printerName
             cashierName // cashierName - overrides sale.user?.username
@@ -299,9 +299,9 @@ const SalesHistory = () => {
           </h1>
         </Card.Header>
         <Card.Body className="p-0">
-          {/* Filters */}
+      {/* Filters */}
           <div className="p-3 border-bottom" style={{ backgroundColor: '#2a2a2a' }}>
-            <div className="row g-3">
+              <div className="row g-3">
                 {isAdminUser && (
                   <div className="col-md-4">
                     <label className="form-label fw-semibold" style={{ color: '#ffffff' }}>
@@ -350,35 +350,35 @@ const SalesHistory = () => {
                     className="form-control form-control-lg"
                     style={{ borderRadius: '10px', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                   />
-                </div>
-              </div>
           </div>
+        </div>
+      </div>
 
-          {/* Error */}
+      {/* Error */}
           {error && <Alert variant="danger" className="m-3" style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>{error}</Alert>}
 
-          {/* Loading */}
+      {/* Loading */}
           {loading && <div className="text-center p-3"><Spinner animation="border" style={{ color: '#ffffff' }} /></div>}
 
 
-          {/* No Sales Message */}
-          {!loading && sales.length === 0 && (
+      {/* No Sales Message */}
+      {!loading && sales.length === 0 && (
             <div className="text-center py-5" style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
               <i className="bi bi-inbox" style={{ fontSize: '4rem', color: '#aaaaaa' }}></i>
               <h5 className="mt-3 mb-2" style={{ color: '#aaaaaa' }}>No Sales Found</h5>
               <p className="mb-0" style={{ color: '#aaaaaa' }}>
-                No sales transactions found for the selected date and user.
-              </p>
-            </div>
-          )}
+              No sales transactions found for the selected date and user.
+            </p>
+        </div>
+      )}
 
-          {/* Table */}
+      {/* Table */}
           <div className="p-3" style={{ backgroundColor: '#2a2a2a' }}>
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h6 className="mb-0" style={{ color: '#ffffff' }}>
-                <i className="bi bi-list-ul me-2"></i>
-                Sales Transactions
-              </h6>
+              <i className="bi bi-list-ul me-2"></i>
+              Sales Transactions
+            </h6>
               <div className="text-end">
                 <small style={{ color: '#aaaaaa' }}>
                   <i className="bi bi-calendar3 me-1"></i>
@@ -398,7 +398,7 @@ const SalesHistory = () => {
                 </small>
               </div>
             </div>
-            <div className="table-responsive">
+          <div className="table-responsive">
             <Table hover className="mb-0">
               <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                 <tr>
@@ -505,7 +505,7 @@ const SalesHistory = () => {
               </tbody>
             </Table>
           </div>
-          </div>
+        </div>
         </Card.Body>
       </Card>
 

@@ -312,7 +312,7 @@ const CategoryPage = () => {
         <Form onSubmit={handleSubmit(onSubmit)}>
           <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>Category Name *</Form.Label>
+              <Form.Label>Category Name *</Form.Label>
               <Controller
                 name="name"
                 control={control}
@@ -333,7 +333,7 @@ const CategoryPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>Description</Form.Label>
+              <Form.Label>Description</Form.Label>
               <Controller
                 name="description"
                 control={control}
@@ -350,7 +350,7 @@ const CategoryPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>VAT Rate (%) *</Form.Label>
+              <Form.Label>VAT Rate (%) *</Form.Label>
               <Controller
                 name="vatRate"
                 control={control}

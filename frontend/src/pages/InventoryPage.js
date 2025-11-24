@@ -139,10 +139,10 @@ const InventoryPage = () => {
     } else if (name === 'vatRate') {
       // VAT is being manually changed
       setVatManuallyChanged(true);
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -919,7 +919,7 @@ const InventoryPage = () => {
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: '#ffffff' }}>Item Name *</Form.Label>
+                  <Form.Label>Item Name *</Form.Label>
                   <Form.Control
                     type="text"
                     name="name"
@@ -931,7 +931,7 @@ const InventoryPage = () => {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: '#ffffff' }}>Barcode</Form.Label>
+                  <Form.Label>Barcode</Form.Label>
                   <Form.Control
                     type="text"
                     name="barcode"
@@ -943,7 +943,7 @@ const InventoryPage = () => {
               </Col>
             </Row>
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>Category</Form.Label>
+              <Form.Label>Category</Form.Label>
               <Form.Select
                 name="categoryId"
                 value={formData.categoryId}
@@ -959,7 +959,7 @@ const InventoryPage = () => {
               </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>Description</Form.Label>
+              <Form.Label>Description</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={3}
@@ -972,7 +972,7 @@ const InventoryPage = () => {
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: '#ffffff' }}>Price (€) *</Form.Label>
+                  <Form.Label>Price (€) *</Form.Label>
                   <InputGroup>
                     <InputGroup.Text style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>€</InputGroup.Text>
                     <Form.Control
@@ -988,7 +988,7 @@ const InventoryPage = () => {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: '#ffffff' }}>Stock Quantity *</Form.Label>
+                  <Form.Label>Stock Quantity *</Form.Label>
                   <Form.Control
                     type="number"
                     name="stockQuantity"
@@ -1002,7 +1002,7 @@ const InventoryPage = () => {
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: '#ffffff' }}>VAT Rate (%) *</Form.Label>
+                  <Form.Label>VAT Rate (%) *</Form.Label>
                   <InputGroup>
                     <Form.Control
                       type="number"
@@ -1021,7 +1021,7 @@ const InventoryPage = () => {
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: '#ffffff' }}>Batch ID</Form.Label>
+                  <Form.Label>Batch ID</Form.Label>
                   <Form.Control
                     type="text"
                     name="batchId"
@@ -1034,7 +1034,7 @@ const InventoryPage = () => {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label style={{ color: '#ffffff' }}>Expiry Date</Form.Label>
+                  <Form.Label>Expiry Date</Form.Label>
                   <Form.Control
                     type="date"
                     name="generalExpiryDate"

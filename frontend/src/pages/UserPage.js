@@ -398,7 +398,7 @@ const UserPage = () => {
             <div className="row">
               <div className="col-md-6">
                 <Form.Group className="mb-3" controlId="username">
-                  <Form.Label style={{ color: '#ffffff' }}>Username</Form.Label>
+                  <Form.Label>Username</Form.Label>
                   <Controller
                     name="username"
                     control={control}
@@ -424,7 +424,7 @@ const UserPage = () => {
               </div>
               <div className="col-md-6">
                 <Form.Group className="mb-3" controlId="email">
-                  <Form.Label style={{ color: '#ffffff' }}>Email</Form.Label>
+                  <Form.Label>Email</Form.Label>
                   <Controller
                     name="email"
                     control={control}
@@ -455,7 +455,7 @@ const UserPage = () => {
             <div className="row">
               <div className="col-md-6">
                 <Form.Group className="mb-3" controlId="fullName">
-                  <Form.Label style={{ color: '#ffffff' }}>Full Name</Form.Label>
+                  <Form.Label>Full Name</Form.Label>
                   <Controller
                     name="fullName"
                     control={control}
@@ -481,7 +481,7 @@ const UserPage = () => {
               </div>
               <div className="col-md-6">
                 <Form.Group className="mb-3" controlId="role">
-                  <Form.Label style={{ color: '#ffffff' }}>Role</Form.Label>
+                  <Form.Label>Role</Form.Label>
                   <Controller
                     name="role"
                     control={control}
@@ -505,7 +505,7 @@ const UserPage = () => {
             </div>
 
             <Form.Group className="mb-3" controlId="password">
-              <Form.Label style={{ color: '#ffffff' }}>
+              <Form.Label>
                 Password {editingUser && <small style={{ color: '#aaaaaa' }}>(leave blank to keep current password)</small>}
               </Form.Label>
               <Controller
@@ -531,7 +531,7 @@ const UserPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="hourlyPayRate">
-              <Form.Label style={{ color: '#ffffff' }}>Hourly Pay Rate (Optional)</Form.Label>
+              <Form.Label>Hourly Pay Rate (Optional)</Form.Label>
               <Controller
                 name="hourlyPayRate"
                 control={control}

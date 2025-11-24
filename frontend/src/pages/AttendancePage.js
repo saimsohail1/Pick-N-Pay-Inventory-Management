@@ -387,7 +387,7 @@ const AttendancePage = () => {
             <Row className="align-items-center">
               <Col md={4}>
                 <Form.Group>
-                  <Form.Label style={{ color: '#ffffff' }}>Select Date</Form.Label>
+                  <Form.Label>Select Date</Form.Label>
                   <Form.Control
                     type="date"
                     value={selectedDate}
@@ -503,7 +503,7 @@ const AttendancePage = () => {
             <Row className="mb-3">
               <Col md={4}>
                 <Form.Group className="date-picker-container" style={{ position: 'relative', zIndex: 1001 }}>
-                  <Form.Label style={{ color: '#ffffff' }}>Start Date</Form.Label>
+                  <Form.Label>Start Date</Form.Label>
                   <Form.Control
                     type="date"
                     value={reportStartDate}
@@ -520,7 +520,7 @@ const AttendancePage = () => {
               </Col>
               <Col md={4}>
                 <Form.Group className="date-picker-container" style={{ position: 'relative', zIndex: 1001 }}>
-                  <Form.Label style={{ color: '#ffffff' }}>End Date</Form.Label>
+                  <Form.Label>End Date</Form.Label>
                   <Form.Control
                     type="date"
                     value={reportEndDate}

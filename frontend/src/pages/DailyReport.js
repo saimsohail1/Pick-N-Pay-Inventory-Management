@@ -270,7 +270,7 @@ const DailyReport = () => {
       );
       
       // Use silent printing (no dialog) - works in Electron
-      await directPrint(reportContent, `Z-Report - ${dateRangeText}`);
+        await directPrint(reportContent, `Z-Report - ${dateRangeText}`);
       
     } catch (error) {
       console.error('Print error:', error);

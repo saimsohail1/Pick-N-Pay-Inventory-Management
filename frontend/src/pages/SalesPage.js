@@ -2530,7 +2530,7 @@ const SalesPage = () => {
         <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>Item Name *</Form.Label>
+              <Form.Label>Item Name *</Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Enter item name"
@@ -2546,7 +2546,7 @@ const SalesPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>Barcode *</Form.Label>
+              <Form.Label>Barcode *</Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Enter barcode"
@@ -2562,7 +2562,7 @@ const SalesPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>Price (€) *</Form.Label>
+              <Form.Label>Price (€) *</Form.Label>
               <Form.Control
                 type="number"
                 step="0.01"
@@ -2579,7 +2579,7 @@ const SalesPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>Stock Quantity *</Form.Label>
+              <Form.Label>Stock Quantity *</Form.Label>
               <Form.Control
                 type="number"
                 placeholder="Enter stock quantity"
@@ -2595,7 +2595,7 @@ const SalesPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>VAT Rate (%) *</Form.Label>
+              <Form.Label>VAT Rate (%) *</Form.Label>
               <InputGroup>
                 <Form.Control
                   type="number"
@@ -2616,7 +2616,7 @@ const SalesPage = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ color: '#ffffff' }}>Category</Form.Label>
+              <Form.Label>Category</Form.Label>
               <Form.Select
                 value={newItem.categoryId}
                 onChange={(e) => {

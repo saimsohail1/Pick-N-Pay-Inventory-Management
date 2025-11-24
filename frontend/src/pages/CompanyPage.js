@@ -102,7 +102,7 @@ const CompanyPage = () => {
               </h5>
               <Form onSubmit={handleSubmit(handleUpdateSettings)}>
                 <Form.Group className="mb-4">
-                  <Form.Label className="fw-bold" style={{ color: '#ffffff' }}>Company Name</Form.Label>
+                  <Form.Label className="fw-bold">Company Name</Form.Label>
                   <Controller
                     name="companyName"
                     control={control}
@@ -131,7 +131,7 @@ const CompanyPage = () => {
                 </Form.Group>
 
                 <Form.Group className="mb-4">
-                  <Form.Label className="fw-bold" style={{ color: '#ffffff' }}>Company Address</Form.Label>
+                  <Form.Label className="fw-bold">Company Address</Form.Label>
                   <Controller
                     name="address"
                     control={control}

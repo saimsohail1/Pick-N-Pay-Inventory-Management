@@ -494,15 +494,20 @@ textarea::-moz-placeholder,
 select::-moz-placeholder,
 input:-ms-input-placeholder,
 textarea:-ms-input-placeholder,
-select:-ms-input-placeholder,
+select:-ms-input-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
+}
+
+/* Bootstrap Form Control Placeholders */
 .form-control::placeholder,
+.form-select::placeholder,
 .form-control::-webkit-input-placeholder,
+.form-select::-webkit-input-placeholder,
 .form-control::-moz-placeholder,
+.form-select::-moz-placeholder,
 .form-control:-ms-input-placeholder,
-.Form.Control::placeholder,
-.Form.Control::-webkit-input-placeholder,
-.Form.Control::-moz-placeholder,
-.Form.Control:-ms-input-placeholder {
+.form-select:-ms-input-placeholder {
   color: rgba(255, 255, 255, 0.5) !important;
   opacity: 1 !important;
 }

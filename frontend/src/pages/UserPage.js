@@ -173,15 +173,34 @@ const UserPage = () => {
       debouncedFetchUsers();
     } catch (err) {
       console.error('Failed to save user:', err);
-      if (err.response && err.response.data) {
-        setError(err.response.data);
-      } else {
-        setError('Failed to save user. Please try again.');
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response,
+        data: err.response?.data,
+        status: err.response?.status
+      });
+      
+      // Handle both string and object error responses
+      let errorMessage = 'Failed to save user. Please try again.';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else if (Array.isArray(err.response.data)) {
+          // Validation errors array
+          errorMessage = err.response.data.map(e => e.message || e).join(', ');
+        } else {
+          errorMessage = JSON.stringify(err.response.data);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
       }
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
       addTimeout(() => setSuccess(null), 3000);
-      addTimeout(() => setError(null), 3000);
+      addTimeout(() => setError(null), 5000);
     }
   };
 

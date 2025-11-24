@@ -384,10 +384,9 @@ const AttendancePage = () => {
           border: '1px solid #2a2a2a',
           borderRadius: '12px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-          marginBottom: '2rem',
-          paddingBottom: '1rem'
+          marginBottom: '2rem'
         }}>
-          <Card.Body style={{ paddingBottom: '2rem', position: 'relative', zIndex: 1000 }}>
+          <Card.Body style={{ paddingBottom: '300px', position: 'relative', zIndex: 1000 }}>
             <Row className="align-items-center">
               <Col md={4}>
                 <Form.Group className="date-picker-container" style={{ position: 'relative', zIndex: 1001 }}>

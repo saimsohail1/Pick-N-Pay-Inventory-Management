@@ -469,7 +469,16 @@ body {
 /* Form Label Styles - Light white/faded color */
 label,
 .form-label,
-.Form.Label {
+.Form.Label,
+[class*="form-label"],
+[class*="Form.Label"] {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* Override inline styles for form labels */
+label[style*="color"],
+.form-label[style*="color"],
+.Form.Label[style*="color"] {
   color: rgba(255, 255, 255, 0.75) !important;
 }
 

@@ -57,20 +57,20 @@ const Layout = ({ children }) => {
           font-size: 1.2rem;
         }
         .navbar {
-          padding: 0.5rem 0;
+          padding: 0.3rem 0;
         }
         .container-fluid {
           padding-left: 1rem;
           padding-right: 1rem;
         }
         .layout-content-container {
-          margin-top: 80px;
-          min-height: calc(100vh - 80px);
+          margin-top: 65px;
+          min-height: calc(100vh - 65px);
           background-color: #000000;
         }
         @media (max-width: 991px) {
           .layout-content-container {
-            margin-top: 80px;
+            margin-top: 65px;
           }
         }
         

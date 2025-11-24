@@ -343,23 +343,22 @@ const AttendancePage = () => {
           </Card.Header>
         </Card>
         
-        {/* Toast Notifications */}
+        {/* Success and Error Messages - Fixed Position */}
         {success && (
           <Alert 
-            variant="success"
             onClose={() => setSuccess(null)} 
             dismissible
             style={{
               position: 'fixed',
-              top: '20px',
+              top: '80px',
               left: '50%',
               transform: 'translateX(-50%)',
               zIndex: 9999,
-              minWidth: '300px',
-              maxWidth: '400px',
+              minWidth: '400px',
+              maxWidth: '600px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              backgroundColor: '#28a745',
-              border: '1px solid #1e7e34',
+              backgroundColor: '#3a3a3a',
+              border: '1px solid #ffffff',
               color: '#ffffff'
             }}
           >

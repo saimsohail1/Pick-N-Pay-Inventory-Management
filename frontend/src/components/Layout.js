@@ -165,7 +165,7 @@ const Layout = ({ children }) => {
       <Navbar bg="dark" variant="dark" expand="lg" fixed="top" className="shadow-modern-lg navbar-custom" style={{ 
         background: '#1a1a1a !important',
         backgroundColor: '#1a1a1a !important',
-        minHeight: '80px',
+        minHeight: '65px',
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
         backdropFilter: 'blur(10px)',
         borderBottom: '2px solid #2a2a2a',

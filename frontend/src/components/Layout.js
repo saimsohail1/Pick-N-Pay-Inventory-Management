@@ -12,7 +12,6 @@ const Layout = ({ children }) => {
   const { user, logout, isAuthenticated } = useAuth();
 
   const navigationItems = [
-    { path: '/', label: 'Dashboard', icon: 'bi-speedometer2' },
     { path: '/users', label: 'Users', icon: 'bi-people' },
   ];
 

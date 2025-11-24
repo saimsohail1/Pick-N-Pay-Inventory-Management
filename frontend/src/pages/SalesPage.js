@@ -1410,19 +1410,6 @@ const SalesPage = () => {
               </Button>
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"
-                style={{ 
-                  width: '40px', 
-                  height: '40px', 
-                  padding: '0',
-                  backgroundColor: '#3a3a3a', 
-                  color: '#ffffff'
-                }}
-                title="Tablet Mode"
-              >
-                <i className="bi bi-tablet" style={{ fontSize: '1.1rem' }}></i>
-              </Button>
-              <Button
-                className="btn-3d d-flex align-items-center justify-content-center"
                 onClick={() => navigate('/company')}
                 style={{ 
                   width: '40px', 
@@ -1434,20 +1421,6 @@ const SalesPage = () => {
                 title="Settings"
               >
                 <i className="bi bi-gear" style={{ fontSize: '1.1rem' }}></i>
-              </Button>
-              <Button
-                className="btn-3d d-flex align-items-center justify-content-center"
-                onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}
-                style={{ 
-                  width: '40px', 
-                  height: '40px', 
-                  padding: '0',
-                  backgroundColor: '#3a3a3a', 
-                  color: '#ffffff'
-                }}
-                title="Logout"
-              >
-                <i className="bi bi-box-arrow-right" style={{ fontSize: '1.1rem' }}></i>
               </Button>
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"

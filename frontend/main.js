@@ -302,10 +302,6 @@ function createCustomerDisplayWindow() {
       event.preventDefault();
       console.log('📺 Customer display window close prevented, hiding instead');
       customerDisplayWindow.hide();
-    } else {
-      // Allow close when app is quitting - don't prevent
-      console.log('📺 Customer display window closing (app quitting)');
-      // Don't prevent default - allow it to close
     }
   });
 
@@ -328,27 +324,24 @@ ipcMain.on('app-closing', () => {
   
   app.isQuitting = true;
 
-  // Close customer display window first (remove close listener to allow close)
   if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
     console.log('🔄 Destroying customer display window...');
-    customerDisplayWindow.removeAllListeners('close');
+    customerDisplayWindow.removeAllListeners();
     customerDisplayWindow.destroy();
     customerDisplayWindow = null;
   }
 
-  // Stop backend
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    console.log('🔄 Closing main window...');
+    mainWindow.close();
+  }
+
   stopBackend();
   
-  // Close main window and quit app
   setTimeout(() => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      console.log('🔄 Closing main window...');
-      mainWindow.removeAllListeners();
-      mainWindow.destroy();
-    }
     console.log('🔄 Quitting application...');
     app.exit(0);
-  }, 200);
+  }, 300);
 });
 
 /**

@@ -1401,7 +1401,7 @@ const SalesPage = () => {
               <Button 
                 className="btn-3d"
                 onClick={() => setShowHeldTransactions(!showHeldTransactions)}
-                style={{ fontSize: '1rem', padding: '0.5rem 0.8rem', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                 title="Hold Transactions"
               >
                 <i className="bi bi-pause-circle me-1"></i>
@@ -1411,15 +1411,15 @@ const SalesPage = () => {
                 className="btn-3d d-flex align-items-center justify-content-center"
                 onClick={() => navigate('/company')}
                 style={{ 
-                  width: '50px', 
-                  height: '50px', 
+                  width: '55px', 
+                  height: '55px', 
                   padding: '0',
                   backgroundColor: '#3a3a3a', 
                   color: '#ffffff'
                 }}
                 title="Settings"
               >
-                <i className="bi bi-gear" style={{ fontSize: '1.4rem' }}></i>
+                <i className="bi bi-gear" style={{ fontSize: '1.5rem' }}></i>
               </Button>
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"
@@ -1437,15 +1437,15 @@ const SalesPage = () => {
                   }
                 }}
                 style={{ 
-                  width: '50px', 
-                  height: '50px', 
+                  width: '55px', 
+                  height: '55px', 
                   padding: '0',
                   backgroundColor: '#3a3a3a', 
                   color: '#ffffff'
                 }}
                 title="Minimize Application"
               >
-                <i className="bi bi-dash-lg" style={{ fontSize: '1.4rem' }}></i>
+                <i className="bi bi-dash-lg" style={{ fontSize: '1.5rem' }}></i>
               </Button>
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"
@@ -1463,15 +1463,15 @@ const SalesPage = () => {
                   }
                 }}
                 style={{ 
-                  width: '40px', 
-                  height: '40px', 
+                  width: '50px', 
+                  height: '50px', 
                   padding: '0',
                   backgroundColor: '#3a3a3a', 
                   color: '#ffffff'
                 }}
                 title="Toggle Fullscreen"
               >
-                <i className="bi bi-fullscreen" style={{ fontSize: '1.1rem' }}></i>
+                <i className="bi bi-fullscreen" style={{ fontSize: '1.4rem' }}></i>
               </Button>
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"

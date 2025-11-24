@@ -176,13 +176,14 @@ function createWindow() {
   mainWindow.on('close', (event) => {
     if (!app.isQuitting) {
       event.preventDefault();
-      // Close all windows when main window is closed
+      // Set quitting flag first
       app.isQuitting = true;
       
-      // Close customer display window first
+      // Close customer display window first (force close, don't prevent)
       if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
         console.log('🔄 Closing customer display window from main window close...');
-        customerDisplayWindow.removeAllListeners();
+        // Remove the close event listener temporarily to allow close
+        customerDisplayWindow.removeAllListeners('close');
         customerDisplayWindow.destroy();
         customerDisplayWindow = null;
       }
@@ -201,7 +202,7 @@ function createWindow() {
     } else {
       // Already quitting, ensure customer display is closed
       if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
-        customerDisplayWindow.removeAllListeners();
+        customerDisplayWindow.removeAllListeners('close');
         customerDisplayWindow.destroy();
         customerDisplayWindow = null;
       }
@@ -302,8 +303,9 @@ function createCustomerDisplayWindow() {
       console.log('📺 Customer display window close prevented, hiding instead');
       customerDisplayWindow.hide();
     } else {
-      // Allow close when app is quitting
+      // Allow close when app is quitting - don't prevent
       console.log('📺 Customer display window closing (app quitting)');
+      // Don't prevent default - allow it to close
     }
   });
 
@@ -326,10 +328,10 @@ ipcMain.on('app-closing', () => {
   
   app.isQuitting = true;
 
-  // Close customer display window first
+  // Close customer display window first (remove close listener to allow close)
   if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
     console.log('🔄 Destroying customer display window...');
-    customerDisplayWindow.removeAllListeners();
+    customerDisplayWindow.removeAllListeners('close');
     customerDisplayWindow.destroy();
     customerDisplayWindow = null;
   }

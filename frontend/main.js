@@ -176,18 +176,36 @@ function createWindow() {
   mainWindow.on('close', (event) => {
     if (!app.isQuitting) {
       event.preventDefault();
-    try {
-      mainWindow.webContents.send('app-closing');
-    } catch (err) {
-      console.error('Error sending app-closing event:', err);
-    }
-    } else {
-    if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+      // Close all windows when main window is closed
+      app.isQuitting = true;
+      
+      // Close customer display window first
+      if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+        console.log('🔄 Closing customer display window from main window close...');
         customerDisplayWindow.removeAllListeners();
         customerDisplayWindow.destroy();
         customerDisplayWindow = null;
-    }
-    stopBackend();
+      }
+      
+      // Stop backend
+      stopBackend();
+      
+      // Close main window and quit app
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.removeAllListeners();
+          mainWindow.destroy();
+        }
+        app.exit(0);
+      }, 100);
+    } else {
+      // Already quitting, ensure customer display is closed
+      if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
+        customerDisplayWindow.removeAllListeners();
+        customerDisplayWindow.destroy();
+        customerDisplayWindow = null;
+      }
+      stopBackend();
     }
   });
 
@@ -283,6 +301,9 @@ function createCustomerDisplayWindow() {
       event.preventDefault();
       console.log('📺 Customer display window close prevented, hiding instead');
       customerDisplayWindow.hide();
+    } else {
+      // Allow close when app is quitting
+      console.log('📺 Customer display window closing (app quitting)');
     }
   });
 
@@ -305,6 +326,7 @@ ipcMain.on('app-closing', () => {
   
   app.isQuitting = true;
 
+  // Close customer display window first
   if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
     console.log('🔄 Destroying customer display window...');
     customerDisplayWindow.removeAllListeners();
@@ -312,17 +334,19 @@ ipcMain.on('app-closing', () => {
     customerDisplayWindow = null;
   }
 
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    console.log('🔄 Closing main window...');
-    mainWindow.close();
-  }
-
+  // Stop backend
   stopBackend();
   
+  // Close main window and quit app
   setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      console.log('🔄 Closing main window...');
+      mainWindow.removeAllListeners();
+      mainWindow.destroy();
+    }
     console.log('🔄 Quitting application...');
     app.exit(0);
-  }, 300);
+  }, 200);
 });
 
 /**

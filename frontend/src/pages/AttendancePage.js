@@ -323,8 +323,7 @@ const AttendancePage = () => {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
         }}>
           <Card.Body>
-            <h1 className="page-title" style={{ color: '#ffffff', marginBottom: '1rem' }}>
-              <i className="bi bi-calendar-check me-3" style={{ color: '#ffffff' }}></i>
+            <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
               Employee Attendance
             </h1>
           </Card.Body>

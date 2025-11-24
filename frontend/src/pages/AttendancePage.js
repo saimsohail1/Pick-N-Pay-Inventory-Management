@@ -226,6 +226,29 @@ const AttendancePage = () => {
     return total.toFixed(2);
   };
   
+  const getFirstTimeIn = (userId) => {
+    const userAttendances = getAttendancesForUser(userId);
+    if (userAttendances.length === 0) return null;
+    return userAttendances[0].timeIn;
+  };
+  
+  const getLastTimeOut = (userId) => {
+    const userAttendances = getAttendancesForUser(userId);
+    if (userAttendances.length === 0) return null;
+    // Find the last completed entry (with time-out)
+    const completedEntries = userAttendances.filter(a => a.timeOut);
+    if (completedEntries.length > 0) {
+      return completedEntries[completedEntries.length - 1].timeOut;
+    }
+    // If no completed entries, check if there's an open entry
+    const openEntry = userAttendances.find(a => !a.timeOut);
+    return openEntry ? null : null; // Return null to show "Open" badge
+  };
+  
+  const hasOpenEntry = (userId) => {
+    return getLatestOpenAttendance(userId) !== null;
+  };
+  
   const formatTime = (timeStr) => {
     if (!timeStr) return '-';
     const [hours, minutes] = timeStr.split(':');
@@ -347,6 +370,8 @@ const AttendancePage = () => {
                   <tr>
                     <th>Employee Name</th>
                     <th>Username</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
                     <th>Total Hours (Day)</th>
                     <th>Actions</th>
                   </tr>
@@ -354,22 +379,33 @@ const AttendancePage = () => {
                 <tbody>
                   {users.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="text-center">No users found</td>
+                      <td colSpan="6" className="text-center">No users found</td>
                     </tr>
                   ) : (
                     users.map((user) => {
                       const userAttendances = getAttendancesForUser(user.id);
-                      const latestOpen = getLatestOpenAttendance(user.id);
                       const totalHours = getTotalHoursForUser(user.id);
-                      const hasOpenEntry = latestOpen !== null;
+                      const firstTimeIn = getFirstTimeIn(user.id);
+                      const lastTimeOut = getLastTimeOut(user.id);
+                      const hasOpen = hasOpenEntry(user.id);
                       
                       return (
                         <tr key={user.id}>
                           <td>{user.fullName}</td>
                           <td>{user.username}</td>
+                          <td>{firstTimeIn ? formatTime(firstTimeIn) : '-'}</td>
+                          <td>
+                            {hasOpen ? (
+                              <Badge bg="warning">Open</Badge>
+                            ) : lastTimeOut ? (
+                              formatTime(lastTimeOut)
+                            ) : (
+                              '-'
+                            )}
+                          </td>
                           <td style={{ fontWeight: 'bold' }}>{totalHours}h</td>
                           <td>
-                            {hasOpenEntry ? (
+                            {hasOpen ? (
                               <Button
                                 variant="warning"
                                 size="sm"

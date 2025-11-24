@@ -589,3 +589,57 @@ const AttendancePage = () => {
 };
 
 export default AttendancePage;
+              <Col md={4} className="d-flex align-items-end">
+                <Button
+                  variant="primary"
+                  onClick={handleGenerateEmployeeReport}
+                  disabled={loading || !reportStartDate || !reportEndDate}
+                  style={{ width: '100%' }}
+                >
+                  <i className="bi bi-file-earmark-text me-1"></i>
+                  Generate Employee Report
+                </Button>
+              </Col>
+            </Row>
+            
+            {showEmployeeReport && employeeReport.length > 0 && (
+              <Table striped bordered hover variant="dark" responsive>
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>Total Hours</th>
+                    <th>Hourly Rate</th>
+                    <th>Total Pay</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employeeReport.map((report) => (
+                    <tr key={report.userId}>
+                      <td>{report.fullName}</td>
+                      <td>{formatHours(report.totalHours)}</td>
+                      <td>{report.hourlyPayRate ? formatCurrency(report.hourlyPayRate) : 'Not Set'}</td>
+                      <td style={{ fontWeight: 'bold' }}>
+                        {report.hourlyPayRate && report.hourlyPayRate > 0 
+                          ? formatCurrency(report.totalPay) 
+                          : 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+            
+            {showEmployeeReport && employeeReport.length === 0 && (
+              <Alert variant="info">
+                No attendance records found for the selected date range.
+              </Alert>
+            )}
+          </Card.Body>
+        </Card>
+        </Container>
+      </div>
+    </>
+  );
+};
+
+export default AttendancePage;

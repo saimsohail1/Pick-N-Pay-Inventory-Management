@@ -1463,15 +1463,15 @@ const SalesPage = () => {
                   }
                 }}
                 style={{ 
-                  width: '50px', 
-                  height: '50px', 
+                  width: '55px', 
+                  height: '55px', 
                   padding: '0',
                   backgroundColor: '#3a3a3a', 
                   color: '#ffffff'
                 }}
                 title="Toggle Fullscreen"
               >
-                <i className="bi bi-fullscreen" style={{ fontSize: '1.4rem' }}></i>
+                <i className="bi bi-fullscreen" style={{ fontSize: '1.5rem' }}></i>
               </Button>
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"
@@ -1491,15 +1491,15 @@ const SalesPage = () => {
                   }
                 }}
                 style={{ 
-                  width: '40px', 
-                  height: '40px', 
+                  width: '55px', 
+                  height: '55px', 
                   padding: '0',
                   backgroundColor: '#3a3a3a', 
                   color: '#ffffff'
                 }}
                 title="Close Application"
               >
-                <i className="bi bi-power" style={{ fontSize: '1.1rem' }}></i>
+                <i className="bi bi-power" style={{ fontSize: '1.5rem' }}></i>
               </Button>
             </div>
           </div>

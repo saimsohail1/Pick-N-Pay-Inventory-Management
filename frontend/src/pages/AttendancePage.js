@@ -495,7 +495,7 @@ const AttendancePage = () => {
           borderRadius: '12px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
         }}>
-          <Card.Body style={{ paddingBottom: '300px', position: 'relative', zIndex: 1000 }}>
+          <Card.Body style={{ paddingBottom: '150px', position: 'relative', zIndex: 1000 }}>
             <Row className="mb-3">
               <Col>
                 <h3 style={{ color: '#ffffff' }}>Employee Report</h3>

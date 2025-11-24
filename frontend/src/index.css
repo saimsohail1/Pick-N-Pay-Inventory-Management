@@ -482,7 +482,7 @@ label[style*="color"],
   color: rgba(255, 255, 255, 0.75) !important;
 }
 
-/* Placeholder Styles - Faded white color for visibility */
+/* Placeholder Text Styles - Faded white color for visibility */
 input::placeholder,
 textarea::placeholder,
 select::placeholder,
@@ -494,16 +494,15 @@ textarea::-moz-placeholder,
 select::-moz-placeholder,
 input:-ms-input-placeholder,
 textarea:-ms-input-placeholder,
-select:-ms-input-placeholder {
-  color: rgba(255, 255, 255, 0.5) !important;
-  opacity: 1 !important;
-}
-
-/* Bootstrap form control placeholders */
+select:-ms-input-placeholder,
 .form-control::placeholder,
 .form-control::-webkit-input-placeholder,
 .form-control::-moz-placeholder,
-.form-control:-ms-input-placeholder {
+.form-control:-ms-input-placeholder,
+.Form.Control::placeholder,
+.Form.Control::-webkit-input-placeholder,
+.Form.Control::-moz-placeholder,
+.Form.Control:-ms-input-placeholder {
   color: rgba(255, 255, 255, 0.5) !important;
   opacity: 1 !important;
 }

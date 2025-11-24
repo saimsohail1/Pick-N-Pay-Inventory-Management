@@ -310,15 +310,51 @@ const AttendancePage = () => {
           </Card.Body>
         </Card>
         
-        {/* Alerts */}
-        {error && (
-          <Alert variant="danger" dismissible onClose={() => setError(null)}>
-            {error}
+        {/* Toast Notifications */}
+        {success && (
+          <Alert 
+            variant="success"
+            onClose={() => setSuccess(null)} 
+            dismissible
+            style={{
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 9999,
+              minWidth: '300px',
+              maxWidth: '400px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              backgroundColor: '#28a745',
+              border: '1px solid #1e7e34',
+              color: '#ffffff'
+            }}
+          >
+            <i className="bi bi-check-circle me-2"></i>
+            {success}
           </Alert>
         )}
-        {success && (
-          <Alert variant="success" dismissible onClose={() => setSuccess(null)}>
-            {success}
+        {error && (
+          <Alert 
+            variant="danger"
+            onClose={() => setError(null)} 
+            dismissible
+            style={{
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 9999,
+              minWidth: '300px',
+              maxWidth: '400px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              backgroundColor: '#dc3545',
+              border: '1px solid #c82333',
+              color: '#ffffff'
+            }}
+          >
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            {error}
           </Alert>
         )}
         

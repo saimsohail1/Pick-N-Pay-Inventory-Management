@@ -535,7 +535,7 @@ const InventoryPage = () => {
       `}</style>
 
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-3">
+        <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-3" style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
           {error}
         </Alert>
       )}

@@ -482,6 +482,32 @@ label[style*="color"],
   color: rgba(255, 255, 255, 0.75) !important;
 }
 
+/* Placeholder Styles - Faded white color for visibility */
+input::placeholder,
+textarea::placeholder,
+select::placeholder,
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder,
+select::-webkit-input-placeholder,
+input::-moz-placeholder,
+textarea::-moz-placeholder,
+select::-moz-placeholder,
+input:-ms-input-placeholder,
+textarea:-ms-input-placeholder,
+select:-ms-input-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
+}
+
+/* Bootstrap form control placeholders */
+.form-control::placeholder,
+.form-control::-webkit-input-placeholder,
+.form-control::-moz-placeholder,
+.form-control:-ms-input-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
+}
+
 /* Z-Index Overrides for Dropdown */
 .dropdown-menu {
   z-index: 1060 !important;

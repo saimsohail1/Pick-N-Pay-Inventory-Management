@@ -305,20 +305,26 @@ ipcMain.on('app-closing', () => {
   
   app.isQuitting = true;
 
+  // Force close customer display window first
   if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
-    console.log('🔄 Destroying customer display window...');
-    customerDisplayWindow.removeAllListeners();
+    console.log('🔄 Force closing customer display window...');
+    // Remove the close event listener that prevents closing
+    customerDisplayWindow.removeAllListeners('close');
+    // Force destroy the window
     customerDisplayWindow.destroy();
     customerDisplayWindow = null;
   }
 
+  // Stop backend
+  stopBackend();
+
+  // Close main window
   if (mainWindow && !mainWindow.isDestroyed()) {
     console.log('🔄 Closing main window...');
     mainWindow.close();
   }
-
-  stopBackend();
   
+  // Quit app after a short delay to ensure windows close
   setTimeout(() => {
     console.log('🔄 Quitting application...');
     app.exit(0);

@@ -322,6 +322,7 @@ const AttendancePage = () => {
         }}>
           <Card.Header style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
             <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
+              <i className="bi bi-calendar-check me-2" style={{ color: '#ffffff' }}></i>
               Employee Attendance
             </h1>
           </Card.Header>

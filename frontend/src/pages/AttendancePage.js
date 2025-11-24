@@ -54,7 +54,10 @@ const AttendancePage = () => {
           errorMessage = JSON.stringify(err.response.data);
         }
       } else if (err.message) {
-        errorMessage = err.message;
+        // Replace "Network Error" with "Failed to load"
+        errorMessage = err.message === 'Network Error' || err.message.includes('Network Error') 
+          ? 'Failed to load users. Please try again.' 
+          : err.message;
       }
       setError(errorMessage);
       setUsers([]);
@@ -84,7 +87,10 @@ const AttendancePage = () => {
           errorMessage = JSON.stringify(err.response.data);
         }
       } else if (err.message) {
-        errorMessage = err.message;
+        // Replace "Network Error" with "Failed to load"
+        errorMessage = err.message === 'Network Error' || err.message.includes('Network Error') 
+          ? 'Failed to load users. Please try again.' 
+          : err.message;
       }
       setError(errorMessage);
       setAttendances([]); // Set empty array on error
@@ -118,7 +124,10 @@ const AttendancePage = () => {
           errorMessage = JSON.stringify(err.response.data);
         }
       } else if (err.message) {
-        errorMessage = err.message;
+        // Replace "Network Error" with "Failed to load"
+        errorMessage = err.message === 'Network Error' || err.message.includes('Network Error') 
+          ? 'Failed to load users. Please try again.' 
+          : err.message;
       }
       setError(errorMessage);
     } finally {
@@ -152,7 +161,10 @@ const AttendancePage = () => {
           errorMessage = JSON.stringify(err.response.data);
         }
       } else if (err.message) {
-        errorMessage = err.message;
+        // Replace "Network Error" with "Failed to load"
+        errorMessage = err.message === 'Network Error' || err.message.includes('Network Error') 
+          ? 'Failed to load users. Please try again.' 
+          : err.message;
       }
       setError(errorMessage);
     } finally {
@@ -194,7 +206,10 @@ const AttendancePage = () => {
           errorMessage = JSON.stringify(err.response.data);
         }
       } else if (err.message) {
-        errorMessage = err.message;
+        // Replace "Network Error" with "Failed to load"
+        errorMessage = err.message === 'Network Error' || err.message.includes('Network Error') 
+          ? 'Failed to load users. Please try again.' 
+          : err.message;
       }
       setError(errorMessage);
     } finally {

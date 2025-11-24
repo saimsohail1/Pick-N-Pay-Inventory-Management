@@ -1399,10 +1399,9 @@ const SalesPage = () => {
           <div className="d-flex align-items-center gap-2">
             <div className="d-flex align-items-center gap-2">
               <Button 
-                size="sm" 
                 className="btn-3d"
                 onClick={() => setShowHeldTransactions(!showHeldTransactions)}
-                style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                style={{ fontSize: '1rem', padding: '0.5rem 0.8rem', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                 title="Hold Transactions"
               >
                 <i className="bi bi-pause-circle me-1"></i>
@@ -1412,15 +1411,15 @@ const SalesPage = () => {
                 className="btn-3d d-flex align-items-center justify-content-center"
                 onClick={() => navigate('/company')}
                 style={{ 
-                  width: '40px', 
-                  height: '40px', 
+                  width: '50px', 
+                  height: '50px', 
                   padding: '0',
                   backgroundColor: '#3a3a3a', 
                   color: '#ffffff'
                 }}
                 title="Settings"
               >
-                <i className="bi bi-gear" style={{ fontSize: '1.1rem' }}></i>
+                <i className="bi bi-gear" style={{ fontSize: '1.4rem' }}></i>
               </Button>
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"
@@ -1438,15 +1437,15 @@ const SalesPage = () => {
                   }
                 }}
                 style={{ 
-                  width: '40px', 
-                  height: '40px', 
+                  width: '50px', 
+                  height: '50px', 
                   padding: '0',
                   backgroundColor: '#3a3a3a', 
                   color: '#ffffff'
                 }}
                 title="Minimize Application"
               >
-                <i className="bi bi-dash-lg" style={{ fontSize: '1.1rem' }}></i>
+                <i className="bi bi-dash-lg" style={{ fontSize: '1.4rem' }}></i>
               </Button>
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"

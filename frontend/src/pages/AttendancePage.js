@@ -173,6 +173,8 @@ const AttendancePage = () => {
       return;
     }
     
+    // Allow same date for single day report (no additional validation needed)
+    
     setLoading(true);
     setError(null);
     try {
@@ -345,17 +347,14 @@ const AttendancePage = () => {
                   <tr>
                     <th>Employee Name</th>
                     <th>Username</th>
-                    <th>Time In</th>
-                    <th>Time Out</th>
-                    <th>Hours</th>
-                    <th>Total Hours</th>
+                    <th>Total Hours (Day)</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="text-center">No users found</td>
+                      <td colSpan="4" className="text-center">No users found</td>
                     </tr>
                   ) : (
                     users.map((user) => {
@@ -364,17 +363,23 @@ const AttendancePage = () => {
                       const totalHours = getTotalHoursForUser(user.id);
                       const hasOpenEntry = latestOpen !== null;
                       
-                      if (userAttendances.length === 0) {
-                        // No attendance records, show single row with Time In button
-                        return (
-                          <tr key={user.id}>
-                            <td>{user.fullName}</td>
-                            <td>{user.username}</td>
-                            <td>-</td>
-                            <td>-</td>
-                            <td>-</td>
-                            <td style={{ fontWeight: 'bold' }}>0.00h</td>
-                            <td>
+                      return (
+                        <tr key={user.id}>
+                          <td>{user.fullName}</td>
+                          <td>{user.username}</td>
+                          <td style={{ fontWeight: 'bold' }}>{totalHours}h</td>
+                          <td>
+                            {hasOpenEntry ? (
+                              <Button
+                                variant="warning"
+                                size="sm"
+                                onClick={() => handleMarkTimeOut(user.id)}
+                                disabled={loading}
+                              >
+                                <i className="bi bi-clock-history me-1"></i>
+                                Time Out
+                              </Button>
+                            ) : (
                               <Button
                                 variant="success"
                                 size="sm"
@@ -384,62 +389,10 @@ const AttendancePage = () => {
                                 <i className="bi bi-clock-history me-1"></i>
                                 Time In
                               </Button>
-                            </td>
-                          </tr>
-                        );
-                      }
-                      
-                      // Show all entries for this user
-                      return userAttendances.map((attendance, index) => {
-                        const isFirstRow = index === 0;
-                        const isLastRow = index === userAttendances.length - 1;
-                        const isOpenEntry = !attendance.timeOut;
-                        
-                        return (
-                          <tr key={`${user.id}-${attendance.id}`}>
-                            {isFirstRow && (
-                              <>
-                                <td rowSpan={userAttendances.length}>{user.fullName}</td>
-                                <td rowSpan={userAttendances.length}>{user.username}</td>
-                              </>
                             )}
-                            <td>{formatTime(attendance.timeIn)}</td>
-                            <td>{attendance.timeOut ? formatTime(attendance.timeOut) : <Badge bg="warning">Open</Badge>}</td>
-                            <td>{attendance.totalHours ? formatHours(attendance.totalHours) : '-'}</td>
-                            {isFirstRow && (
-                              <td rowSpan={userAttendances.length} style={{ fontWeight: 'bold' }}>
-                                {totalHours}h
-                              </td>
-                            )}
-                            {isLastRow && (
-                              <td>
-                                {hasOpenEntry ? (
-                                  <Button
-                                    variant="warning"
-                                    size="sm"
-                                    onClick={() => handleMarkTimeOut(user.id)}
-                                    disabled={loading}
-                                  >
-                                    <i className="bi bi-clock-history me-1"></i>
-                                    Time Out
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    variant="success"
-                                    size="sm"
-                                    onClick={() => handleMarkTimeIn(user.id)}
-                                    disabled={loading}
-                                  >
-                                    <i className="bi bi-clock-history me-1"></i>
-                                    Time In
-                                  </Button>
-                                )}
-                              </td>
-                            )}
-                            {!isLastRow && <td></td>}
-                          </tr>
-                        );
-                      });
+                          </td>
+                        </tr>
+                      );
                     })
                   )}
                 </tbody>

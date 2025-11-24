@@ -316,17 +316,15 @@ const AttendancePage = () => {
       <div className="animate-fade-in-up" style={{ backgroundColor: 'transparent', minHeight: '100vh', padding: '2rem 0', overflow: 'visible' }}>
         <Container style={{ position: 'relative', overflow: 'visible' }}>
           {/* Header */}
-        <Card className="mb-4" style={{ 
+        <Card className="mb-4 shadow-sm" style={{ 
           backgroundColor: '#1a1a1a', 
-          border: '1px solid #2a2a2a',
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+          border: '1px solid #2a2a2a'
         }}>
-          <Card.Body>
+          <Card.Header style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
             <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
               Employee Attendance
             </h1>
-          </Card.Body>
+          </Card.Header>
         </Card>
         
         {/* Toast Notifications */}

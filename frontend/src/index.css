@@ -466,6 +466,13 @@ body {
   }
 }
 
+/* Form Label Styles - Light white/faded color */
+label,
+.form-label,
+.Form.Label {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
 /* Z-Index Overrides for Dropdown */
 .dropdown-menu {
   z-index: 1060 !important;

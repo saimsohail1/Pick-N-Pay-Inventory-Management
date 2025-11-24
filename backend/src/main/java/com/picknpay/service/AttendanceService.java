@@ -5,6 +5,8 @@ import com.picknpay.entity.Attendance;
 import com.picknpay.entity.User;
 import com.picknpay.repository.AttendanceRepository;
 import com.picknpay.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,9 @@ public class AttendanceService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
     
     /**
      * Mark time-in for a user on a specific date
@@ -158,12 +163,29 @@ public class AttendanceService {
                     dto.setFullName((String) result[1]);
                     dto.setTotalHours((BigDecimal) result[2]);
                     
-                    // Get user's hourly pay rate
+                    // Get user's hourly pay rate - refresh from database to get latest value
                     Long userId = dto.getUserId();
                     User user = userRepository.findById(userId).orElse(null);
-                    BigDecimal hourlyRate = (user != null && user.getHourlyPayRate() != null) 
-                            ? user.getHourlyPayRate() 
-                            : BigDecimal.ZERO;
+                    BigDecimal hourlyRate = BigDecimal.ZERO;
+                    
+                    if (user != null) {
+                        // Refresh the entity to ensure we have the latest hourly pay rate
+                        // This ensures we get the updated hourly pay rate even if it was just changed
+                        try {
+                            if (entityManager.contains(user)) {
+                                entityManager.refresh(user);
+                            } else {
+                                // If entity is detached, merge it first then refresh
+                                user = entityManager.merge(user);
+                                entityManager.refresh(user);
+                            }
+                        } catch (Exception e) {
+                            // If refresh fails, just use the current value
+                            // This shouldn't happen but provides a fallback
+                        }
+                        hourlyRate = (user.getHourlyPayRate() != null) ? user.getHourlyPayRate() : BigDecimal.ZERO;
+                    }
+                    
                     dto.setHourlyPayRate(hourlyRate);
                     
                     // Calculate total pay: totalHours × hourlyPayRate
@@ -305,4 +327,5 @@ public class AttendanceService {
         }
     }
 }
+
 

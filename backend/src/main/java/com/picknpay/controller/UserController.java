@@ -58,17 +58,42 @@ public class UserController {
             return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to create user: " + e.getMessage());
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @Valid @RequestBody UserDTO userDTO) {
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
         try {
+            // Validate password only if provided
+            if (userDTO.getPassword() != null && !userDTO.getPassword().trim().isEmpty()) {
+                if (userDTO.getPassword().length() < 6) {
+                    return ResponseEntity.badRequest().body("Password must be at least 6 characters");
+                }
+            }
+            
+            // Validate other required fields
+            if (userDTO.getUsername() == null || userDTO.getUsername().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Username is required");
+            }
+            if (userDTO.getEmail() == null || userDTO.getEmail().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Email is required");
+            }
+            if (userDTO.getFullName() == null || userDTO.getFullName().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Full name is required");
+            }
+            if (userDTO.getRole() == null) {
+                return ResponseEntity.badRequest().body("Role is required");
+            }
+            
             return userService.updateUser(id, userDTO)
                     .map(ResponseEntity::ok)
                     .orElse(ResponseEntity.notFound().build());
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to update user: " + e.getMessage());
         }
     }
 
@@ -102,3 +127,4 @@ public class UserController {
         return ResponseEntity.ok(UserRole.values());
     }
 }
+

@@ -68,6 +68,14 @@ public class UserService {
             throw new RuntimeException("Email already exists: " + userDTO.getEmail());
         }
 
+        // Validate password for new users
+        if (userDTO.getPassword() == null || userDTO.getPassword().trim().isEmpty()) {
+            throw new RuntimeException("Password is required for new users");
+        }
+        if (userDTO.getPassword().length() < 6) {
+            throw new RuntimeException("Password must be at least 6 characters");
+        }
+
         User user = convertToEntity(userDTO);
         // Encode password before saving
         user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
@@ -187,3 +195,4 @@ public class UserService {
         return user;
     }
 }
+

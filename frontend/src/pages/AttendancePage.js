@@ -507,145 +507,99 @@ const AttendancePage = () => {
                 <Spinner animation="border" variant="light" />
               </div>
             ) : (
-              <>
-                {/* Summary by User */}
-                <Table striped bordered hover variant="dark" responsive className="mb-4">
-                  <thead>
+              <Table striped bordered hover variant="dark" responsive>
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                    <th>Total Hours</th>
+                    <th>Quick Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attendances.length === 0 ? (
                     <tr>
-                      <th>Employee Name</th>
-                      <th>Username</th>
-                      <th>First Time In</th>
-                      <th>Last Time Out</th>
-                      <th>Total Hours (Day)</th>
-                      <th>Quick Actions</th>
+                      <td colSpan="5" className="text-center">No attendance records for this date</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {users.length === 0 ? (
-                      <tr>
-                        <td colSpan="6" className="text-center">No users found</td>
-                      </tr>
-                    ) : (
-                      users.map((user) => {
-                        const userAttendances = getAttendancesForUser(user.id);
-                        const totalHours = getTotalHoursForUser(user.id);
-                        const firstTimeIn = getFirstTimeIn(user.id);
-                        const lastTimeOut = getLastTimeOut(user.id);
-                        const hasOpen = hasOpenEntry(user.id);
-                        
-                        return (
-                          <tr key={user.id}>
-                            <td>{user.fullName}</td>
-                            <td>{user.username}</td>
-                            <td>{firstTimeIn ? formatTime(firstTimeIn) : '-'}</td>
-                            <td>
-                              {hasOpen ? (
-                                <Badge bg="warning">Open</Badge>
-                              ) : lastTimeOut ? (
-                                formatTime(lastTimeOut)
-                              ) : (
-                                '-'
-                              )}
-                            </td>
-                            <td style={{ fontWeight: 'bold' }}>{totalHours}h</td>
-                            <td>
-                              {hasOpen ? (
-                                <Button
-                                  variant="warning"
-                                  size="sm"
-                                  onClick={() => handleMarkTimeOut(user.id)}
-                                  disabled={loading}
-                                >
-                                  <i className="bi bi-clock-history me-1"></i>
-                                  Time Out
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="success"
-                                  size="sm"
-                                  onClick={() => handleMarkTimeIn(user.id)}
-                                  disabled={loading}
-                                >
-                                  <i className="bi bi-clock-history me-1"></i>
-                                  Time In
-                                </Button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </Table>
-                
-                {/* Detailed Attendance Records - Editable */}
-                <h4 style={{ color: '#ffffff', marginBottom: '1rem', marginTop: '2rem' }}>All Attendance Records (Editable)</h4>
-                <Table striped bordered hover variant="dark" responsive>
-                  <thead>
-                    <tr>
-                      <th>Employee Name</th>
-                      <th>Time In</th>
-                      <th>Time Out</th>
-                      <th>Total Hours</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attendances.length === 0 ? (
-                      <tr>
-                        <td colSpan="4" className="text-center">No attendance records for this date</td>
-                      </tr>
-                    ) : (
-                      attendances.map((attendance) => {
-                        const editingTime = editingTimes[attendance.id];
-                        const timeInValue = editingTime?.timeIn !== undefined 
-                          ? editingTime.timeIn 
-                          : (attendance.timeIn ? attendance.timeIn.substring(0, 5) : '');
-                        const timeOutValue = editingTime?.timeOut !== undefined 
-                          ? editingTime.timeOut 
-                          : (attendance.timeOut ? attendance.timeOut.substring(0, 5) : '');
-                        
-                        return (
-                          <tr key={attendance.id}>
-                            <td>{attendance.fullName || attendance.username}</td>
-                            <td>
-                              <Form.Control
-                                type="time"
-                                value={timeInValue}
-                                onChange={(e) => handleTimeChange(attendance.id, 'timeIn', e.target.value)}
-                                onBlur={(e) => handleTimeBlur(attendance.id, 'timeIn', e.target.value)}
-                                style={{ 
-                                  backgroundColor: '#2a2a2a', 
-                                  border: '1px solid #333333', 
-                                  color: '#ffffff',
-                                  width: '120px'
-                                }}
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="time"
-                                value={timeOutValue}
-                                onChange={(e) => handleTimeChange(attendance.id, 'timeOut', e.target.value)}
-                                onBlur={(e) => handleTimeBlur(attendance.id, 'timeOut', e.target.value)}
-                                style={{ 
-                                  backgroundColor: '#2a2a2a', 
-                                  border: '1px solid #333333', 
-                                  color: '#ffffff',
-                                  width: '120px'
-                                }}
-                                placeholder="Leave empty if open"
-                              />
-                            </td>
-                            <td style={{ fontWeight: 'bold' }}>
-                              {attendance.totalHours ? formatHours(attendance.totalHours) : '-'}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </Table>
-              </>
+                  ) : (
+                    attendances.map((attendance) => {
+                      const editingTime = editingTimes[attendance.id];
+                      const timeInValue = editingTime?.timeIn !== undefined 
+                        ? editingTime.timeIn 
+                        : (attendance.timeIn ? attendance.timeIn.substring(0, 5) : '');
+                      const timeOutValue = editingTime?.timeOut !== undefined 
+                        ? editingTime.timeOut 
+                        : (attendance.timeOut ? attendance.timeOut.substring(0, 5) : '');
+                      
+                      // Find user for quick actions
+                      const user = users.find(u => u.id === attendance.userId);
+                      const hasOpen = !attendance.timeOut;
+                      
+                      return (
+                        <tr key={attendance.id}>
+                          <td>{attendance.fullName || attendance.username}</td>
+                          <td>
+                            <Form.Control
+                              type="time"
+                              value={timeInValue}
+                              onChange={(e) => handleTimeChange(attendance.id, 'timeIn', e.target.value)}
+                              onBlur={(e) => handleTimeBlur(attendance.id, 'timeIn', e.target.value)}
+                              style={{ 
+                                backgroundColor: '#2a2a2a', 
+                                border: '1px solid #333333', 
+                                color: '#ffffff',
+                                width: '120px'
+                              }}
+                            />
+                          </td>
+                          <td>
+                            <Form.Control
+                              type="time"
+                              value={timeOutValue}
+                              onChange={(e) => handleTimeChange(attendance.id, 'timeOut', e.target.value)}
+                              onBlur={(e) => handleTimeBlur(attendance.id, 'timeOut', e.target.value)}
+                              style={{ 
+                                backgroundColor: '#2a2a2a', 
+                                border: '1px solid #333333', 
+                                color: '#ffffff',
+                                width: '120px'
+                              }}
+                              placeholder="Leave empty if open"
+                            />
+                          </td>
+                          <td style={{ fontWeight: 'bold' }}>
+                            {attendance.totalHours ? formatHours(attendance.totalHours) : '-'}
+                          </td>
+                          <td>
+                            {hasOpen ? (
+                              <Button
+                                variant="warning"
+                                size="sm"
+                                onClick={() => handleMarkTimeOut(attendance.userId)}
+                                disabled={loading}
+                              >
+                                <i className="bi bi-clock-history me-1"></i>
+                                Time Out
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="success"
+                                size="sm"
+                                onClick={() => handleMarkTimeIn(attendance.userId)}
+                                disabled={loading}
+                              >
+                                <i className="bi bi-clock-history me-1"></i>
+                                Time In
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </Table>
             )}
           </Card.Body>
         </Card>

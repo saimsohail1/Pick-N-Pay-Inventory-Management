@@ -19,8 +19,8 @@ public class UserDTO {
     @Size(max = 100, message = "Email must not exceed 100 characters")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    // Password validation - only required for new users, optional for updates
+    // Validation is handled manually in the controller/service layer
     private String password;
 
     @NotBlank(message = "Full name is required")

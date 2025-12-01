@@ -649,7 +649,7 @@ export const createZReportHTML = (reportData, companyName = "Pick'N'Pay", startD
                 <td class="currency">-</td>
                 <td class="currency">-</td>
                 <td class="currency">-</td>
-              </tr>
+            </tr>
             ` : ''}
             <tr class="total-row">
               <td>Total</td>

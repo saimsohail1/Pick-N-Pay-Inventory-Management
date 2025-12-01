@@ -186,6 +186,8 @@ const AttendancePage = () => {
   };
   
   const handleTimeBlur = async (attendanceId, field, value) => {
+    if (!attendanceId) return; // No attendance record exists yet
+    
     const currentTimes = editingTimes[attendanceId] || {};
     const attendance = attendances.find(a => a.id === attendanceId);
     if (!attendance) return;
@@ -518,6 +520,7 @@ const AttendancePage = () => {
                 <thead>
                   <tr>
                     <th>Employee Name</th>
+                    <th>Username</th>
                     <th>TIME IN</th>
                     <th>TIME OUT</th>
                     <th>Total Hours</th>
@@ -525,58 +528,68 @@ const AttendancePage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {attendances.length === 0 ? (
+                  {users.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="text-center">No attendance records for this date</td>
+                      <td colSpan="6" className="text-center">No users found</td>
                     </tr>
                   ) : (
-                    attendances.map((attendance) => {
-                      const editingTime = editingTimes[attendance.id];
+                    users.map((user) => {
+                      // Find attendance record for this user and date
+                      const attendance = attendances.find(a => a.userId === user.id);
+                      const attendanceId = attendance?.id;
+                      const hasOpen = attendance && !attendance.timeOut;
+                      
+                      const editingTime = attendanceId ? editingTimes[attendanceId] : null;
                       const timeInValue = editingTime?.timeIn !== undefined 
                         ? editingTime.timeIn 
-                        : (attendance.timeIn ? attendance.timeIn.substring(0, 5) : '');
+                        : (attendance?.timeIn ? attendance.timeIn.substring(0, 5) : '');
                       const timeOutValue = editingTime?.timeOut !== undefined 
                         ? editingTime.timeOut 
-                        : (attendance.timeOut ? attendance.timeOut.substring(0, 5) : '');
-                      
-                      // Find user for quick actions
-                      const user = users.find(u => u.id === attendance.userId);
-                      const hasOpen = !attendance.timeOut;
+                        : (attendance?.timeOut ? attendance.timeOut.substring(0, 5) : '');
                       
                       return (
-                        <tr key={attendance.id}>
-                          <td>{attendance.fullName || attendance.username}</td>
+                        <tr key={user.id}>
+                          <td>{user.fullName}</td>
+                          <td>{user.username}</td>
                           <td>
-                            <Form.Control
-                              type="time"
-                              value={timeInValue}
-                              onChange={(e) => handleTimeChange(attendance.id, 'timeIn', e.target.value)}
-                              onBlur={(e) => handleTimeBlur(attendance.id, 'timeIn', e.target.value)}
-                              style={{ 
-                                backgroundColor: '#2a2a2a', 
-                                border: '1px solid #333333', 
-                                color: '#ffffff',
-                                width: '120px'
-                              }}
-                            />
+                            {attendanceId ? (
+                              <Form.Control
+                                type="time"
+                                value={timeInValue}
+                                onChange={(e) => handleTimeChange(attendanceId, 'timeIn', e.target.value)}
+                                onBlur={(e) => handleTimeBlur(attendanceId, 'timeIn', e.target.value)}
+                                style={{ 
+                                  backgroundColor: '#2a2a2a', 
+                                  border: '1px solid #333333', 
+                                  color: '#ffffff',
+                                  width: '120px'
+                                }}
+                              />
+                            ) : (
+                              '-'
+                            )}
                           </td>
                           <td>
-                            <Form.Control
-                              type="time"
-                              value={timeOutValue}
-                              onChange={(e) => handleTimeChange(attendance.id, 'timeOut', e.target.value)}
-                              onBlur={(e) => handleTimeBlur(attendance.id, 'timeOut', e.target.value)}
-                              style={{ 
-                                backgroundColor: '#2a2a2a', 
-                                border: '1px solid #333333', 
-                                color: '#ffffff',
-                                width: '120px'
-                              }}
-                              placeholder="Leave empty if open"
-                            />
+                            {attendanceId ? (
+                              <Form.Control
+                                type="time"
+                                value={timeOutValue}
+                                onChange={(e) => handleTimeChange(attendanceId, 'timeOut', e.target.value)}
+                                onBlur={(e) => handleTimeBlur(attendanceId, 'timeOut', e.target.value)}
+                                style={{ 
+                                  backgroundColor: '#2a2a2a', 
+                                  border: '1px solid #333333', 
+                                  color: '#ffffff',
+                                  width: '120px'
+                                }}
+                                placeholder="Leave empty if open"
+                              />
+                            ) : (
+                              '-'
+                            )}
                           </td>
                           <td style={{ fontWeight: 'bold' }}>
-                            {attendance.totalHours ? formatHours(attendance.totalHours) : '-'}
+                            {attendance?.totalHours ? formatHours(attendance.totalHours) : '-'}
                           </td>
                           <td>
                             {isToday(selectedDate) ? (
@@ -584,7 +597,7 @@ const AttendancePage = () => {
                                 <Button
                                   variant="warning"
                                   size="sm"
-                                  onClick={() => handleMarkTimeOut(attendance.userId)}
+                                  onClick={() => handleMarkTimeOut(user.id)}
                                   disabled={loading}
                                 >
                                   <i className="bi bi-clock-history me-1"></i>
@@ -594,7 +607,7 @@ const AttendancePage = () => {
                                 <Button
                                   variant="success"
                                   size="sm"
-                                  onClick={() => handleMarkTimeIn(attendance.userId)}
+                                  onClick={() => handleMarkTimeIn(user.id)}
                                   disabled={loading}
                                 >
                                   <i className="bi bi-clock-history me-1"></i>
@@ -602,10 +615,14 @@ const AttendancePage = () => {
                                 </Button>
                               )
                             ) : (
-                              <span style={{ color: '#aaaaaa', fontSize: '0.9rem' }}>
-                                <i className="bi bi-info-circle me-1"></i>
-                                Edit only
-                              </span>
+                              attendanceId ? (
+                                <span style={{ color: '#aaaaaa', fontSize: '0.9rem' }}>
+                                  <i className="bi bi-info-circle me-1"></i>
+                                  Edit only
+                                </span>
+                              ) : (
+                                '-'
+                              )
                             )}
                           </td>
                         </tr>

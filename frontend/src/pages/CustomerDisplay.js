@@ -3,7 +3,7 @@ import { companySettingsAPI } from '../services/api';
 
 const CustomerDisplay = () => {
   const [total, setTotal] = useState(0);
-  const [companyName, setCompanyName] = useState("Pick'N'Pay");
+  const [companyName, setCompanyName] = useState("ADAMS GREEN");
 
   useEffect(() => {
     fetchCompanyName();

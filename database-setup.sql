@@ -52,7 +52,7 @@ CREATE TABLE users (
 -- Create company_settings table
 CREATE TABLE company_settings (
     id BIGSERIAL PRIMARY KEY,
-    company_name VARCHAR(100) NOT NULL DEFAULT 'PickNPay',
+    company_name VARCHAR(100) NOT NULL DEFAULT 'ADAMS GREEN',
     address TEXT,
     phone VARCHAR(20),
     email VARCHAR(100),
@@ -194,7 +194,7 @@ INSERT INTO users (username, email, password, full_name, role, is_active) VALUES
 
 -- Insert company settings
 INSERT INTO company_settings (company_name, address, phone, email, tax_number) VALUES
-('PickNPay', 
+('ADAMS GREEN', 
 '123 Main Street, Dublin, Ireland', 
 '+353-1-234-5678', 
 'info@picknpay.com', 

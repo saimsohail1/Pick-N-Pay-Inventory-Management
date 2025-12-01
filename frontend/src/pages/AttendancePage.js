@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Card, Table, Button, Form, Row, Col, Alert, Spinner, Badge } from 'react-bootstrap';
+import { Container, Card, Table, Button, Form, Row, Col, Alert, Spinner, Badge, Modal } from 'react-bootstrap';
 import { attendanceAPI, usersAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useTimeoutManager } from '../hooks/useTimeoutManager';
@@ -19,6 +19,10 @@ const AttendancePage = () => {
   const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [employeeReport, setEmployeeReport] = useState([]);
   const [showEmployeeReport, setShowEmployeeReport] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingAttendance, setEditingAttendance] = useState(null);
+  const [editTimeIn, setEditTimeIn] = useState('');
+  const [editTimeOut, setEditTimeOut] = useState('');
   
   // Fetch users on mount
   useEffect(() => {
@@ -164,6 +168,66 @@ const AttendancePage = () => {
         // Replace "Network Error" with "Failed to load"
         errorMessage = err.message === 'Network Error' || err.message.includes('Network Error') 
           ? 'Failed to load users. Please try again.' 
+          : err.message;
+      }
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+      addTimeout(() => setSuccess(null), 3000);
+      addTimeout(() => setError(null), 5000);
+    }
+  };
+  
+  const handleEditAttendance = (attendance) => {
+    setEditingAttendance(attendance);
+    // Convert time format from HH:MM:SS to HH:MM for time input
+    const timeInFormatted = attendance.timeIn ? attendance.timeIn.substring(0, 5) : '';
+    const timeOutFormatted = attendance.timeOut ? attendance.timeOut.substring(0, 5) : '';
+    setEditTimeIn(timeInFormatted);
+    setEditTimeOut(timeOutFormatted);
+    setEditModalOpen(true);
+  };
+  
+  const handleSaveEdit = async () => {
+    if (!editingAttendance) return;
+    
+    // Validate time-out is after time-in if both are provided
+    if (editTimeIn && editTimeOut && editTimeOut < editTimeIn) {
+      setError('Time-out cannot be before time-in');
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      // Convert time format from HH:MM to HH:MM:SS
+      const timeInFormatted = editTimeIn ? `${editTimeIn}:00` : null;
+      const timeOutFormatted = editTimeOut ? `${editTimeOut}:00` : null;
+      
+      await attendanceAPI.updateAttendance(
+        editingAttendance.id,
+        timeInFormatted,
+        timeOutFormatted
+      );
+      setSuccess('Attendance updated successfully!');
+      setEditModalOpen(false);
+      setEditingAttendance(null);
+      fetchAttendancesForDate(selectedDate);
+    } catch (err) {
+      console.error('Failed to update attendance:', err);
+      let errorMessage = 'Failed to update attendance. Please try again.';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else {
+          errorMessage = JSON.stringify(err.response.data);
+        }
+      } else if (err.message) {
+        errorMessage = err.message === 'Network Error' || err.message.includes('Network Error') 
+          ? 'Failed to update attendance. Please try again.' 
           : err.message;
       }
       setError(errorMessage);
@@ -410,74 +474,126 @@ const AttendancePage = () => {
                 <Spinner animation="border" variant="light" />
               </div>
             ) : (
-              <Table striped bordered hover variant="dark" responsive>
-                <thead>
-                  <tr>
-                    <th>Employee Name</th>
-                    <th>Username</th>
-                    <th>Time In</th>
-                    <th>Time Out</th>
-                    <th>Total Hours (Day)</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.length === 0 ? (
+              <>
+                {/* Summary by User */}
+                <Table striped bordered hover variant="dark" responsive className="mb-4">
+                  <thead>
                     <tr>
-                      <td colSpan="6" className="text-center">No users found</td>
+                      <th>Employee Name</th>
+                      <th>Username</th>
+                      <th>First Time In</th>
+                      <th>Last Time Out</th>
+                      <th>Total Hours (Day)</th>
+                      <th>Quick Actions</th>
                     </tr>
-                  ) : (
-                    users.map((user) => {
-                      const userAttendances = getAttendancesForUser(user.id);
-                      const totalHours = getTotalHoursForUser(user.id);
-                      const firstTimeIn = getFirstTimeIn(user.id);
-                      const lastTimeOut = getLastTimeOut(user.id);
-                      const hasOpen = hasOpenEntry(user.id);
-                      
-                      return (
-                        <tr key={user.id}>
-                          <td>{user.fullName}</td>
-                          <td>{user.username}</td>
-                          <td>{firstTimeIn ? formatTime(firstTimeIn) : '-'}</td>
+                  </thead>
+                  <tbody>
+                    {users.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="text-center">No users found</td>
+                      </tr>
+                    ) : (
+                      users.map((user) => {
+                        const userAttendances = getAttendancesForUser(user.id);
+                        const totalHours = getTotalHoursForUser(user.id);
+                        const firstTimeIn = getFirstTimeIn(user.id);
+                        const lastTimeOut = getLastTimeOut(user.id);
+                        const hasOpen = hasOpenEntry(user.id);
+                        
+                        return (
+                          <tr key={user.id}>
+                            <td>{user.fullName}</td>
+                            <td>{user.username}</td>
+                            <td>{firstTimeIn ? formatTime(firstTimeIn) : '-'}</td>
+                            <td>
+                              {hasOpen ? (
+                                <Badge bg="warning">Open</Badge>
+                              ) : lastTimeOut ? (
+                                formatTime(lastTimeOut)
+                              ) : (
+                                '-'
+                              )}
+                            </td>
+                            <td style={{ fontWeight: 'bold' }}>{totalHours}h</td>
+                            <td>
+                              {hasOpen ? (
+                                <Button
+                                  variant="warning"
+                                  size="sm"
+                                  onClick={() => handleMarkTimeOut(user.id)}
+                                  disabled={loading}
+                                >
+                                  <i className="bi bi-clock-history me-1"></i>
+                                  Time Out
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="success"
+                                  size="sm"
+                                  onClick={() => handleMarkTimeIn(user.id)}
+                                  disabled={loading}
+                                >
+                                  <i className="bi bi-clock-history me-1"></i>
+                                  Time In
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </Table>
+                
+                {/* Detailed Attendance Records */}
+                <h4 style={{ color: '#ffffff', marginBottom: '1rem', marginTop: '2rem' }}>All Attendance Records</h4>
+                <Table striped bordered hover variant="dark" responsive>
+                  <thead>
+                    <tr>
+                      <th>Employee Name</th>
+                      <th>Time In</th>
+                      <th>Time Out</th>
+                      <th>Total Hours</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendances.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="text-center">No attendance records for this date</td>
+                      </tr>
+                    ) : (
+                      attendances.map((attendance) => (
+                        <tr key={attendance.id}>
+                          <td>{attendance.fullName || attendance.username}</td>
+                          <td>{attendance.timeIn ? formatTime(attendance.timeIn) : '-'}</td>
                           <td>
-                            {hasOpen ? (
-                              <Badge bg="warning">Open</Badge>
-                            ) : lastTimeOut ? (
-                              formatTime(lastTimeOut)
+                            {attendance.timeOut ? (
+                              formatTime(attendance.timeOut)
                             ) : (
-                              '-'
+                              <Badge bg="warning">Open</Badge>
                             )}
                           </td>
-                          <td style={{ fontWeight: 'bold' }}>{totalHours}h</td>
+                          <td style={{ fontWeight: 'bold' }}>
+                            {attendance.totalHours ? formatHours(attendance.totalHours) : '-'}
+                          </td>
                           <td>
-                            {hasOpen ? (
-                              <Button
-                                variant="warning"
-                                size="sm"
-                                onClick={() => handleMarkTimeOut(user.id)}
-                                disabled={loading}
-                              >
-                                <i className="bi bi-clock-history me-1"></i>
-                                Time Out
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="success"
-                                size="sm"
-                                onClick={() => handleMarkTimeIn(user.id)}
-                                disabled={loading}
-                              >
-                                <i className="bi bi-clock-history me-1"></i>
-                                Time In
-                              </Button>
-                            )}
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handleEditAttendance(attendance)}
+                              disabled={loading}
+                            >
+                              <i className="bi bi-pencil me-1"></i>
+                              Edit
+                            </Button>
                           </td>
                         </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </Table>
+                      ))
+                    )}
+                  </tbody>
+                </Table>
+              </>
             )}
           </Card.Body>
         </Card>
@@ -578,6 +694,86 @@ const AttendancePage = () => {
             )}
           </Card.Body>
         </Card>
+        
+        {/* Edit Attendance Modal */}
+        <Modal
+          show={editModalOpen}
+          onHide={() => {
+            setEditModalOpen(false);
+            setEditingAttendance(null);
+            setEditTimeIn('');
+            setEditTimeOut('');
+          }}
+          centered
+        >
+          <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+            <Modal.Title style={{ color: '#ffffff' }}>
+              <i className="bi bi-pencil me-2"></i>
+              Edit Attendance
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+            {editingAttendance && (
+              <>
+                <p style={{ color: '#aaaaaa', marginBottom: '1rem' }}>
+                  <strong>Employee:</strong> {editingAttendance.fullName || editingAttendance.username}<br />
+                  <strong>Date:</strong> {formatDate(editingAttendance.attendanceDate)}
+                </p>
+                <Form.Group className="mb-3">
+                  <Form.Label>Time In</Form.Label>
+                  <Form.Control
+                    type="time"
+                    value={editTimeIn}
+                    onChange={(e) => setEditTimeIn(e.target.value)}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                  />
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Time Out</Form.Label>
+                  <Form.Control
+                    type="time"
+                    value={editTimeOut}
+                    onChange={(e) => setEditTimeOut(e.target.value)}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                  />
+                  <Form.Text className="text-muted">
+                    Leave empty if still clocked in
+                  </Form.Text>
+                </Form.Group>
+              </>
+            )}
+          </Modal.Body>
+          <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setEditModalOpen(false);
+                setEditingAttendance(null);
+                setEditTimeIn('');
+                setEditTimeOut('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSaveEdit}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-check me-1"></i>
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </Modal.Footer>
+        </Modal>
         </Container>
       </div>
     </>

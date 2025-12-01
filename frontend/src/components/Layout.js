@@ -8,7 +8,7 @@ import FullscreenIndicator from './FullscreenIndicator';
 const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [companyName, setCompanyName] = useState("Pick'N'Pay");
+  const [companyName, setCompanyName] = useState("ADAMS GREEN");
   const { user, logout, isAuthenticated } = useAuth();
 
   const navigationItems = [];

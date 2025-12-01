@@ -11,7 +11,7 @@
  * @param {string} printerName - Optional printer name
  * @param {string} cashierName - Optional cashier name (overrides sale.user?.username)
  */
-export const printReceiptRaw = async (sale, companyName = "Pick'N'Pay", companyAddress = '', printerName = null, cashierName = null) => {
+export const printReceiptRaw = async (sale, companyName = "ADAMS GREEN", companyAddress = '', printerName = null, cashierName = null) => {
   // Always use directPrint (browser's window.print) - this is what worked in the original version
   // The IPC handler is just a passthrough, so we use the browser's native printing
   console.log('🖨️ Printing receipt using browser print (window.print)');
@@ -164,7 +164,7 @@ export const printWithElectron = (content, title = 'Print Document') => {
  * @param {string} companyAddress - Company address
  * @returns {string} HTML content
  */
-export const createReceiptHTML = (sale, companyName = "Pick'N'Pay", companyAddress = '', cashierName = null) => {
+export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddress = '', cashierName = null) => {
   // Helper function to format date as DD/MM/YYYY
   const formatReceiptDate = (dateStr) => {
     if (!dateStr) return '';
@@ -305,7 +305,7 @@ export const createReceiptHTML = (sale, companyName = "Pick'N'Pay", companyAddre
  * @param {string} startDate - Report start date
  * @returns {string} HTML content
  */
-export const createZReportHTML = (reportData, companyName = "Pick'N'Pay", startDate, companyAddress = '', companyPhone = '') => {
+export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", startDate, companyAddress = '', companyPhone = '') => {
   // Format date as DD/MM/YYYY or handle date range string
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -672,7 +672,7 @@ export const createZReportHTML = (reportData, companyName = "Pick'N'Pay", startD
  * @param {string} dateRange - Date range
  * @returns {string} HTML content
  */
-export const createSalesHistoryHTML = (sales, companyName = "Pick'N'Pay", dateRange = '') => {
+export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateRange = '') => {
   const totalAmount = sales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount || 0), 0);
   
   return `

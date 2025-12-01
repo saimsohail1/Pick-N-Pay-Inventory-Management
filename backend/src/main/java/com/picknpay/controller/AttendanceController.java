@@ -164,5 +164,35 @@ public class AttendanceController {
         LocalDate weekStart = attendanceService.getWeekStart(date);
         return ResponseEntity.ok(Map.of("weekStart", weekStart.toString()));
     }
+    
+    /**
+     * Update attendance record (admin only)
+     * PUT /api/attendances/{id}
+     * Body: { "timeIn": "09:00:00", "timeOut": "17:00:00" }
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateAttendance(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
+        try {
+            LocalTime timeIn = null;
+            LocalTime timeOut = null;
+            
+            if (request.containsKey("timeIn") && request.get("timeIn") != null) {
+                timeIn = LocalTime.parse(request.get("timeIn").toString());
+            }
+            
+            if (request.containsKey("timeOut") && request.get("timeOut") != null) {
+                timeOut = LocalTime.parse(request.get("timeOut").toString());
+            }
+            
+            AttendanceDTO attendance = attendanceService.updateAttendance(id, timeIn, timeOut);
+            return ResponseEntity.ok(attendance);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Error updating attendance: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Unexpected error: " + e.getMessage());
+        }
+    }
 }
 

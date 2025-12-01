@@ -22,7 +22,7 @@ const DailyReport = () => {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
-  const [companySettings, setCompanySettings] = useState({ companyName: "Pick'N'Pay", address: '' });
+  const [companySettings, setCompanySettings] = useState({ companyName: "ADAMS GREEN", address: '' });
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
 
@@ -217,7 +217,7 @@ const DailyReport = () => {
       const settingsData = response.data || response;
       if (settingsData) {
         setCompanySettings({
-          companyName: settingsData.companyName || "Pick'N'Pay",
+          companyName: settingsData.companyName || "ADAMS GREEN",
           address: settingsData.address || ''
         });
         console.log('Company settings fetched:', settingsData);
@@ -251,7 +251,7 @@ const DailyReport = () => {
         const settingsData = response.data || response;
         if (settingsData) {
           currentCompanySettings = {
-            companyName: settingsData.companyName || "Pick'N'Pay",
+            companyName: settingsData.companyName || "ADAMS GREEN",
             address: settingsData.address || ''
           };
         }
@@ -263,7 +263,7 @@ const DailyReport = () => {
       const dateRangeText = startDate === endDate ? startDate : `${startDate} to ${endDate}`;
       const reportContent = createZReportHTML(
         reportData, 
-        currentCompanySettings.companyName || 'PickNPay', 
+        currentCompanySettings.companyName || 'ADAMS GREEN', 
         dateRangeText,
         currentCompanySettings.address || '',
         '' // Phone field removed as it doesn't exist in CompanySettings
@@ -300,7 +300,7 @@ const DailyReport = () => {
 
       {/* Print Header */}
       <div className="print-header text-center py-3">
-        <h2>Pick'N'Pay Daily Report</h2>
+        <h2>ADAMS GREEN Daily Report</h2>
         <p>Period: {formatDateRange()}</p>
         <p>Generated: {new Date().toLocaleString()}</p>
       </div>

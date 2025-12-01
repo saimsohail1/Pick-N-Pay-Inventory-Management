@@ -218,6 +218,34 @@ public class AttendanceService {
     }
     
     /**
+     * Update attendance record (admin only)
+     * Allows editing time-in and time-out, which will automatically recalculate total hours
+     */
+    public AttendanceDTO updateAttendance(Long attendanceId, LocalTime timeIn, LocalTime timeOut) {
+        Attendance attendance = attendanceRepository.findById(attendanceId)
+                .orElseThrow(() -> new RuntimeException("Attendance not found with ID: " + attendanceId));
+        
+        // Validate time-out is after time-in if both are provided
+        if (timeIn != null && timeOut != null && timeOut.isBefore(timeIn)) {
+            throw new RuntimeException("Time-out cannot be before time-in");
+        }
+        
+        // Update time-in if provided
+        if (timeIn != null) {
+            attendance.setTimeIn(timeIn);
+        }
+        
+        // Update time-out if provided
+        if (timeOut != null) {
+            attendance.setTimeOut(timeOut);
+        }
+        
+        // Save will trigger @PreUpdate which recalculates total hours
+        attendance = attendanceRepository.save(attendance);
+        return convertToDTO(attendance);
+    }
+    
+    /**
      * Get start of week (Monday) for a given date
      */
     public LocalDate getWeekStart(LocalDate date) {

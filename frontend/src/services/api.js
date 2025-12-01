@@ -126,6 +126,7 @@ export const usersAPI = {
 export const attendanceAPI = {
   markTimeIn: (userId, date, timeIn) => api.post('/attendances/time-in', { userId, date, timeIn }),
   markTimeOut: (userId, date, timeOut) => api.post('/attendances/time-out', { userId, date, timeOut }),
+  updateAttendance: (id, timeIn, timeOut) => api.put(`/attendances/${id}`, { timeIn, timeOut }),
   getByUserAndDate: (userId, date) => api.get(`/attendances/user/${userId}/date/${date}`),
   getByUserAndDateRange: (userId, startDate, endDate) => 
     api.get(`/attendances/user/${userId}/date-range?startDate=${startDate}&endDate=${endDate}`),

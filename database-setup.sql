@@ -4,6 +4,15 @@
 -- 
 -- This script creates the complete database schema
 -- for the PickNPay Inventory Management System
+-- 
+-- Includes all features:
+-- - User management with hourly pay rates
+-- - Company settings
+-- - Categories with VAT rates
+-- - Items with VAT rates (inherited from categories)
+-- - Batch tracking
+-- - Sales with payment methods
+-- - Attendance tracking
 -- ============================================
 
 -- ============================================
@@ -44,7 +53,7 @@ CREATE TABLE users (
     full_name VARCHAR(100) NOT NULL,
     role VARCHAR(10) NOT NULL CHECK (role IN ('ADMIN', 'USER')),
     is_active BOOLEAN NOT NULL DEFAULT true,
-    hourly_pay_rate DECIMAL(10,2), -- Optional hourly pay rate
+    hourly_pay_rate DECIMAL(10,2), -- Optional hourly pay rate for employee pay calculation
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -68,13 +77,13 @@ CREATE TABLE categories (
     description TEXT,
     is_active BOOLEAN DEFAULT true,
     display_on_pos BOOLEAN DEFAULT true,
-    vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00,
+    vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00, -- VAT rate per category
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create items table (Master Data)
--- FIXED: category_id can be NULL for items without category
+-- category_id can be NULL for items without category
 CREATE TABLE items (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -82,10 +91,10 @@ CREATE TABLE items (
     price DECIMAL(10,2) NOT NULL CHECK (price > 0),
     stock_quantity INTEGER NOT NULL DEFAULT 0,
     barcode VARCHAR(255) UNIQUE, -- Can be NULL for items without barcode
-    vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00,
+    vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00, -- VAT rate (inherited from category or set manually)
     batch_id VARCHAR(255), -- Can be NULL for items without batch tracking
     general_expiry_date DATE, -- Can be NULL for non-perishable items (general expiry)
-    category_id BIGINT REFERENCES categories(id) ON DELETE SET NULL, -- FIXED: SET NULL instead of CASCADE
+    category_id BIGINT REFERENCES categories(id) ON DELETE SET NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -115,7 +124,7 @@ CREATE TABLE sales (
     discount_value DECIMAL(10,2), -- Can be NULL
     sale_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD')),
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, -- FIXED: Sales MUST have a user
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, -- Sales MUST have a user
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -131,14 +140,15 @@ CREATE TABLE sale_items (
     unit_price DECIMAL(10,2) NOT NULL CHECK (unit_price > 0),
     total_price DECIMAL(10,2) NOT NULL CHECK (total_price > 0),
     batch_id VARCHAR(255), -- Can be NULL
-    vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00, -- FIXED: VAT rate is always calculated, default 23%
-    vat_amount DECIMAL(10,2) NOT NULL DEFAULT 0, -- FIXED: VAT amount is always calculated
-    price_excluding_vat DECIMAL(10,2) NOT NULL DEFAULT 0, -- FIXED: Price excluding VAT is always calculated
+    vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00, -- VAT rate is always calculated
+    vat_amount DECIMAL(10,2) NOT NULL DEFAULT 0, -- VAT amount is always calculated
+    price_excluding_vat DECIMAL(10,2) NOT NULL DEFAULT 0, -- Price excluding VAT is always calculated
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create attendances table
+-- Note: Allows one record per user per day (first time-in, last time-out)
 CREATE TABLE attendances (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -148,7 +158,7 @@ CREATE TABLE attendances (
     total_hours DECIMAL(5,2), -- Calculated: time_out - time_in (in hours)
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    -- Note: No unique constraint - allows multiple entries per user per day
+    -- Note: No unique constraint - allows one record per user per day
 );
 
 -- ============================================
@@ -201,8 +211,8 @@ INSERT INTO company_settings (company_name, address, phone, email, tax_number) V
 'IE123456789');
 
 -- Insert Quick Sale category only
-INSERT INTO categories (name, description, is_active, display_on_pos) VALUES
-('Quick Sale', 'Quick sale items without specific category', true, true);
+INSERT INTO categories (name, description, is_active, display_on_pos, vat_rate) VALUES
+('Quick Sale', 'Quick sale items without specific category', true, true, 23.00);
 
 -- ============================================
 -- 6. CREATE TRIGGERS FOR AUTOMATIC TIMESTAMPS
@@ -250,10 +260,11 @@ SELECT username, email, role, is_active FROM users WHERE role = 'ADMIN';
 
 -- Verify Quick Sale category
 SELECT 'Quick Sale category:' as status;
-SELECT id, name, is_active FROM categories WHERE name = 'Quick Sale';
+SELECT id, name, is_active, vat_rate FROM categories WHERE name = 'Quick Sale';
 
--- No sample items - database starts empty
-SELECT 'No sample items - database starts empty' as status;
+-- Verify company settings
+SELECT 'Company settings:' as status;
+SELECT company_name, address FROM company_settings;
 
 -- ============================================
 -- 9. SUCCESS MESSAGE
@@ -272,8 +283,9 @@ BEGIN
     RAISE NOTICE '============================================';
     RAISE NOTICE 'Features Included:';
     RAISE NOTICE '- User management (ADMIN/USER roles)';
+    RAISE NOTICE '- Hourly pay rate for employees';
     RAISE NOTICE '- Company settings configuration';
-    RAISE NOTICE '- Category management';
+    RAISE NOTICE '- Category management with VAT rates';
     RAISE NOTICE '- Item management with VAT support';
     RAISE NOTICE '- Batch tracking with expiry dates';
     RAISE NOTICE '- Sales tracking with payment methods';

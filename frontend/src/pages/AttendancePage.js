@@ -386,6 +386,13 @@ const AttendancePage = () => {
     return `${day}/${month}/${year}`;
   };
   
+  const isToday = (dateStr) => {
+    if (!dateStr) return false;
+    const selectedDate = new Date(dateStr);
+    const today = new Date();
+    return selectedDate.toDateString() === today.toDateString();
+  };
+  
   // Only show page if user is admin
   if (!isAdmin()) {
     return (
@@ -572,26 +579,33 @@ const AttendancePage = () => {
                             {attendance.totalHours ? formatHours(attendance.totalHours) : '-'}
                           </td>
                           <td>
-                            {hasOpen ? (
-                              <Button
-                                variant="warning"
-                                size="sm"
-                                onClick={() => handleMarkTimeOut(attendance.userId)}
-                                disabled={loading}
-                              >
-                                <i className="bi bi-clock-history me-1"></i>
-                                Time Out
-                              </Button>
+                            {isToday(selectedDate) ? (
+                              hasOpen ? (
+                                <Button
+                                  variant="warning"
+                                  size="sm"
+                                  onClick={() => handleMarkTimeOut(attendance.userId)}
+                                  disabled={loading}
+                                >
+                                  <i className="bi bi-clock-history me-1"></i>
+                                  Time Out
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="success"
+                                  size="sm"
+                                  onClick={() => handleMarkTimeIn(attendance.userId)}
+                                  disabled={loading}
+                                >
+                                  <i className="bi bi-clock-history me-1"></i>
+                                  Time In
+                                </Button>
+                              )
                             ) : (
-                              <Button
-                                variant="success"
-                                size="sm"
-                                onClick={() => handleMarkTimeIn(attendance.userId)}
-                                disabled={loading}
-                              >
-                                <i className="bi bi-clock-history me-1"></i>
-                                Time In
-                              </Button>
+                              <span style={{ color: '#aaaaaa', fontSize: '0.9rem' }}>
+                                <i className="bi bi-info-circle me-1"></i>
+                                Edit only
+                              </span>
                             )}
                           </td>
                         </tr>

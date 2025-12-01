@@ -19,9 +19,7 @@ const AttendancePage = () => {
   const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [employeeReport, setEmployeeReport] = useState([]);
   const [showEmployeeReport, setShowEmployeeReport] = useState(false);
-  const [editingAttendanceId, setEditingAttendanceId] = useState(null);
-  const [editTimeIn, setEditTimeIn] = useState('');
-  const [editTimeOut, setEditTimeOut] = useState('');
+  const [editingTimes, setEditingTimes] = useState({}); // { attendanceId: { timeIn: '', timeOut: '' } }
   
   // Fetch users on mount
   useEffect(() => {
@@ -177,25 +175,48 @@ const AttendancePage = () => {
     }
   };
   
-  const handleStartEdit = (attendance) => {
-    setEditingAttendanceId(attendance.id);
-    // Convert time format from HH:MM:SS to HH:MM for time input
-    const timeInFormatted = attendance.timeIn ? attendance.timeIn.substring(0, 5) : '';
-    const timeOutFormatted = attendance.timeOut ? attendance.timeOut.substring(0, 5) : '';
-    setEditTimeIn(timeInFormatted);
-    setEditTimeOut(timeOutFormatted);
+  const handleTimeChange = (attendanceId, field, value) => {
+    setEditingTimes(prev => ({
+      ...prev,
+      [attendanceId]: {
+        ...prev[attendanceId],
+        [field]: value
+      }
+    }));
   };
   
-  const handleCancelEdit = () => {
-    setEditingAttendanceId(null);
-    setEditTimeIn('');
-    setEditTimeOut('');
-  };
-  
-  const handleSaveEdit = async (attendanceId) => {
+  const handleTimeBlur = async (attendanceId, field, value) => {
+    const currentTimes = editingTimes[attendanceId] || {};
+    const attendance = attendances.find(a => a.id === attendanceId);
+    if (!attendance) return;
+    
+    // Get current values
+    const timeIn = field === 'timeIn' ? value : (currentTimes.timeIn || (attendance.timeIn ? attendance.timeIn.substring(0, 5) : ''));
+    const timeOut = field === 'timeOut' ? value : (currentTimes.timeOut || (attendance.timeOut ? attendance.timeOut.substring(0, 5) : ''));
+    
+    // Only save if value actually changed
+    const originalTimeIn = attendance.timeIn ? attendance.timeIn.substring(0, 5) : '';
+    const originalTimeOut = attendance.timeOut ? attendance.timeOut.substring(0, 5) : '';
+    
+    if (timeIn === originalTimeIn && timeOut === originalTimeOut) {
+      // No changes, clear editing state
+      setEditingTimes(prev => {
+        const newState = { ...prev };
+        delete newState[attendanceId];
+        return newState;
+      });
+      return;
+    }
+    
     // Validate time-out is after time-in if both are provided
-    if (editTimeIn && editTimeOut && editTimeOut < editTimeIn) {
+    if (timeIn && timeOut && timeOut < timeIn) {
       setError('Time-out cannot be before time-in');
+      // Reset to original values
+      setEditingTimes(prev => {
+        const newState = { ...prev };
+        delete newState[attendanceId];
+        return newState;
+      });
       return;
     }
     
@@ -204,8 +225,8 @@ const AttendancePage = () => {
     setSuccess(null);
     try {
       // Convert time format from HH:MM to HH:MM:SS
-      const timeInFormatted = editTimeIn ? `${editTimeIn}:00` : null;
-      const timeOutFormatted = editTimeOut ? `${editTimeOut}:00` : null;
+      const timeInFormatted = timeIn ? `${timeIn}:00` : null;
+      const timeOutFormatted = timeOut ? `${timeOut}:00` : null;
       
       await attendanceAPI.updateAttendance(
         attendanceId,
@@ -213,9 +234,12 @@ const AttendancePage = () => {
         timeOutFormatted
       );
       setSuccess('Attendance updated successfully!');
-      setEditingAttendanceId(null);
-      setEditTimeIn('');
-      setEditTimeOut('');
+      // Clear editing state for this attendance
+      setEditingTimes(prev => {
+        const newState = { ...prev };
+        delete newState[attendanceId];
+        return newState;
+      });
       fetchAttendancesForDate(selectedDate);
     } catch (err) {
       console.error('Failed to update attendance:', err);
@@ -234,6 +258,12 @@ const AttendancePage = () => {
           : err.message;
       }
       setError(errorMessage);
+      // Reset to original values on error
+      setEditingTimes(prev => {
+        const newState = { ...prev };
+        delete newState[attendanceId];
+        return newState;
+      });
     } finally {
       setLoading(false);
       addTimeout(() => setSuccess(null), 3000);
@@ -477,33 +507,112 @@ const AttendancePage = () => {
                 <Spinner animation="border" variant="light" />
               </div>
             ) : (
-              <Table striped bordered hover variant="dark" responsive>
-                <thead>
-                  <tr>
-                    <th>Employee Name</th>
-                    <th>Time In</th>
-                    <th>Time Out</th>
-                    <th>Total Hours</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendances.length === 0 ? (
+              <>
+                {/* Summary by User */}
+                <Table striped bordered hover variant="dark" responsive className="mb-4">
+                  <thead>
                     <tr>
-                      <td colSpan="5" className="text-center">No attendance records for this date</td>
+                      <th>Employee Name</th>
+                      <th>Username</th>
+                      <th>First Time In</th>
+                      <th>Last Time Out</th>
+                      <th>Total Hours (Day)</th>
+                      <th>Quick Actions</th>
                     </tr>
-                  ) : (
-                    attendances.map((attendance) => {
-                      const isEditing = editingAttendanceId === attendance.id;
-                      return (
-                        <tr key={attendance.id}>
-                          <td>{attendance.fullName || attendance.username}</td>
-                          <td>
-                            {isEditing ? (
+                  </thead>
+                  <tbody>
+                    {users.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="text-center">No users found</td>
+                      </tr>
+                    ) : (
+                      users.map((user) => {
+                        const userAttendances = getAttendancesForUser(user.id);
+                        const totalHours = getTotalHoursForUser(user.id);
+                        const firstTimeIn = getFirstTimeIn(user.id);
+                        const lastTimeOut = getLastTimeOut(user.id);
+                        const hasOpen = hasOpenEntry(user.id);
+                        
+                        return (
+                          <tr key={user.id}>
+                            <td>{user.fullName}</td>
+                            <td>{user.username}</td>
+                            <td>{firstTimeIn ? formatTime(firstTimeIn) : '-'}</td>
+                            <td>
+                              {hasOpen ? (
+                                <Badge bg="warning">Open</Badge>
+                              ) : lastTimeOut ? (
+                                formatTime(lastTimeOut)
+                              ) : (
+                                '-'
+                              )}
+                            </td>
+                            <td style={{ fontWeight: 'bold' }}>{totalHours}h</td>
+                            <td>
+                              {hasOpen ? (
+                                <Button
+                                  variant="warning"
+                                  size="sm"
+                                  onClick={() => handleMarkTimeOut(user.id)}
+                                  disabled={loading}
+                                >
+                                  <i className="bi bi-clock-history me-1"></i>
+                                  Time Out
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="success"
+                                  size="sm"
+                                  onClick={() => handleMarkTimeIn(user.id)}
+                                  disabled={loading}
+                                >
+                                  <i className="bi bi-clock-history me-1"></i>
+                                  Time In
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </Table>
+                
+                {/* Detailed Attendance Records - Editable */}
+                <h4 style={{ color: '#ffffff', marginBottom: '1rem', marginTop: '2rem' }}>All Attendance Records (Editable)</h4>
+                <Table striped bordered hover variant="dark" responsive>
+                  <thead>
+                    <tr>
+                      <th>Employee Name</th>
+                      <th>Time In</th>
+                      <th>Time Out</th>
+                      <th>Total Hours</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendances.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="text-center">No attendance records for this date</td>
+                      </tr>
+                    ) : (
+                      attendances.map((attendance) => {
+                        const editingTime = editingTimes[attendance.id];
+                        const timeInValue = editingTime?.timeIn !== undefined 
+                          ? editingTime.timeIn 
+                          : (attendance.timeIn ? attendance.timeIn.substring(0, 5) : '');
+                        const timeOutValue = editingTime?.timeOut !== undefined 
+                          ? editingTime.timeOut 
+                          : (attendance.timeOut ? attendance.timeOut.substring(0, 5) : '');
+                        
+                        return (
+                          <tr key={attendance.id}>
+                            <td>{attendance.fullName || attendance.username}</td>
+                            <td>
                               <Form.Control
                                 type="time"
-                                value={editTimeIn}
-                                onChange={(e) => setEditTimeIn(e.target.value)}
+                                value={timeInValue}
+                                onChange={(e) => handleTimeChange(attendance.id, 'timeIn', e.target.value)}
+                                onBlur={(e) => handleTimeBlur(attendance.id, 'timeIn', e.target.value)}
                                 style={{ 
                                   backgroundColor: '#2a2a2a', 
                                   border: '1px solid #333333', 
@@ -511,16 +620,13 @@ const AttendancePage = () => {
                                   width: '120px'
                                 }}
                               />
-                            ) : (
-                              attendance.timeIn ? formatTime(attendance.timeIn) : '-'
-                            )}
-                          </td>
-                          <td>
-                            {isEditing ? (
+                            </td>
+                            <td>
                               <Form.Control
                                 type="time"
-                                value={editTimeOut}
-                                onChange={(e) => setEditTimeOut(e.target.value)}
+                                value={timeOutValue}
+                                onChange={(e) => handleTimeChange(attendance.id, 'timeOut', e.target.value)}
+                                onBlur={(e) => handleTimeBlur(attendance.id, 'timeOut', e.target.value)}
                                 style={{ 
                                   backgroundColor: '#2a2a2a', 
                                   border: '1px solid #333333', 
@@ -529,57 +635,17 @@ const AttendancePage = () => {
                                 }}
                                 placeholder="Leave empty if open"
                               />
-                            ) : (
-                              attendance.timeOut ? (
-                                formatTime(attendance.timeOut)
-                              ) : (
-                                <Badge bg="warning">Open</Badge>
-                              )
-                            )}
-                          </td>
-                          <td style={{ fontWeight: 'bold' }}>
-                            {attendance.totalHours ? formatHours(attendance.totalHours) : '-'}
-                          </td>
-                          <td>
-                            {isEditing ? (
-                              <div className="d-flex gap-2">
-                                <Button
-                                  variant="success"
-                                  size="sm"
-                                  onClick={() => handleSaveEdit(attendance.id)}
-                                  disabled={loading}
-                                >
-                                  <i className="bi bi-check me-1"></i>
-                                  Save
-                                </Button>
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={handleCancelEdit}
-                                  disabled={loading}
-                                >
-                                  <i className="bi bi-x me-1"></i>
-                                  Cancel
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => handleStartEdit(attendance)}
-                                disabled={loading}
-                              >
-                                <i className="bi bi-pencil me-1"></i>
-                                Edit
-                              </Button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </Table>
+                            </td>
+                            <td style={{ fontWeight: 'bold' }}>
+                              {attendance.totalHours ? formatHours(attendance.totalHours) : '-'}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </Table>
+              </>
             )}
           </Card.Body>
         </Card>

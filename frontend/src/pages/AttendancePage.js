@@ -518,8 +518,8 @@ const AttendancePage = () => {
                 <thead>
                   <tr>
                     <th>Employee Name</th>
-                    <th>Time In</th>
-                    <th>Time Out</th>
+                    <th>TIME IN</th>
+                    <th>TIME OUT</th>
                     <th>Total Hours</th>
                     <th>Quick Actions</th>
                   </tr>

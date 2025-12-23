@@ -17,6 +17,18 @@ public class CompanySettings {
     @Column(name = "address", columnDefinition = "TEXT")
     private String address;
 
+    @Column(name = "eircode", length = 10)
+    private String eircode;
+
+    @Column(name = "vat_number", length = 50)
+    private String vatNumber;
+
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    @Column(name = "website", length = 255)
+    private String website;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -64,6 +76,42 @@ public class CompanySettings {
 
     public void setAddress(String address) {
         this.address = address;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public String getEircode() {
+        return eircode;
+    }
+
+    public void setEircode(String eircode) {
+        this.eircode = eircode;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public String getVatNumber() {
+        return vatNumber;
+    }
+
+    public void setVatNumber(String vatNumber) {
+        this.vatNumber = vatNumber;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public String getWebsite() {
+        return website;
+    }
+
+    public void setWebsite(String website) {
+        this.website = website;
         this.updatedAt = LocalDateTime.now();
     }
 

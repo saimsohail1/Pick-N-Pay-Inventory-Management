@@ -10,12 +10,13 @@
  * @param {string} companyAddress - Company address
  * @param {string} printerName - Optional printer name
  * @param {string} cashierName - Optional cashier name (overrides sale.user?.username)
+ * @param {string} vatNumber - Optional VAT number
  */
-export const printReceiptRaw = async (sale, companyName = "ADAMS GREEN", companyAddress = '', printerName = null, cashierName = null) => {
+export const printReceiptRaw = async (sale, companyName = "ADAMS GREEN", companyAddress = '', printerName = null, cashierName = null, vatNumber = null) => {
   // Always use directPrint (browser's window.print) - this is what worked in the original version
   // The IPC handler is just a passthrough, so we use the browser's native printing
   console.log('🖨️ Printing receipt using browser print (window.print)');
-  const receiptContent = createReceiptHTML(sale, companyName, companyAddress, cashierName);
+  const receiptContent = createReceiptHTML(sale, companyName, companyAddress, cashierName, vatNumber);
   return directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
 };
 
@@ -162,9 +163,11 @@ export const printWithElectron = (content, title = 'Print Document') => {
  * @param {Object} sale - Sale data
  * @param {string} companyName - Company name
  * @param {string} companyAddress - Company address
+ * @param {string} cashierName - Optional cashier name
+ * @param {string} vatNumber - Optional VAT number
  * @returns {string} HTML content
  */
-export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddress = '', cashierName = null) => {
+export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddress = '', cashierName = null, vatNumber = null) => {
   // Helper function to format date as DD/MM/YYYY
   const formatReceiptDate = (dateStr) => {
     if (!dateStr) return '';
@@ -183,19 +186,22 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
     sum + parseFloat(item.vatAmount || 0), 0
   );
   
-  // Calculate average VAT percentage (weighted by amount)
-  // Formula: (Total VAT / Total Excluding VAT) * 100
-  let averageVatRate = 0;
-  if (subtotalExcludingVat > 0) {
-    averageVatRate = (totalVat / subtotalExcludingVat) * 100;
-  } else if (sale.saleItems.length > 0) {
-    // Fallback: simple average of VAT rates if no excluding VAT data
-    const sumOfRates = sale.saleItems.reduce((sum, item) => 
-      sum + parseFloat(item.vatRate || 23), 0
-    );
-    averageVatRate = sumOfRates / sale.saleItems.length;
-  } else {
-    averageVatRate = 23; // Default fallback
+  // Use the selected VAT rate from the sale (this is the VAT rate selected on the sales page)
+  // This is the ONLY VAT rate that should be used - it applies to all items in the sale
+  let selectedVatRate = 0;
+  if (sale.selectedVatRate != null) {
+    // Use the selected VAT rate stored in the sale
+    selectedVatRate = parseFloat(sale.selectedVatRate);
+  } else if (sale.saleItems && sale.saleItems.length > 0) {
+    // Fallback: Get VAT rate from first item if selectedVatRate not stored (for old sales)
+    selectedVatRate = parseFloat(sale.saleItems[0].vatRate || 0);
+  }
+  
+  // If still no VAT rate found, calculate from totals
+  if (selectedVatRate === 0 && subtotalExcludingVat > 0) {
+    selectedVatRate = (totalVat / subtotalExcludingVat) * 100;
+  } else if (selectedVatRate === 0) {
+    selectedVatRate = 23; // Default fallback
   }
 
   return `
@@ -261,6 +267,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       <div class="header">
         <div class="center company-name">${companyName.toUpperCase()}</div>
         ${companyAddress ? `<div class="center company-address">${companyAddress}</div>` : ''}
+        ${vatNumber ? `<div class="center" style="font-size: 11px; font-weight: 600;">VAT No: ${vatNumber}</div>` : ''}
         <div class="center">SALE RECEIPT</div>
         <div class="center">Date: ${formatReceiptDate(sale.saleDate)}</div>
         <div class="center">Time: ${new Date(sale.saleDate).toLocaleTimeString()}</div>
@@ -271,11 +278,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       <div class="divider"></div>
       
       ${sale.notes ? `
-        <div style="background-color: #ffff00; padding: 8px; margin: 8px 0; border: 2px solid #000; text-align: center; font-weight: 700; font-size: 13px;">
-          <div style="margin-bottom: 3px;">⚠️ NOTE ⚠️</div>
-          <div style="white-space: pre-wrap; word-wrap: break-word;">${sale.notes}</div>
-        </div>
-        <div class="divider"></div>
+        <div style="margin: 5px 0; font-weight: 700; font-size: 11px; white-space: pre-wrap; word-wrap: break-word;">${sale.notes}</div>
       ` : ''}
       
       ${sale.saleItems.map(item => `
@@ -288,11 +291,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       <div class="divider"></div>
       
       <div class="item">
-        <span>Subtotal (excl. VAT):</span>
-        <span>€${subtotalExcludingVat.toFixed(2)}</span>
-      </div>
-      <div class="item">
-        <span>VAT (${Math.round(averageVatRate)}%):</span>
+        <span>VAT (${selectedVatRate.toFixed(1)}%):</span>
         <span>€${totalVat.toFixed(2)}</span>
       </div>
       <div class="total">
@@ -304,6 +303,19 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       
       <div class="vat-info">
         <div class="center">VAT No: ${sale.vatNumber || 'N/A'}</div>
+      </div>
+      
+      <div class="divider"></div>
+      
+      <div style="margin-top: 10px; padding: 8px; border: 1px dashed #000; font-size: 9px; font-weight: 600; line-height: 1.3;">
+        <div style="text-align: center; font-weight: 700; margin-bottom: 5px; font-size: 10px;">SHOP POLICY:</div>
+        <div style="margin-bottom: 3px;">BRAND NEW DEVICES ONLY COVER MANUFACTURE WARRANTY.</div>
+        <div style="margin-bottom: 3px;">${companyName.toUpperCase()} DOES NOT COVER ANY WARRANTY FOR BRAND NEW DEVICES.</div>
+        <div style="margin-bottom: 3px;">New Devices Can be returned within 7 days if unopened and unused.</div>
+        <div style="margin-bottom: 3px;">Accessory warranty vary depending on the manufacturer</div>
+        <div style="margin-bottom: 3px;">If faulty within 7 days a repair will be authorised.</div>
+        <div style="margin-bottom: 3px;">No Return & no Refund For Used Phones if faulty product we fix or exchange depending on the product condition.</div>
+        <div style="margin-bottom: 3px;">USED PHONES WARRANTY COVER ONLY ${companyName.toUpperCase()} but depending on the product conditions.</div>
       </div>
       
       <div class="divider"></div>
@@ -324,7 +336,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
  * @param {string} startDate - Report start date
  * @returns {string} HTML content
  */
-export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", startDate, companyAddress = '', companyPhone = '') => {
+export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", startDate, companyAddress = '', companyPhone = '', vatNumber = '', website = '') => {
   // Format date as DD/MM/YYYY or handle date range string
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -584,7 +596,9 @@ export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", start
       <div class="header">
         <div class="company-name">${companyName}</div>
         ${companyAddress ? `<div class="address">${companyAddress}</div>` : ''}
-        ${companyPhone ? `<div class="phone">${companyPhone}</div>` : ''}
+        ${vatNumber ? `<div class="address" style="font-size: 13px; font-weight: 700;">VAT No: ${vatNumber}</div>` : ''}
+        ${companyPhone ? `<div class="phone">Tel: ${companyPhone}</div>` : ''}
+        ${website ? `<div class="phone" style="font-size: 12px;">Website: ${website}</div>` : ''}
         <div class="date">${formatDate(startDate)}</div>
       </div>
       
@@ -691,7 +705,7 @@ export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", start
  * @param {string} dateRange - Date range
  * @returns {string} HTML content
  */
-export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateRange = '') => {
+export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateRange = '', vatNumber = '', companyAddress = '', companyPhone = '', website = '') => {
   const totalAmount = sales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount || 0), 0);
   
   return `
@@ -874,6 +888,10 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
     <body>
       <div class="header">
         <h1>${companyName.toUpperCase()}</h1>
+        ${companyAddress ? `<div class="subtitle">${companyAddress}</div>` : ''}
+        ${vatNumber ? `<div class="subtitle">VAT No: ${vatNumber}</div>` : ''}
+        ${companyPhone ? `<div class="subtitle">Tel: ${companyPhone}</div>` : ''}
+        ${website ? `<div class="subtitle">Website: ${website}</div>` : ''}
         <div class="subtitle">SALES HISTORY</div>
         <div class="date-info">${dateRange}</div>
         <div class="date-info">Generated: ${new Date().toLocaleString()}</div>

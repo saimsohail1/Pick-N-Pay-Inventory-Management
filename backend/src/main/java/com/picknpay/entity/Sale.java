@@ -50,6 +50,9 @@ public class Sale {
     @Column(name = "notes", length = 1000)
     private String notes;
     
+    @Column(name = "selected_vat_rate", precision = 5, scale = 2)
+    private BigDecimal selectedVatRate;
+    
     // Constructors
     public Sale() {
         this.saleDate = LocalDateTime.now();
@@ -149,5 +152,13 @@ public class Sale {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public BigDecimal getSelectedVatRate() {
+        return selectedVatRate;
+    }
+    
+    public void setSelectedVatRate(BigDecimal selectedVatRate) {
+        this.selectedVatRate = selectedVatRate;
     }
 }

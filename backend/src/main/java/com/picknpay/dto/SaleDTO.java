@@ -29,6 +29,8 @@ public class SaleDTO {
     
     private String notes;
     
+    private BigDecimal selectedVatRate;
+    
     // Constructors
     public SaleDTO() {}
     
@@ -93,5 +95,13 @@ public class SaleDTO {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public BigDecimal getSelectedVatRate() {
+        return selectedVatRate;
+    }
+    
+    public void setSelectedVatRate(BigDecimal selectedVatRate) {
+        this.selectedVatRate = selectedVatRate;
     }
 }

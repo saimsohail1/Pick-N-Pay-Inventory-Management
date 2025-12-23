@@ -96,6 +96,11 @@ public class SaleService {
         sale.setSaleDate(LocalDateTime.now());
         sale.setPaymentMethod(saleDTO.getPaymentMethod());
         
+        // Set the selected VAT rate from DTO (this is the VAT rate selected on the sales page)
+        if (saleDTO.getSelectedVatRate() != null) {
+            sale.setSelectedVatRate(saleDTO.getSelectedVatRate());
+        }
+        
         // Set the user relationship
         if (saleDTO.getUserId() != null) {
             User user = userRepository.findById(saleDTO.getUserId())
@@ -103,6 +108,11 @@ public class SaleService {
             sale.setUser(user);
         }
         // Note: User is optional to handle existing data without user associations
+        
+        // Get the selected VAT rate to apply to all items
+        BigDecimal selectedVatRate = saleDTO.getSelectedVatRate() != null 
+            ? saleDTO.getSelectedVatRate() 
+            : null;
         
         BigDecimal totalAmount = BigDecimal.ZERO;
         
@@ -129,8 +139,10 @@ public class SaleService {
                     saleItem.setItemBarcode(item.getBarcode());
                     saleItem.setBatchId(saleItemDTO.getBatchId()); // Set batch ID from DTO
                     
-                    // Calculate VAT
-                    BigDecimal vatRate = item.getVatRate() != null ? item.getVatRate() : new BigDecimal("23.00");
+                    // Use selected VAT rate from sales page if provided, otherwise use item's VAT rate
+                    BigDecimal vatRate = selectedVatRate != null 
+                        ? selectedVatRate 
+                        : (item.getVatRate() != null ? item.getVatRate() : new BigDecimal("23.00"));
                     BigDecimal totalPriceIncludingVat = saleItemDTO.getTotalPrice();
                     BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, BigDecimal.ROUND_HALF_UP);
                     BigDecimal totalVatAmount = totalPriceIncludingVat.subtract(totalPriceExcludingVat);
@@ -152,8 +164,10 @@ public class SaleService {
                 saleItem.setItemBarcode(saleItemDTO.getItemBarcode() != null ? saleItemDTO.getItemBarcode() : "N/A");
                 saleItem.setBatchId(null); // Quick sales don't have batch IDs
                 
-                // For quick sales, assume standard VAT rate
-                BigDecimal vatRate = new BigDecimal("23.00");
+                // Use selected VAT rate from sales page if provided, otherwise default to 23%
+                BigDecimal vatRate = selectedVatRate != null 
+                    ? selectedVatRate 
+                    : new BigDecimal("23.00");
                 BigDecimal totalPriceIncludingVat = saleItemDTO.getTotalPrice();
                 BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, BigDecimal.ROUND_HALF_UP);
                 BigDecimal totalVatAmount = totalPriceIncludingVat.subtract(totalPriceExcludingVat);
@@ -186,6 +200,7 @@ public class SaleService {
         dto.setPaymentMethod(sale.getPaymentMethod());
         dto.setUserId(sale.getUser() != null ? sale.getUser().getId() : null);
         dto.setNotes(sale.getNotes()); // Include notes in DTO
+        dto.setSelectedVatRate(sale.getSelectedVatRate()); // Include selected VAT rate in DTO
         
         List<SaleItemDTO> saleItemDTOs = sale.getSaleItems().stream()
                 .map(this::convertSaleItemToDTO)
@@ -682,6 +697,7 @@ public class SaleService {
         // Update basic sale information
         existingSale.setPaymentMethod(saleDTO.getPaymentMethod());
         existingSale.setNotes(saleDTO.getNotes()); // Update notes
+        existingSale.setSelectedVatRate(saleDTO.getSelectedVatRate()); // Update selected VAT rate
         
         // Update user relationship
         if (saleDTO.getUserId() != null) {

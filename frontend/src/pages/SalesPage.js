@@ -303,7 +303,8 @@ const SalesPage = () => {
         if (settingsData) {
           currentCompanySettings = {
             companyName: settingsData.companyName || "ADAMS GREEN",
-            address: settingsData.address || ''
+            address: settingsData.address || '',
+            vatNumber: settingsData.vatNumber || ''
           };
         }
       } catch (err) {
@@ -318,7 +319,10 @@ const SalesPage = () => {
           await printReceiptRaw(
             lastSale,
             currentCompanySettings.companyName,
-            currentCompanySettings.address
+            currentCompanySettings.address,
+            null, // printerName
+            null, // cashierName
+            currentCompanySettings.vatNumber
           );
           setSuccess('Receipt printed successfully!');
           setTimeout(() => setSuccess(null), 3000);
@@ -721,6 +725,7 @@ const SalesPage = () => {
         saleItems: saleItems,
         userId: user?.id || null,
         notes: saleNotes || null, // Include notes in sale data
+        selectedVatRate: vatRate !== null ? vatRate : null, // Include selected VAT rate from sales page
         cashAmount: parseFloat(cashAmount || 0),
         changeDue: parseFloat(cashAmount || 0) > 0 ? (parseFloat(cashAmount || 0) - totalAmount) : 0
       };
@@ -807,6 +812,7 @@ const SalesPage = () => {
         saleItems: saleItems,
         userId: user?.id || null,
         notes: saleNotes || null, // Include notes in sale data
+        selectedVatRate: vatRate !== null ? vatRate : null, // Include selected VAT rate from sales page
       };
 
       const response = await salesAPI.create(saleData);
@@ -1335,21 +1341,41 @@ const SalesPage = () => {
       }}
     >
       <style>{`
+        /* Reset body and html for full screen */
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          overflow: hidden !important;
+        }
+        
+        #root {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          overflow: hidden !important;
+        }
+        
         .sales-page-container {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          width: 100vw;
-          height: 100vh;
-          max-width: 100vw;
-          max-height: 100vh;
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
+          width: 100vw !important;
+          height: 100vh !important;
+          max-width: 100vw !important;
+          max-height: 100vh !important;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
+          display: flex !important;
+          flex-direction: column !important;
+          overflow: hidden !important;
+          z-index: 1;
         }
         
         /* Enable scrolling for all child containers when zoomed */
@@ -1473,11 +1499,14 @@ const SalesPage = () => {
       {/* Compact Header */}
       <div className="text-white py-2 px-3" style={{ 
         minHeight: '55px', 
+        height: '55px',
         flexShrink: 0,
         margin: 0, 
         padding: '0.4rem 1rem', 
         backgroundColor: '#1a1a1a', 
-        borderBottom: '1px solid #2a2a2a' 
+        borderBottom: '1px solid #2a2a2a',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         <div className="d-flex align-items-center justify-content-between w-100">
         <div className="d-flex align-items-center">
@@ -1655,7 +1684,18 @@ const SalesPage = () => {
       )}
 
       {/* Main Content - Two Column Layout */}
-      <div className="d-flex" style={{ margin: 0, padding: '0.3rem', gap: '0.4rem', minWidth: 'fit-content', minHeight: 'fit-content' }}>
+      <div className="d-flex" style={{ 
+        margin: 0, 
+        padding: '0.3rem', 
+        gap: '0.4rem', 
+        flex: '1 1 auto',
+        minHeight: 0,
+        maxHeight: 'calc(100vh - 55px)',
+        overflow: 'hidden',
+        width: '100%',
+        height: 'calc(100vh - 55px)',
+        boxSizing: 'border-box'
+      }}>
           {/* Left Panel - Items Grid (70%) */}
         <div className="d-flex flex-column" style={{ 
           width: '70%', 

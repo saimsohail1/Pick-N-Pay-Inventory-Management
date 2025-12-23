@@ -36,11 +36,19 @@ public class CompanySettingsService {
         if (settingsOpt.isEmpty()) {
             // Create new settings if none exist
             settings = new CompanySettings(settingsDTO.getCompanyName(), settingsDTO.getAddress());
+            settings.setEircode(settingsDTO.getEircode());
+            settings.setVatNumber(settingsDTO.getVatNumber());
+            settings.setPhone(settingsDTO.getPhone());
+            settings.setWebsite(settingsDTO.getWebsite());
         } else {
             // Update existing settings
             settings = settingsOpt.get();
             settings.setCompanyName(settingsDTO.getCompanyName());
             settings.setAddress(settingsDTO.getAddress());
+            settings.setEircode(settingsDTO.getEircode());
+            settings.setVatNumber(settingsDTO.getVatNumber());
+            settings.setPhone(settingsDTO.getPhone());
+            settings.setWebsite(settingsDTO.getWebsite());
         }
         
         settings = companySettingsRepository.save(settings);
@@ -48,6 +56,14 @@ public class CompanySettingsService {
     }
 
     private CompanySettingsDTO convertToDTO(CompanySettings settings) {
-        return new CompanySettingsDTO(settings.getId(), settings.getCompanyName(), settings.getAddress());
+        return new CompanySettingsDTO(
+            settings.getId(), 
+            settings.getCompanyName(), 
+            settings.getAddress(),
+            settings.getEircode(),
+            settings.getVatNumber(),
+            settings.getPhone(),
+            settings.getWebsite()
+        );
     }
 }

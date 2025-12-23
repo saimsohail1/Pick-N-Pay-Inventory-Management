@@ -16,7 +16,11 @@ const CompanyPage = () => {
   const { control, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: {
       companyName: '',
-      address: ''
+      address: '',
+      eircode: '',
+      vatNumber: '',
+      phone: '',
+      website: ''
     }
   });
 
@@ -31,7 +35,11 @@ const CompanyPage = () => {
       const response = await companySettingsAPI.get();
       reset({
         companyName: response.data.companyName,
-        address: response.data.address || ''
+        address: response.data.address || '',
+        eircode: response.data.eircode || '',
+        vatNumber: response.data.vatNumber || '',
+        phone: response.data.phone || '',
+        website: response.data.website || ''
       });
     } catch (err) {
       setError('Failed to load company settings.');
@@ -155,6 +163,114 @@ const CompanyPage = () => {
                   </Form.Control.Feedback>
                   <Form.Text style={{ color: '#aaaaaa' }}>
                     This address will be displayed on reports and receipts.
+                  </Form.Text>
+                </Form.Group>
+
+                <Form.Group className="mb-4">
+                  <Form.Label className="fw-bold">Eircode</Form.Label>
+                  <Controller
+                    name="eircode"
+                    control={control}
+                    rules={{
+                      maxLength: { value: 10, message: 'Eircode must be less than 10 characters' }
+                    }}
+                    render={({ field }) => (
+                      <Form.Control
+                        type="text"
+                        placeholder="Enter Eircode (e.g., D02 XY12)"
+                        {...field}
+                        isInvalid={!!errors.eircode}
+                        className="form-control-lg"
+                        style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                      />
+                    )}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.eircode && errors.eircode.message}
+                  </Form.Control.Feedback>
+                  <Form.Text style={{ color: '#aaaaaa' }}>
+                    Irish postal code (Eircode) for the company address.
+                  </Form.Text>
+                </Form.Group>
+
+                <Form.Group className="mb-4">
+                  <Form.Label className="fw-bold">VAT Number</Form.Label>
+                  <Controller
+                    name="vatNumber"
+                    control={control}
+                    rules={{
+                      maxLength: { value: 50, message: 'VAT Number must be less than 50 characters' }
+                    }}
+                    render={({ field }) => (
+                      <Form.Control
+                        type="text"
+                        placeholder="Enter VAT Registration Number"
+                        {...field}
+                        isInvalid={!!errors.vatNumber}
+                        className="form-control-lg"
+                        style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                      />
+                    )}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.vatNumber && errors.vatNumber.message}
+                  </Form.Control.Feedback>
+                  <Form.Text style={{ color: '#aaaaaa' }}>
+                    VAT registration number will be displayed on receipts and reports.
+                  </Form.Text>
+                </Form.Group>
+
+                <Form.Group className="mb-4">
+                  <Form.Label className="fw-bold">Phone</Form.Label>
+                  <Controller
+                    name="phone"
+                    control={control}
+                    rules={{
+                      maxLength: { value: 20, message: 'Phone must be less than 20 characters' }
+                    }}
+                    render={({ field }) => (
+                      <Form.Control
+                        type="tel"
+                        placeholder="Enter phone number (e.g., +353-1-234-5678)"
+                        {...field}
+                        isInvalid={!!errors.phone}
+                        className="form-control-lg"
+                        style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                      />
+                    )}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.phone && errors.phone.message}
+                  </Form.Control.Feedback>
+                  <Form.Text style={{ color: '#aaaaaa' }}>
+                    Company phone number for contact information.
+                  </Form.Text>
+                </Form.Group>
+
+                <Form.Group className="mb-4">
+                  <Form.Label className="fw-bold">Website</Form.Label>
+                  <Controller
+                    name="website"
+                    control={control}
+                    rules={{
+                      maxLength: { value: 255, message: 'Website must be less than 255 characters' }
+                    }}
+                    render={({ field }) => (
+                      <Form.Control
+                        type="url"
+                        placeholder="Enter website URL (e.g., https://www.example.com)"
+                        {...field}
+                        isInvalid={!!errors.website}
+                        className="form-control-lg"
+                        style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                      />
+                    )}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.website && errors.website.message}
+                  </Form.Control.Feedback>
+                  <Form.Text style={{ color: '#aaaaaa' }}>
+                    Company website URL (optional).
                   </Form.Text>
                 </Form.Group>
 

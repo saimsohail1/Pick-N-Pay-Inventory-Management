@@ -66,6 +66,9 @@ CREATE TABLE company_settings (
     phone VARCHAR(20),
     email VARCHAR(100),
     tax_number VARCHAR(50),
+    eircode VARCHAR(10),
+    vat_number VARCHAR(50),
+    website VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -126,6 +129,7 @@ CREATE TABLE sales (
     payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD')),
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, -- Sales MUST have a user
     notes VARCHAR(1000), -- Optional notes for the sale transaction
+    selected_vat_rate DECIMAL(5,2), -- VAT rate selected on the sales page (applies to all items in the sale)
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

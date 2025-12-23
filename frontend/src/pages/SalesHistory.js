@@ -237,7 +237,10 @@ const SalesHistory = () => {
         if (settingsData) {
           currentCompanySettings = {
             companyName: settingsData.companyName || "ADAMS GREEN",
-            address: settingsData.address || ''
+            address: settingsData.address || '',
+            vatNumber: settingsData.vatNumber || '',
+            phone: settingsData.phone || '',
+            website: settingsData.website || ''
           };
         }
     } catch (err) {
@@ -256,7 +259,8 @@ const SalesHistory = () => {
         currentCompanySettings.companyName, 
             currentCompanySettings.address,
             null, // printerName
-            cashierName // cashierName - overrides sale.user?.username
+            cashierName, // cashierName - overrides sale.user?.username
+            currentCompanySettings.vatNumber
           );
           return;
         } catch (rawPrintError) {

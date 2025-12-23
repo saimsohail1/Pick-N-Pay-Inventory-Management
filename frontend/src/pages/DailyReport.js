@@ -252,7 +252,10 @@ const DailyReport = () => {
         if (settingsData) {
           currentCompanySettings = {
             companyName: settingsData.companyName || "ADAMS GREEN",
-            address: settingsData.address || ''
+            address: settingsData.address || '',
+            vatNumber: settingsData.vatNumber || '',
+            phone: settingsData.phone || '',
+            website: settingsData.website || ''
           };
         }
       } catch (err) {
@@ -266,7 +269,9 @@ const DailyReport = () => {
         currentCompanySettings.companyName || 'ADAMS GREEN', 
         dateRangeText,
         currentCompanySettings.address || '',
-        '' // Phone field removed as it doesn't exist in CompanySettings
+        currentCompanySettings.phone || '',
+        currentCompanySettings.vatNumber || '',
+        currentCompanySettings.website || ''
       );
       
       // Use silent printing (no dialog) - works in Electron

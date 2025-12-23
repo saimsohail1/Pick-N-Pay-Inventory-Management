@@ -27,6 +27,8 @@ public class SaleDTO {
     
     private Long userId;
     
+    private String notes;
+    
     // Constructors
     public SaleDTO() {}
     
@@ -83,5 +85,13 @@ public class SaleDTO {
     
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+    
+    public String getNotes() {
+        return notes;
+    }
+    
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

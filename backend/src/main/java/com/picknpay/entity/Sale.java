@@ -47,6 +47,9 @@ public class Sale {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
     
+    @Column(name = "notes", length = 1000)
+    private String notes;
+    
     // Constructors
     public Sale() {
         this.saleDate = LocalDateTime.now();
@@ -138,5 +141,13 @@ public class Sale {
     
     public void setUser(User user) {
         this.user = user;
+    }
+    
+    public String getNotes() {
+        return notes;
+    }
+    
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

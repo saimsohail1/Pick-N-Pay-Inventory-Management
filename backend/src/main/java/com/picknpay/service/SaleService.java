@@ -168,6 +168,7 @@ public class SaleService {
         }
         
         sale.setTotalAmount(totalAmount);
+        sale.setNotes(saleDTO.getNotes()); // Set notes from DTO
         Sale savedSale = saleRepository.save(sale);
         return convertToDTO(savedSale);
     }
@@ -184,6 +185,7 @@ public class SaleService {
         dto.setSaleDate(sale.getSaleDate());
         dto.setPaymentMethod(sale.getPaymentMethod());
         dto.setUserId(sale.getUser() != null ? sale.getUser().getId() : null);
+        dto.setNotes(sale.getNotes()); // Include notes in DTO
         
         List<SaleItemDTO> saleItemDTOs = sale.getSaleItems().stream()
                 .map(this::convertSaleItemToDTO)
@@ -679,6 +681,7 @@ public class SaleService {
         
         // Update basic sale information
         existingSale.setPaymentMethod(saleDTO.getPaymentMethod());
+        existingSale.setNotes(saleDTO.getNotes()); // Update notes
         
         // Update user relationship
         if (saleDTO.getUserId() != null) {

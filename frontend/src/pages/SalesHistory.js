@@ -415,6 +415,10 @@ const SalesHistory = () => {
                     <i className="bi bi-currency-euro me-1"></i>
                     Total
                   </th>
+                  <th className="border-0 py-3 px-4 fw-semibold" style={{ color: '#ffffff' }}>
+                    <i className="bi bi-sticky me-1"></i>
+                    Notes
+                  </th>
                   <th className="border-0 py-3 px-4 fw-semibold text-center" style={{ color: '#ffffff' }}>
                     <i className="bi bi-gear me-1"></i>
                     Actions
@@ -438,6 +442,16 @@ const SalesHistory = () => {
                     <td className="py-3 px-4">{getPaymentMethodBadge(sale.paymentMethod)}</td>
                     <td className="py-3 px-4">
                       <span className="fw-bold fs-5" style={{ color: '#ffffff' }}>€{parseFloat(sale.totalAmount || 0).toFixed(2)}</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {sale.notes ? (
+                        <div className="d-flex align-items-start">
+                          <i className="bi bi-sticky-fill me-2" style={{ color: '#ffc107', fontSize: '1.2rem', marginTop: '2px' }}></i>
+                          <span className="fw-semibold" style={{ color: '#ffc107', fontSize: '1rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>{sale.notes}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted" style={{ color: '#aaaaaa' }}>-</span>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="btn-group" role="group">
@@ -543,6 +557,20 @@ const SalesHistory = () => {
                   <p className="ms-4 mb-0 fw-bold fs-5" style={{ color: '#ffffff' }}>€{parseFloat(saleToEdit.totalAmount || 0).toFixed(2)}</p>
                 </div>
               </div>
+              
+              {saleToEdit.notes && (
+                <div className="row mb-4">
+                  <div className="col-12">
+                    <div className="p-3 rounded" style={{ backgroundColor: '#3a3a3a', border: '2px solid #ffc107' }}>
+                      <div className="d-flex align-items-center mb-2">
+                        <i className="bi bi-sticky-fill me-2" style={{ color: '#ffc107', fontSize: '1.3rem' }}></i>
+                        <strong style={{ color: '#ffc107', fontSize: '1.1rem' }}>Sale Notes:</strong>
+                      </div>
+                      <p className="mb-0 ms-4 fw-semibold" style={{ color: '#ffffff', fontSize: '1.1rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>{saleToEdit.notes}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="d-flex align-items-center mb-3">
                 <i className="bi bi-list-ul me-2" style={{ color: '#ffffff' }}></i>

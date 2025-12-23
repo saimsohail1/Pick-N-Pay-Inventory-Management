@@ -49,6 +49,10 @@ const SalesPage = () => {
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [cashAmount, setCashAmount] = useState('');
   const [selectedNotes, setSelectedNotes] = useState({});
+  const [saleNotes, setSaleNotes] = useState(''); // Notes for the sale
+  const [selectedVatRate, setSelectedVatRate] = useState(null); // Selected VAT rate for the sale
+  const [notesVatDialogOpen, setNotesVatDialogOpen] = useState(false); // Dialog for notes and VAT selection
+  const [pendingPaymentMethod, setPendingPaymentMethod] = useState(null); // Store payment method while showing notes/VAT dialog
   const [cashConfirmDialogOpen, setCashConfirmDialogOpen] = useState(false);
   const [changeDue, setChangeDue] = useState(0);
   const [itemNotFoundDialogOpen, setItemNotFoundDialogOpen] = useState(false);
@@ -66,9 +70,10 @@ const SalesPage = () => {
   const [selectedCartItem, setSelectedCartItem] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [currentView, setCurrentView] = useState('categories'); // 'categories' or 'categoryItems'
+  const [currentView, setCurrentView] = useState('categories'); // 'categories', 'categoryItems', 'quickSale', or 'manualSale'
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryItems, setCategoryItems] = useState([]);
+  const [manualSaleAmount, setManualSaleAmount] = useState('');
   const [heldTransactions, setHeldTransactions] = useState([]);
   const [showHeldTransactions, setShowHeldTransactions] = useState(false);
   const [selectedHeldTransaction, setSelectedHeldTransaction] = useState(null);
@@ -134,7 +139,7 @@ const SalesPage = () => {
   // Refocus barcode input after modals close, cart operations, etc.
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
-        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && 
+        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !notesVatDialogOpen &&
         !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
       // Small delay to ensure modal is fully closed
       const timer = setTimeout(() => {
@@ -151,7 +156,7 @@ const SalesPage = () => {
   // Keep barcode input focused continuously (when no modals are open)
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
-        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && 
+        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !notesVatDialogOpen &&
         !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
       const handleFocusLoss = () => {
         // Only refocus if user clicked outside an input/button or on the document
@@ -357,32 +362,32 @@ const SalesPage = () => {
     });
   };
 
-  // Helper function for quick sale items (special case)
-  const addOrUpdateQuickSaleItem = (price) => {
+  // Helper function for quick sale items and manual sales (special case)
+  const addOrUpdateQuickSaleItem = (price, label = 'Quick Sale') => {
     setCart(currentCart => {
       const existingItemIndex = currentCart.findIndex(
-        item => item.itemId === null && item.unitPrice === price
+        item => item.itemId === null && item.unitPrice === price && item.itemName.startsWith(label)
       );
 
       if (existingItemIndex >= 0) {
-        // Update quantity of existing quick sale item
+        // Update quantity of existing sale item
         const updatedCart = [...currentCart];
         updatedCart[existingItemIndex].quantity += 1;
         updatedCart[existingItemIndex].totalPrice = 
           updatedCart[existingItemIndex].unitPrice * updatedCart[existingItemIndex].quantity;
         return updatedCart;
       } else {
-        // Add new quick sale item at the beginning (latest first)
-        const quickSaleItem = {
+        // Add new sale item at the beginning (latest first)
+        const saleItem = {
           id: Date.now() + Math.random(),
           itemId: null,
-          itemName: `Quick Sale (€${price.toFixed(2)})`,
+          itemName: `${label} (€${price.toFixed(2)})`,
           itemBarcode: 'N/A',
           quantity: 1,
           unitPrice: price,
           totalPrice: price
         };
-        return [quickSaleItem, ...currentCart];
+        return [saleItem, ...currentCart];
       }
     });
   };
@@ -644,14 +649,19 @@ const SalesPage = () => {
                   cashPaymentTimeoutRef.current = setTimeout(() => {
                     cashPaymentTimeoutRef.current = null;
                     setCashConfirmDialogOpen(false);
-                    processCashPayment();
+                    // Show notes/VAT dialog instead of processing payment directly
+                    setPendingPaymentMethod('CASH');
+                    setNotesVatDialogOpen(true);
                   }, 5000);
                 } else {
-                  // No change due, proceed directly
-                  processCashPayment();
+                  // No change due, show notes/VAT dialog
+                  setPendingPaymentMethod('CASH');
+                  setNotesVatDialogOpen(true);
                 }
               } else {
-                processCardPayment();
+                // Card payment - show notes/VAT dialog
+                setPendingPaymentMethod('CARD');
+                setNotesVatDialogOpen(true);
               }
             };
 
@@ -672,17 +682,37 @@ const SalesPage = () => {
     setError(null);
     setSuccess(null);
     setCheckoutDialogOpen(false);
+    setNotesVatDialogOpen(false); // Close notes/VAT dialog
 
     try {
-      const saleItems = cart.map((item) => ({
-        itemId: item.itemId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        totalPrice: calculateDiscountedItemPrice(item)
-      }));
+      // Apply selected VAT rate to all items if one is selected
+      const vatRate = selectedVatRate !== null ? parseFloat(selectedVatRate) : null;
+      
+      let totalAmount = 0;
+      const saleItems = cart.map((item) => {
+        let itemTotalPrice = calculateDiscountedItemPrice(item);
+        
+        // If VAT rate is selected, recalculate prices with new VAT rate
+        if (vatRate !== null) {
+          // Calculate price excluding VAT, then apply new VAT rate
+          const currentVatRate = item.vatRate || 23.00;
+          const priceExcludingVat = itemTotalPrice / (1 + currentVatRate / 100);
+          itemTotalPrice = priceExcludingVat * (1 + vatRate / 100);
+        }
+        
+        totalAmount += itemTotalPrice;
+        
+        return {
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: itemTotalPrice,
+          vatRate: vatRate !== null ? vatRate : (item.vatRate || 23.00)
+        };
+      });
 
       const saleData = {
-        totalAmount: calculateTotal(),
+        totalAmount: totalAmount,
         subtotalAmount: calculateSubtotal(),
         discountAmount: calculateDiscountAmount(),
         discountType: appliedDiscount?.type || null,
@@ -690,8 +720,9 @@ const SalesPage = () => {
         paymentMethod: 'CASH',
         saleItems: saleItems,
         userId: user?.id || null,
+        notes: saleNotes || null, // Include notes in sale data
         cashAmount: parseFloat(cashAmount || 0),
-        changeDue: parseFloat(cashAmount || 0) > 0 ? calculateChange() : 0
+        changeDue: parseFloat(cashAmount || 0) > 0 ? (parseFloat(cashAmount || 0) - totalAmount) : 0
       };
 
       const response = await salesAPI.create(saleData);
@@ -702,6 +733,8 @@ const SalesPage = () => {
       setCart([]);
       setCashAmount('');
       setSelectedNotes({});
+      setSaleNotes(''); // Clear sale notes after sale
+      setSelectedVatRate(null); // Clear selected VAT rate
       setAppliedDiscount(null); // Clear discount after sale
       setSelectedCartItem(null); // Clear selected item after sale
       setCustomDiscountAmount('');
@@ -735,17 +768,37 @@ const SalesPage = () => {
     setError(null);
     setSuccess(null);
     setCheckoutDialogOpen(false);
+    setNotesVatDialogOpen(false); // Close notes/VAT dialog
 
     try {
-      const saleItems = cart.map((item) => ({
-        itemId: item.itemId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        totalPrice: calculateDiscountedItemPrice(item)
-      }));
+      // Apply selected VAT rate to all items if one is selected
+      const vatRate = selectedVatRate !== null ? parseFloat(selectedVatRate) : null;
+      
+      let totalAmount = 0;
+      const saleItems = cart.map((item) => {
+        let itemTotalPrice = calculateDiscountedItemPrice(item);
+        
+        // If VAT rate is selected, recalculate prices with new VAT rate
+        if (vatRate !== null) {
+          // Calculate price excluding VAT, then apply new VAT rate
+          const currentVatRate = item.vatRate || 23.00;
+          const priceExcludingVat = itemTotalPrice / (1 + currentVatRate / 100);
+          itemTotalPrice = priceExcludingVat * (1 + vatRate / 100);
+        }
+        
+        totalAmount += itemTotalPrice;
+        
+        return {
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: itemTotalPrice,
+          vatRate: vatRate !== null ? vatRate : (item.vatRate || 23.00)
+        };
+      });
 
       const saleData = {
-        totalAmount: calculateTotal(),
+        totalAmount: totalAmount,
         subtotalAmount: calculateSubtotal(),
         discountAmount: calculateDiscountAmount(),
         discountType: appliedDiscount?.type || null,
@@ -753,6 +806,7 @@ const SalesPage = () => {
         paymentMethod: 'CARD',
         saleItems: saleItems,
         userId: user?.id || null,
+        notes: saleNotes || null, // Include notes in sale data
       };
 
       const response = await salesAPI.create(saleData);
@@ -761,6 +815,8 @@ const SalesPage = () => {
       setLastSale(response.data);
       
       setCart([]);
+      setSaleNotes(''); // Clear sale notes after sale
+      setSelectedVatRate(null); // Clear selected VAT rate
       setAppliedDiscount(null); // Clear discount after sale
       setCustomDiscountAmount('');
       setSelectedCartItem(null); // Clear selected item after sale
@@ -800,6 +856,20 @@ const SalesPage = () => {
     setTimeout(() => setSuccess(null), 2000);
   };
 
+  const handleManualSale = () => {
+    const amount = parseFloat(manualSaleAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Please enter a valid amount greater than 0.');
+      addTimeout(() => setError(null), 3000);
+      return;
+    }
+    
+    addOrUpdateQuickSaleItem(amount, 'Manual Sale');
+    setSuccess(`Manual sale of €${amount.toFixed(2)} added to cart.`);
+    setTimeout(() => setSuccess(null), 2000);
+    setManualSaleAmount('');
+  };
+
   const handleCustomQuickPrice = () => {
     const price = parseFloat(quickPrice);
     if (!isNaN(price) && price > 0) {
@@ -814,6 +884,8 @@ const SalesPage = () => {
   const handleCategoryClick = async (category) => {
     if (category.name === 'Quick Sale') {
       setCurrentView('quickSale');
+    } else if (category.name === 'Manual Sales') {
+      setCurrentView('manualSale');
     } else {
       try {
         setLoading(true);
@@ -2039,6 +2111,21 @@ const SalesPage = () => {
                     className="scrollable-categories"
                   >
                   <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                    {/* Manual Sales Button */}
+                    <Button 
+                      size="lg"
+                      className="fw-bold category-btn btn-3d"
+                      onClick={() => setCurrentView('manualSale')}
+                      style={{ 
+                        padding: '1rem', 
+                        fontSize: '1.1rem', 
+                        minHeight: '60px',
+                        backgroundColor: '#1a1a1a',
+                        color: '#ffffff'
+                      }}
+                    >
+                      Manual Sales
+                    </Button>
                 {categories.map((category) => (
                   <Button 
                     key={category.id} 
@@ -2102,6 +2189,79 @@ const SalesPage = () => {
                 ))}
                     </div>
               </div>
+                </>
+              ) : currentView === 'manualSale' ? (
+                <>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <h5 className="fw-bold mb-0">Manual Sales</h5>
+                    <Button 
+                      size="lg" 
+                      onClick={handleBackToCategories}
+                      title="Back to Categories"
+                    style={{ fontSize: '0.9rem', padding: '0.4rem', backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+                    >
+                      <i className="bi bi-x-circle me-2"></i>
+                      Back
+                    </Button>
+            </div>
+                  {/* Manual Sale Input Container */}
+                  <div 
+                    style={{ 
+                      flex: '1',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      padding: '2rem',
+                      gap: '1.5rem'
+                    }}
+                  >
+                    <div>
+                      <label className="form-label fw-bold" style={{ color: '#ffffff', fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                        Enter Amount (€)
+                      </label>
+                      <InputGroup size="lg">
+                        <InputGroup.Text style={{ backgroundColor: '#3a3a3a', color: '#ffffff', border: '1px solid #555' }}>
+                          €
+                        </InputGroup.Text>
+                        <Form.Control
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          placeholder="0.00"
+                          value={manualSaleAmount}
+                          onChange={(e) => setManualSaleAmount(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleManualSale();
+                            }
+                          }}
+                          style={{ 
+                            backgroundColor: '#2a2a2a', 
+                            color: '#ffffff', 
+                            border: '1px solid #555',
+                            fontSize: '1.5rem',
+                            textAlign: 'center'
+                          }}
+                          autoFocus
+                        />
+                      </InputGroup>
+                    </div>
+                    <Button
+                      onClick={handleManualSale}
+                      size="lg"
+                      className="fw-bold btn-3d"
+                      style={{ 
+                        padding: '1.5rem', 
+                        fontSize: '1.3rem', 
+                        backgroundColor: '#3a3a3a',
+                        color: '#ffffff',
+                        border: '2px solid #ffffff'
+                      }}
+                    >
+                      <i className="bi bi-check-circle me-2"></i>
+                      Add to Cart
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -2362,6 +2522,8 @@ const SalesPage = () => {
                         onClick={() => {
                           setCashAmount('');
                           setSelectedNotes({});
+                          setSaleNotes('');
+                          setSelectedVatRate(null);
                         }}
                         style={{ fontSize: '1.5rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                       >
@@ -2445,6 +2607,8 @@ const SalesPage = () => {
                     onClick={() => {
                       setCashAmount('');
                       setSelectedNotes({});
+                      setSaleNotes('');
+                      setSelectedVatRate(null);
                     }}
                     style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
@@ -2720,7 +2884,9 @@ const SalesPage = () => {
                 cashPaymentTimeoutRef.current = null;
               }
               setCashConfirmDialogOpen(false);
-              processCashPayment();
+              // Show notes/VAT dialog instead of processing payment directly
+              setPendingPaymentMethod('CASH');
+              setNotesVatDialogOpen(true);
             }}
             style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             className="px-5"
@@ -2729,6 +2895,111 @@ const SalesPage = () => {
             OK
           </Button>
         </Modal.Body>
+      </Modal>
+
+      {/* Notes and VAT Selection Dialog */}
+      <Modal show={notesVatDialogOpen} onHide={() => setNotesVatDialogOpen(false)} centered size="lg">
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className="bi bi-sticky me-2"></i>
+            Sale Notes & VAT Selection
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          <div className="mb-4">
+            <label className="form-label fw-bold mb-3" style={{ color: '#ffffff', fontSize: '1.1rem' }}>
+              <i className="bi bi-sticky me-2"></i>
+              Sale Notes (Optional)
+            </label>
+            <Form.Control
+              as="textarea"
+              rows={4}
+              placeholder="Enter notes for this sale... (Press Enter for new line)"
+              value={saleNotes}
+              onChange={(e) => setSaleNotes(e.target.value)}
+              maxLength={1000}
+              style={{ 
+                backgroundColor: '#3a3a3a', 
+                border: '2px solid #555', 
+                color: '#ffffff',
+                fontSize: '1.1rem',
+                padding: '0.75rem',
+                resize: 'vertical',
+                fontFamily: 'inherit'
+              }}
+            />
+            <Form.Text className="text-muted" style={{ color: '#aaaaaa' }}>
+              {saleNotes.length}/1000 characters
+            </Form.Text>
+          </div>
+
+          <div className="mb-4">
+            <label className="form-label fw-bold mb-3" style={{ color: '#ffffff', fontSize: '1.1rem' }}>
+              <i className="bi bi-percent me-2"></i>
+              Select VAT Rate (Optional)
+            </label>
+            <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              {[0, 13.5, 23].map((rate) => (
+                <Button
+                  key={rate}
+                  onClick={() => setSelectedVatRate(selectedVatRate === rate ? null : rate)}
+                  className={`fw-bold ${selectedVatRate === rate ? 'active' : ''}`}
+                  size="lg"
+                  style={{ 
+                    padding: '1rem', 
+                    fontSize: '1.2rem',
+                    backgroundColor: selectedVatRate === rate ? '#ffc107' : '#3a3a3a',
+                    border: selectedVatRate === rate ? '3px solid #ffffff' : '1px solid #555',
+                    color: selectedVatRate === rate ? '#000000' : '#ffffff'
+                  }}
+                >
+                  {rate}%
+                </Button>
+              ))}
+            </div>
+            <Form.Text className="text-muted mt-2 d-block" style={{ color: '#aaaaaa' }}>
+              {selectedVatRate !== null 
+                ? `Selected: ${selectedVatRate}% VAT will be applied to all items`
+                : 'No VAT override selected - items will use their default VAT rates'}
+            </Form.Text>
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+          <Button 
+            onClick={() => {
+              setNotesVatDialogOpen(false);
+              setSaleNotes('');
+              setSelectedVatRate(null);
+            }}
+            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => {
+              // Process payment based on pending payment method
+              if (pendingPaymentMethod === 'CASH') {
+                processCashPayment();
+              } else if (pendingPaymentMethod === 'CARD') {
+                processCardPayment();
+              }
+            }}
+            style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#000000', fontWeight: 'bold' }}
+            disabled={loading || paymentInProgressRef.current}
+          >
+            {loading ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-2"></i>
+                Complete Sale
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
       </Modal>
 
       {/* Delete Confirmation Modal */}

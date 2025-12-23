@@ -243,6 +243,17 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         .divider { border-top: 1px dashed #000; margin: 5px 0; }
         .center { text-align: center; }
         .right { text-align: right; }
+        .notes-box { 
+          background-color: #ffff00 !important; 
+          padding: 8px; 
+          margin: 8px 0; 
+          border: 2px solid #000; 
+          text-align: center; 
+          font-weight: 700; 
+          font-size: 13px;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
         * { color: #000 !important; }
       </style>
     </head>
@@ -258,6 +269,14 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       </div>
       
       <div class="divider"></div>
+      
+      ${sale.notes ? `
+        <div style="background-color: #ffff00; padding: 8px; margin: 8px 0; border: 2px solid #000; text-align: center; font-weight: 700; font-size: 13px;">
+          <div style="margin-bottom: 3px;">⚠️ NOTE ⚠️</div>
+          <div style="white-space: pre-wrap; word-wrap: break-word;">${sale.notes}</div>
+        </div>
+        <div class="divider"></div>
+      ` : ''}
       
       ${sale.saleItems.map(item => `
         <div class="item">

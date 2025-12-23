@@ -1,11 +1,21 @@
+-- ============================================
 -- Migration: Add notes column to sales table
--- Date: 2025-01-XX
--- Description: Adds a notes field to the sales table to allow users to add notes to sales transactions
+-- ============================================
+-- This migration adds a notes column to the sales table
+-- to support sale transaction notes functionality
+-- ============================================
 
--- Add notes column to sales table
+-- Add notes column to sales table if it doesn't exist
 ALTER TABLE sales 
 ADD COLUMN IF NOT EXISTS notes VARCHAR(1000);
 
--- Add comment to the column
-COMMENT ON COLUMN sales.notes IS 'Optional notes for the sale transaction';
+-- Add comment to document the column
+COMMENT ON COLUMN sales.notes IS 'Optional notes for the sale transaction (max 1000 characters)';
 
+-- ============================================
+-- Verification Query
+-- ============================================
+-- Run this to verify the column was added:
+-- SELECT column_name, data_type, character_maximum_length 
+-- FROM information_schema.columns 
+-- WHERE table_name = 'sales' AND column_name = 'notes';

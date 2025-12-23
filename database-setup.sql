@@ -125,6 +125,7 @@ CREATE TABLE sales (
     sale_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD')),
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, -- Sales MUST have a user
+    notes VARCHAR(1000), -- Optional notes for the sale transaction
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -289,6 +290,7 @@ BEGIN
     RAISE NOTICE '- Item management with VAT support';
     RAISE NOTICE '- Batch tracking with expiry dates';
     RAISE NOTICE '- Sales tracking with payment methods';
+    RAISE NOTICE '- Sale notes support for transactions';
     RAISE NOTICE '- Sale items with VAT calculations';
     RAISE NOTICE '- Discount support for sales';
     RAISE NOTICE '- Employee attendance tracking';

@@ -1316,17 +1316,40 @@ const SalesPage = () => {
   return (
     <div 
       className="sales-page-container" 
-      style={{ backgroundColor: '#000000', margin: 0, padding: '0.2rem', width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}
+      style={{ 
+        backgroundColor: '#000000', 
+        margin: 0, 
+        padding: 0, 
+        width: '100vw', 
+        height: '100vh', 
+        maxWidth: '100vw',
+        maxHeight: '100vh',
+        overflow: 'hidden', 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        flexDirection: 'column'
+      }}
     >
       <style>{`
         .sales-page-container {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          overflow-x: auto;
-          overflow-y: auto;
           width: 100vw;
           height: 100vh;
-          position: relative;
+          max-width: 100vw;
+          max-height: 100vh;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
           box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
         }
         
         /* Enable scrolling for all child containers when zoomed */
@@ -1448,7 +1471,14 @@ const SalesPage = () => {
         }
       `}</style>
       {/* Compact Header */}
-      <div className="text-white py-2 px-3" style={{ minHeight: '55px', margin: 0, padding: '0.4rem 1rem', backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a' }}>
+      <div className="text-white py-2 px-3" style={{ 
+        minHeight: '55px', 
+        flexShrink: 0,
+        margin: 0, 
+        padding: '0.4rem 1rem', 
+        backgroundColor: '#1a1a1a', 
+        borderBottom: '1px solid #2a2a2a' 
+      }}>
         <div className="d-flex align-items-center justify-content-between w-100">
         <div className="d-flex align-items-center">
             <button
@@ -1627,7 +1657,18 @@ const SalesPage = () => {
       {/* Main Content - Two Column Layout */}
       <div className="d-flex" style={{ margin: 0, padding: '0.3rem', gap: '0.4rem', minWidth: 'fit-content', minHeight: 'fit-content' }}>
           {/* Left Panel - Items Grid (70%) */}
-        <div className="d-flex flex-column" style={{ width: '70%', padding: 0, backgroundColor: '#2a2a2a', borderRadius: '8px', overflow: 'hidden', color: '#ffffff', border: '1px solid #333333' }}>
+        <div className="d-flex flex-column" style={{ 
+          width: '70%', 
+          flex: '0 0 70%',
+          padding: 0, 
+          backgroundColor: '#2a2a2a', 
+          borderRadius: '8px', 
+          overflow: 'hidden', 
+          color: '#ffffff', 
+          border: '1px solid #333333',
+          minHeight: 0,
+          height: '100%'
+        }}>
           {showHeldTransactions ? (
             /* Held Transactions View */
             <div className="bg-dark" style={{ height: '100%', overflowY: 'auto', padding: '1rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
@@ -1708,9 +1749,18 @@ const SalesPage = () => {
             /* Normal Sales View */
             <>
             {/* Sales Cart Table with Control Buttons */}
-            <div className="d-flex">
+            <div className="d-flex" style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}>
               {/* Cart Table */}
-              <div className="bg-dark flex-grow-1" style={{ height: '350px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333', borderRadius: '8px', color: '#ffffff' }}>
+              <div className="bg-dark flex-grow-1" style={{ 
+                flex: '1 1 auto',
+                minHeight: 0,
+                overflowY: 'auto', 
+                padding: '0.5rem', 
+                backgroundColor: '#2a2a2a', 
+                border: '1px solid #333333', 
+                borderRadius: '8px', 
+                color: '#ffffff' 
+              }}>
               {cart.length === 0 ? (
                   <div className="text-center py-2">
                     <i className="bi bi-cart fs-3" style={{ color: '#aaaaaa' }}></i>
@@ -2052,7 +2102,18 @@ const SalesPage = () => {
         </div>
 
           {/* Right Sidebar */}
-        <div className="d-flex flex-column" style={{ width: '35%', padding: 0, borderRadius: '8px', border: '1px solid #333333', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+        <div className="d-flex flex-column" style={{ 
+          width: '30%', 
+          flex: '0 0 30%',
+          padding: 0, 
+          borderRadius: '8px', 
+          border: '1px solid #333333', 
+          backgroundColor: '#2a2a2a', 
+          color: '#ffffff',
+          minHeight: 0,
+          height: '100%',
+          overflow: 'hidden'
+        }}>
             {/* Selected Item Display */}
             {selectedCartItem && (
               <div className="mb-1 p-1 bg-dark rounded border" style={{ backgroundColor: '#2a2a2a', borderColor: '#333333', color: '#ffffff' }}>

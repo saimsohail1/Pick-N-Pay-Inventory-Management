@@ -2928,7 +2928,7 @@ const SalesPage = () => {
                 fontFamily: 'inherit'
               }}
             />
-            <Form.Text className="text-muted" style={{ color: '#aaaaaa' }}>
+            <Form.Text className="text-muted" style={{ color: '#ffffff', fontSize: '0.95rem' }}>
               {saleNotes.length}/1000 characters
             </Form.Text>
           </div>
@@ -2957,7 +2957,7 @@ const SalesPage = () => {
                 </Button>
               ))}
             </div>
-            <Form.Text className="text-muted mt-2 d-block" style={{ color: '#aaaaaa' }}>
+            <Form.Text className="text-muted mt-2 d-block" style={{ color: '#ffffff', fontSize: '0.95rem', fontWeight: '500' }}>
               {selectedVatRate !== null 
                 ? `Selected: ${selectedVatRate}% VAT will be applied to all items`
                 : 'No VAT override selected - items will use their default VAT rates'}

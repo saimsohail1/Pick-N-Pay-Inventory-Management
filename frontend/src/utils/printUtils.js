@@ -852,6 +852,23 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
           font-weight: bold;
           font-size: 12px;
         }
+        
+        .notes-box {
+          background-color: #ffff00;
+          padding: 8px;
+          margin: 5px 0;
+          border: 2px solid #000;
+          font-weight: bold;
+          font-size: 11px;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        .vat-info {
+          font-size: 10px;
+          color: #555;
+          margin-top: 3px;
+        }
       </style>
     </head>
     <body>
@@ -873,23 +890,38 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
           </tr>
         </thead>
         <tbody>
-          ${sales.map((sale, index) => `
+          ${sales.map((sale, index) => {
+            // Get VAT rate from first item (all items in a sale have the same VAT rate)
+            const vatRate = sale.saleItems && sale.saleItems.length > 0 
+              ? parseFloat(sale.saleItems[0].vatRate || 23.00).toFixed(1) 
+              : '23.0';
+            
+            return `
             <tr>
               <td class="sale-number">${index + 1}</td>
               <td>${new Date(sale.saleDate).toLocaleString()}</td>
               <td class="payment-method ${sale.paymentMethod === 'CASH' ? 'payment-cash' : 'payment-card'}">${sale.paymentMethod}</td>
               <td>
+                ${sale.notes ? `
+                  <div class="notes-box">
+                    <strong>⚠️ NOTE:</strong> ${sale.notes}
+                  </div>
+                ` : ''}
                 ${(sale.saleItems || []).map(item => `
                   <div class="sale-item">
                     <strong>${item.itemName || 'Unknown Item'}</strong> 
                     (${item.quantity || 0}x) 
                     <span class="right">€${parseFloat(item.totalPrice || 0).toFixed(2)}</span>
-          </div>
-        `).join('')}
+                  </div>
+                `).join('')}
+                <div class="vat-info" style="margin-top: 5px; padding-top: 5px; border-top: 1px dotted #ccc; font-weight: bold;">
+                  VAT: ${vatRate}%
+                </div>
               </td>
               <td class="right total-amount">€${parseFloat(sale.totalAmount || 0).toFixed(2)}</td>
             </tr>
-          `).join('')}
+          `;
+          }).join('')}
         </tbody>
       </table>
       

@@ -1,0 +1,1098 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Row,
+  Col,
+  Card,
+  Button,
+  Table,
+  Modal,
+  Alert,
+  Spinner,
+  Form,
+  Badge,
+  InputGroup,
+  Pagination
+} from 'react-bootstrap';
+import { itemsAPI, categoriesAPI } from '../services/api';
+import EditItemDialog from '../components/EditItemDialog';
+import JsBarcode from 'jsbarcode';
+
+const InventoryPage = () => {
+  const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [sortBy, setSortBy] = useState('id'); // Default sort by id
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' for descending (newest first)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize] = useState(100); // 100 items per page
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [filters, setFilters] = useState({
+    stockFilter: 'all', // 'all', 'low', 'out', 'medium', 'normal'
+    expiryFilter: 'all', // 'all', 'expired', 'expiring', 'valid'
+    categoryFilter: 'all' // 'all' or specific category ID
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [vatManuallyChanged, setVatManuallyChanged] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    stockQuantity: '',
+    barcode: '',
+    vatRate: '23.00', // Default 23% VAT
+    categoryId: '',
+    batchId: '',
+    generalExpiryDate: ''
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [itemsResponse, categoriesResponse] = await Promise.all([
+          itemsAPI.getAllPaginated(currentPage, pageSize, sortBy, sortOrder),
+          categoriesAPI.getAll()
+        ]);
+        
+        // Handle paginated response
+        if (itemsResponse.data.content) {
+          setItems(itemsResponse.data.content);
+          setTotalPages(itemsResponse.data.totalPages);
+          setTotalElements(itemsResponse.data.totalElements);
+        } else {
+          // Fallback for non-paginated response
+        setItems(itemsResponse.data);
+          if (Array.isArray(itemsResponse.data)) {
+            setTotalElements(itemsResponse.data.length);
+          }
+        }
+        
+        setCategories(categoriesResponse.data);
+      } catch (err) {
+        setError('Failed to fetch data');
+        console.error('Failed to fetch data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [currentPage, pageSize, sortBy, sortOrder]);
+
+
+  const fetchItems = async () => {
+    setLoading(true);
+    try {
+      const response = await itemsAPI.getAllPaginated(currentPage, pageSize, sortBy, sortOrder);
+      
+      // Handle paginated response
+      if (response.data.content) {
+        setItems(response.data.content);
+        setTotalPages(response.data.totalPages);
+        setTotalElements(response.data.totalElements);
+      } else {
+        // Fallback for non-paginated response
+      setItems(response.data);
+      }
+    } catch (err) {
+      setError('Failed to fetch items');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoriesAPI.getAll();
+      setCategories(response.data);
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    
+    // If category is changed, update VAT from category (unless manually changed)
+    if (name === 'categoryId') {
+      const selectedCategory = categories.find(cat => cat.id === parseInt(value));
+      setFormData(prev => {
+        const newData = { ...prev, [name]: value };
+        // Update VAT from category if not manually changed
+        if (!vatManuallyChanged) {
+          if (selectedCategory && selectedCategory.vatRate) {
+            newData.vatRate = parseFloat(selectedCategory.vatRate).toFixed(2);
+          } else {
+            newData.vatRate = '23.00'; // Default if no category
+          }
+        }
+        return newData;
+      });
+    } else if (name === 'vatRate') {
+      // VAT is being manually changed
+      setVatManuallyChanged(true);
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const itemData = {
+        ...formData,
+        price: parseFloat(formData.price),
+        stockQuantity: parseInt(formData.stockQuantity),
+        vatRate: parseFloat(formData.vatRate),
+        categoryId: formData.categoryId && formData.categoryId.trim() !== '' ? formData.categoryId : null
+      };
+
+      if (editingItem) {
+        await itemsAPI.update(editingItem.id, itemData);
+        setSuccess('Item updated successfully');
+      } else {
+        await itemsAPI.create(itemData);
+        setSuccess('Item added successfully');
+      }
+
+      setShowAddModal(false);
+      setShowEditModal(false);
+      setEditingItem(null);
+      setVatManuallyChanged(false);
+      setFormData({
+        name: '',
+        description: '',
+        price: '',
+        stockQuantity: '',
+        barcode: '',
+        vatRate: '23.00',
+        categoryId: '',
+        batchId: '',
+        generalExpiryDate: ''
+      });
+      // Reset to first page and refresh
+      setCurrentPage(0);
+      fetchItems();
+    } catch (err) {
+      const errorMessage = err.response?.data || 'Failed to save item';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (item) => {
+    setEditingItem(item);
+    setShowEditModal(true);
+  };
+
+  const handleEditItem = async (formData) => {
+    if (!editingItem) return;
+    
+    setLoading(true);
+    try {
+      const itemData = {
+        ...formData,
+        price: parseFloat(formData.price),
+        stockQuantity: parseInt(formData.stockQuantity),
+        vatRate: parseFloat(formData.vatRate)
+      };
+
+      await itemsAPI.update(editingItem.id, itemData);
+      setSuccess('Item updated successfully');
+      setShowEditModal(false);
+      setEditingItem(null);
+      // Refresh current page
+      fetchItems();
+    } catch (err) {
+      setError('Failed to update item');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this item?')) {
+      setLoading(true);
+      try {
+        await itemsAPI.delete(id);
+        setSuccess('Item deleted successfully');
+        // Refresh current page
+        fetchItems();
+      } catch (err) {
+        const errorMessage = err.response?.data || 'Failed to delete item';
+        setError(errorMessage);
+        console.error('Delete item error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handlePrintLabel = (item) => {
+    // Generate barcode SVG
+    let barcodeDataURL = '';
+    if (item.barcode) {
+      try {
+        const canvas = document.createElement('canvas');
+        JsBarcode(canvas, item.barcode, {
+          format: 'CODE128',
+          width: 0.7,
+          height: 30,
+          displayValue: false,
+          margin: 0
+        });
+        barcodeDataURL = canvas.toDataURL('image/png');
+      } catch (error) {
+        console.error('Error generating barcode:', error);
+      }
+    }
+    
+    const labelHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Item Label - ${item.name}</title>
+        <meta charset="UTF-8">
+        <style>
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          
+          @media print {
+            @page { 
+              size: 2in 4in;
+              margin: 0.01in;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+            }
+          }
+          
+          body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 4in;
+            padding: 0.01in;
+            font-weight: bold;
+          }
+          
+          .label-container {
+            text-align: center;
+            width: 100%;
+            padding: 0;
+          }
+          
+          .item-name {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+            line-height: 1.2;
+          }
+          
+          .barcode-container {
+            margin: 8px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+          
+          .barcode-image {
+            max-width: 100%;
+            height: auto;
+          }
+          
+          .item-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #000;
+            margin-top: 5px;
+          }
+          
+          .price-symbol {
+            font-size: 18px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="label-container">
+          <div class="item-name">${item.name}</div>
+          ${barcodeDataURL ? `
+            <div class="barcode-container">
+              <img src="${barcodeDataURL}" alt="Barcode" class="barcode-image" />
+            </div>
+          ` : ''}
+          <div class="item-price">
+            <span class="price-symbol">€</span>${item.price.toFixed(2)}
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Create hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '-9999px';
+    document.body.appendChild(iframe);
+    
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(labelHTML);
+    doc.close();
+    
+    // Wait for content to load then print
+    setTimeout(() => {
+      iframe.contentWindow.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    }, 500);
+  };
+
+  // Filter and sort items based on current settings
+  const getFilteredAndSortedItems = () => {
+    let filteredItems = [...items];
+
+    // Apply search filter (barcode or name)
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filteredItems = filteredItems.filter(item => {
+        const itemName = (item.name || '').toLowerCase();
+        const itemBarcode = (item.barcode || '').toLowerCase();
+        return itemName.includes(searchLower) || itemBarcode.includes(searchLower);
+      });
+    }
+
+    // Apply stock filters
+    if (filters.stockFilter === 'out') {
+      filteredItems = filteredItems.filter(item => item.stockQuantity <= 0);
+    } else if (filters.stockFilter === 'low') {
+      filteredItems = filteredItems.filter(item => item.stockQuantity > 0 && item.stockQuantity <= 10);
+    } else if (filters.stockFilter === 'medium') {
+      filteredItems = filteredItems.filter(item => item.stockQuantity > 10 && item.stockQuantity <= 50);
+    } else if (filters.stockFilter === 'normal') {
+      filteredItems = filteredItems.filter(item => item.stockQuantity > 50);
+    }
+
+    // Apply expiry filters
+    if (filters.expiryFilter === 'expired') {
+      filteredItems = filteredItems.filter(item => 
+        item.generalExpiryDate && new Date(item.generalExpiryDate) < new Date()
+      );
+    } else if (filters.expiryFilter === 'expiring') {
+      const oneWeekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      filteredItems = filteredItems.filter(item => 
+        item.generalExpiryDate && 
+        new Date(item.generalExpiryDate) >= new Date() && 
+        new Date(item.generalExpiryDate) <= oneWeekFromNow
+      );
+    } else if (filters.expiryFilter === 'valid') {
+      filteredItems = filteredItems.filter(item => 
+        !item.generalExpiryDate || new Date(item.generalExpiryDate) > new Date()
+      );
+    }
+
+    // Apply category filter
+    if (filters.categoryFilter !== 'all') {
+      filteredItems = filteredItems.filter(item => 
+        item.categoryId === parseInt(filters.categoryFilter)
+      );
+    }
+
+    // Sort filtered items
+    return filteredItems.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'stockQuantity':
+          aValue = a.stockQuantity;
+          bValue = b.stockQuantity;
+          break;
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'price':
+          aValue = a.price;
+          bValue = b.price;
+          break;
+        case 'expiryDate':
+          aValue = a.generalExpiryDate ? new Date(a.generalExpiryDate) : new Date('9999-12-31');
+          bValue = b.generalExpiryDate ? new Date(b.generalExpiryDate) : new Date('9999-12-31');
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+  };
+
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+    // Reset to first page when sorting changes
+    setCurrentPage(0);
+  };
+  
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+
+  if (loading && items.length === 0) {
+    return (
+      <div className="text-center py-5">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
+        <p className="mt-3">Loading inventory...</p>
+      </div>
+    );
+  }
+
+  // Calculate low stock count from current page items
+  const lowStockCount = items.filter(item => item.stockQuantity <= 10).length;
+
+  return (
+    <div style={{ backgroundColor: '#1a1a1a', minHeight: '100vh' }}>
+      <style>{`
+        /* 3D Button Effect - Similar to Dashboard stats-card */
+        .btn-3d {
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+          transition: all 0.3s ease;
+          border: 1px solid #333333 !important;
+        }
+        
+        .btn-3d::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #4a4a4a 0%, #3a3a3a 100%);
+          z-index: 1;
+        }
+        
+        .btn-3d:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 16px rgba(255, 255, 255, 0.15), 0 4px 8px rgba(0, 0, 0, 0.3);
+          border-color: #4a4a4a !important;
+        }
+        
+        .btn-3d:hover::before {
+          background: linear-gradient(90deg, #5a5a5a 0%, #4a4a4a 100%);
+        }
+        
+        .btn-3d:active {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-3d:disabled {
+          transform: none;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+          opacity: 0.5;
+        }
+      `}</style>
+
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError(null)} className="mb-3" style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert variant="success" dismissible onClose={() => setSuccess(null)} className="mb-3">
+          {success}
+        </Alert>
+      )}
+
+      <Card className="shadow-sm" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+        <Card.Header style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
+              <i className="bi bi-box-seam me-2" style={{ color: '#ffffff' }}></i>
+              Inventory
+            </h1>
+            <Button 
+              onClick={() => {
+                setVatManuallyChanged(false);
+                setFormData({
+                  name: '',
+                  description: '',
+                  price: '',
+                  stockQuantity: '',
+                  barcode: '',
+                  vatRate: '23.00',
+                  categoryId: '',
+                  batchId: '',
+                  expiryDate: ''
+                });
+                setShowAddModal(true);
+              }}
+              style={{ backgroundColor: '#3a3a3a', border: '1px solid #333333', color: '#ffffff' }}
+              className="fw-bold"
+            >
+              <i className="bi bi-plus-circle me-2"></i>
+              Add Item
+            </Button>
+          </div>
+          <div className="d-flex gap-2 align-items-center">
+            <Button className="btn-3d" disabled style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+              <i className="bi bi-box me-2"></i>
+              Items on Page: {items.length}
+            </Button>
+            <Button className="btn-3d" disabled style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+              <i className="bi bi-archive me-2"></i>
+              Total Items: {totalElements}
+            </Button>
+            <Button className="btn-3d" disabled style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+              <i className="bi bi-exclamation-triangle me-2"></i>
+              Low Stock: {lowStockCount}
+            </Button>
+          </div>
+        </Card.Header>
+        <Card.Body className="p-0">
+          {/* Filters */}
+          <div className="p-3 border-bottom" style={{ backgroundColor: '#2a2a2a' }}>
+            {/* Search Bar */}
+            <div className="row mb-3">
+              <div className="col-md-6">
+                <label className="form-label small fw-bold" style={{ color: '#ffffff' }}>
+                  <i className="bi bi-search me-1"></i>Search by Name or Barcode
+                </label>
+                <InputGroup>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter item name or barcode..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    size="sm"
+                    style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
+                  />
+                  {searchTerm && (
+                    <Button
+                      size="sm"
+                      onClick={() => setSearchTerm('')}
+                      title="Clear search"
+                      style={{ backgroundColor: 'transparent', border: '1px solid #ffffff', color: '#ffffff' }}
+                    >
+                      <i className="bi bi-x"></i>
+                    </Button>
+                  )}
+                </InputGroup>
+              </div>
+            </div>
+            <div className="row g-3">
+              <div className="col-md-3">
+                <label className="form-label small fw-bold" style={{ color: '#ffffff' }}>Stock Filter</label>
+                <Form.Select 
+                  size="sm" 
+                  value={filters.stockFilter}
+                  onChange={(e) => setFilters(prev => ({ ...prev, stockFilter: e.target.value }))}
+                  style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
+                >
+                  <option value="all">All Items</option>
+                  <option value="out">Out of Stock (0)</option>
+                  <option value="low">Low Stock (1-10)</option>
+                  <option value="medium">Medium Stock (10-50)</option>
+                  <option value="normal">Normal Stock (50+)</option>
+                </Form.Select>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small fw-bold" style={{ color: '#ffffff' }}>Expiry Filter</label>
+                <Form.Select 
+                  size="sm" 
+                  value={filters.expiryFilter}
+                  onChange={(e) => setFilters(prev => ({ ...prev, expiryFilter: e.target.value }))}
+                  style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
+                >
+                  <option value="all">All Items</option>
+                  <option value="expired">Expired</option>
+                  <option value="expiring">Expiring Soon (7 days)</option>
+                  <option value="valid">Valid/No Expiry</option>
+                </Form.Select>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small fw-bold" style={{ color: '#ffffff' }}>Category Filter</label>
+                <Form.Select 
+                  size="sm" 
+                  value={filters.categoryFilter}
+                  onChange={(e) => setFilters(prev => ({ ...prev, categoryFilter: e.target.value }))}
+                  style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
+                </Form.Select>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small fw-bold" style={{ color: '#ffffff' }}>Sort By</label>
+                <Form.Select 
+                  size="sm" 
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setSortOrder('asc');
+                  }}
+                  style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
+                >
+                  <option value="stockQuantity">Stock Quantity</option>
+                  <option value="name">Name</option>
+                  <option value="price">Price</option>
+                  <option value="expiryDate">Expiry Date</option>
+                </Form.Select>
+              </div>
+            </div>
+            <div className="row mt-2">
+              <div className="col-12">
+                <div className="d-flex align-items-center justify-content-between">
+                  <small className="text-muted">
+                    <i className="bi bi-funnel me-1"></i>
+                    Showing {getFilteredAndSortedItems().length} of {items.length} items
+                    {searchTerm && ` (Search: "${searchTerm}")`}
+                    {filters.stockFilter !== 'all' && ` (Stock: ${filters.stockFilter})`}
+                    {filters.expiryFilter !== 'all' && ` (Expiry: ${filters.expiryFilter})`}
+                    {filters.categoryFilter !== 'all' && ` (Category: ${categories.find(c => c.id === parseInt(filters.categoryFilter))?.name})`}
+                  </small>
+                  <small className="text-muted">
+                    <i className="bi bi-sort-down me-1"></i>
+                    Sorted by <strong>{sortBy === 'stockQuantity' ? 'Stock Quantity' : sortBy === 'name' ? 'Name' : sortBy === 'price' ? 'Price' : 'Expiry Date'}</strong> 
+                    ({sortOrder === 'asc' ? 'Ascending' : 'Descending'})
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div>
+          <Table responsive hover className="mb-0">
+            <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+              <tr>
+                <th 
+                  className="cursor-pointer" 
+                  onClick={() => handleSort('name')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Name
+                  {sortBy === 'name' && (
+                    <i className={`bi bi-${sortOrder === 'asc' ? 'sort-alpha-up' : 'sort-alpha-down'} ms-1`}></i>
+                  )}
+                </th>
+                <th>Category</th>
+                <th>Description</th>
+                <th 
+                  className="text-end cursor-pointer" 
+                  onClick={() => handleSort('price')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Price
+                  {sortBy === 'price' && (
+                    <i className={`bi bi-${sortOrder === 'asc' ? 'sort-numeric-up' : 'sort-numeric-down'} ms-1`}></i>
+                  )}
+                </th>
+                <th 
+                  className="text-center cursor-pointer" 
+                  onClick={() => handleSort('stockQuantity')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Stock
+                  {sortBy === 'stockQuantity' && (
+                    <i className={`bi bi-${sortOrder === 'asc' ? 'sort-numeric-up' : 'sort-numeric-down'} ms-1`}></i>
+                  )}
+                </th>
+                <th>Barcode</th>
+                <th className="text-center">Batch ID</th>
+                <th 
+                  className="text-center cursor-pointer" 
+                  onClick={() => handleSort('expiryDate')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Expiry Date
+                  {sortBy === 'expiryDate' && (
+                    <i className={`bi bi-${sortOrder === 'asc' ? 'sort-up' : 'sort-down'} ms-1`}></i>
+                  )}
+                </th>
+                <th className="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {getFilteredAndSortedItems().length === 0 ? (
+                <tr>
+                  <td colSpan="9" className="text-center py-5">
+                    <div style={{ color: '#aaaaaa' }}>
+                      <i className="bi bi-inbox" style={{ fontSize: '3rem', display: 'block', marginBottom: '1rem' }}></i>
+                      <p className="mb-0">No items found matching the current filters.</p>
+                      {filters.stockFilter === 'out' && (
+                        <p className="mt-2 small">Try selecting "All Items" to see all items including out-of-stock.</p>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                getFilteredAndSortedItems().map((item) => (
+                <tr key={item.id}>
+                  <td className="fw-bold">{item.name}</td>
+                  <td>
+                    <Badge bg="info" className="fs-6">
+                      {item.categoryName || 'No Category'}
+                    </Badge>
+                  </td>
+                  <td className="text-muted">{item.description || '-'}</td>
+                  <td className="text-end fw-bold">€{item.price.toFixed(2)}</td>
+                  <td className="text-center">
+                    <Badge 
+                      bg={item.stockQuantity <= 0 ? 'danger' : item.stockQuantity <= 10 ? 'warning' : 'success'}
+                      className="fs-6"
+                    >
+                      {item.stockQuantity}
+                    </Badge>
+                  </td>
+                  <td>
+                    <code className="text-muted">{item.barcode || '-'}</code>
+                  </td>
+                  <td className="text-center">
+                    <code className="text-info">{item.batchId || '-'}</code>
+                  </td>
+                  <td className="text-center">
+                    {item.generalExpiryDate ? (
+                      <Badge 
+                        bg={new Date(item.generalExpiryDate) < new Date() ? 'danger' : 
+                            new Date(item.generalExpiryDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? 'warning' : 'success'}
+                        className="fs-6"
+                      >
+                        {new Date(item.generalExpiryDate).toLocaleDateString()}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted">-</span>
+                    )}
+                  </td>
+                  <td className="text-center">
+                    <div className="d-flex justify-content-center gap-2">
+                      <Button
+                        onClick={() => handleEdit(item)}
+                        title="Edit Item"
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #ffffff',
+                          color: '#ffffff'
+                        }}
+                      >
+                        <i className="bi bi-pencil" style={{ fontSize: '18px' }}></i>
+                      </Button>
+                      <Button
+                        onClick={() => handlePrintLabel(item)}
+                        title="Print Label"
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #ffffff',
+                          color: '#ffffff'
+                        }}
+                      >
+                        <i className="bi bi-printer" style={{ fontSize: '18px' }}></i>
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(item.id)}
+                        title="Delete Item"
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #ffffff',
+                          color: '#ffffff'
+                        }}
+                      >
+                        <i className="bi bi-trash" style={{ fontSize: '18px' }}></i>
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+              )}
+            </tbody>
+          </Table>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="d-flex justify-content-between align-items-center p-3 border-top">
+              <div className="text-muted">
+                Showing {currentPage * pageSize + 1} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} items
+              </div>
+              <Pagination className="mb-0">
+                <Pagination.First 
+                  onClick={() => handlePageChange(0)} 
+                  disabled={currentPage === 0}
+                />
+                <Pagination.Prev 
+                  onClick={() => handlePageChange(currentPage - 1)} 
+                  disabled={currentPage === 0}
+                />
+                
+                {/* Show page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i;
+                  } else if (currentPage < 3) {
+                    pageNum = i;
+                  } else if (currentPage > totalPages - 4) {
+                    pageNum = totalPages - 5 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <Pagination.Item
+                      key={pageNum}
+                      active={pageNum === currentPage}
+                      onClick={() => handlePageChange(pageNum)}
+                    >
+                      {pageNum + 1}
+                    </Pagination.Item>
+                  );
+                })}
+                
+                <Pagination.Next 
+                  onClick={() => handlePageChange(currentPage + 1)} 
+                  disabled={currentPage >= totalPages - 1}
+                />
+                <Pagination.Last 
+                  onClick={() => handlePageChange(totalPages - 1)} 
+                  disabled={currentPage >= totalPages - 1}
+                />
+              </Pagination>
+            </div>
+          )}
+        </Card.Body>
+      </Card>
+
+      {/* Add Item Modal */}
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} size="lg">
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className="bi bi-plus-circle me-2" style={{ color: '#ffffff' }}></i>
+            Add New Item
+          </Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSubmit}>
+          <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Item Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Barcode</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="barcode"
+                    value={formData.barcode}
+                    onChange={handleInputChange}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Form.Group className="mb-3">
+              <Form.Label>Category</Form.Label>
+              <Form.Select
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleInputChange}
+                style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+              >
+                <option value="">Select a category (optional)</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+              />
+            </Form.Group>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Price (€) *</Form.Label>
+                  <InputGroup>
+                    <InputGroup.Text style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>€</InputGroup.Text>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleInputChange}
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                    />
+                  </InputGroup>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Stock Quantity *</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="stockQuantity"
+                    value={formData.stockQuantity}
+                    onChange={handleInputChange}
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>VAT Rate (%) *</Form.Label>
+                  <InputGroup>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      name="vatRate"
+                      value={formData.vatRate}
+                      onChange={handleInputChange}
+                      placeholder="23.00"
+                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                    />
+                    <InputGroup.Text style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>%</InputGroup.Text>
+                  </InputGroup>
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Batch ID</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="batchId"
+                    value={formData.batchId}
+                    onChange={handleInputChange}
+                    placeholder="Enter batch ID (optional)"
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Expiry Date</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="generalExpiryDate"
+                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                    value={formData.generalExpiryDate}
+                    onChange={handleInputChange}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+            <Button onClick={() => setShowAddModal(false)} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
+              {loading ? (
+                <>
+                  <Spinner size="sm" className="me-2" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-plus-circle me-2"></i>
+                  Add Item
+                </>
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* Edit Item Modal */}
+      <EditItemDialog
+        show={showEditModal}
+        onHide={() => setShowEditModal(false)}
+        itemToEdit={editingItem}
+        categories={categories}
+        onSave={handleEditItem}
+        title="Edit Item"
+        isEditMode={true}
+      />
+    </div>
+  );
+};
+
+export default InventoryPage;

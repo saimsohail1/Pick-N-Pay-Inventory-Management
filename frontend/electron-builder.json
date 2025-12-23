@@ -1,0 +1,29 @@
+{
+  "appId": "com.picknpay.inventory",
+  "productName": "InventoryManagementSystem",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "**/*",
+    "!dist/**/*",
+    "!node_modules/.cache/**/*"
+  ],
+  "asar": true,
+  "asarUnpack": [
+    "backend/**"
+  ],
+  "extraMetadata": {
+    "main": "main.js"
+  },
+  "extraResources": [
+    {
+      "from": "backend/",
+      "to": "backend",
+      "filter": ["*.jar"]
+    }
+  ],
+  "win": {
+    "target": "nsis"
+  }
+}

@@ -1,0 +1,410 @@
+package com.picknpay.service;
+
+import com.picknpay.dto.AttendanceDTO;
+import com.picknpay.entity.Attendance;
+import com.picknpay.entity.User;
+import com.picknpay.repository.AttendanceRepository;
+import com.picknpay.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional
+public class AttendanceService {
+    
+    @Autowired
+    private AttendanceRepository attendanceRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
+    
+    /**
+     * Mark time-in for a user on a specific date
+     * Ensures only one record per user per day
+     * Uses the first time-in (earliest time)
+     */
+    public AttendanceDTO markTimeIn(Long userId, LocalDate date, LocalTime timeIn) {
+        // Validate user exists
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+        
+        // Find existing attendance record for this user and date
+        Optional<Attendance> existingAttendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, date);
+        
+        Attendance attendance;
+        if (existingAttendance.isPresent()) {
+            // Update existing record - only set time-in if it's earlier than existing (first time-in)
+            attendance = existingAttendance.get();
+            if (attendance.getTimeIn() == null || timeIn.isBefore(attendance.getTimeIn())) {
+                attendance.setTimeIn(timeIn);
+            }
+        } else {
+            // Create new record
+            attendance = new Attendance();
+            attendance.setUser(user);
+            attendance.setAttendanceDate(date);
+            attendance.setTimeIn(timeIn);
+        }
+        
+        attendance = attendanceRepository.save(attendance);
+        return convertToDTO(attendance);
+    }
+    
+    /**
+     * Mark time-out for a user on a specific date
+     * Ensures only one record per user per day
+     * Uses the last time-out (latest time)
+     */
+    public AttendanceDTO markTimeOut(Long userId, LocalDate date, LocalTime timeOut) {
+        // Validate user exists
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+        
+        // Find existing attendance record for this user and date
+        Attendance attendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, date)
+                .orElseThrow(() -> new RuntimeException("No attendance record found for user " + user.getFullName() + " on " + date));
+        
+        // Validate time-out is after time-in
+        if (attendance.getTimeIn() != null && timeOut.isBefore(attendance.getTimeIn())) {
+            throw new RuntimeException("Time-out cannot be before time-in");
+        }
+        
+        // Only update time-out if it's later than existing (last time-out)
+        if (attendance.getTimeOut() == null || timeOut.isAfter(attendance.getTimeOut())) {
+            attendance.setTimeOut(timeOut);
+        }
+        
+        attendance = attendanceRepository.save(attendance);
+        return convertToDTO(attendance);
+    }
+    
+    /**
+     * Get attendance for a user on a specific date (returns first one for backward compatibility)
+     */
+    public Optional<AttendanceDTO> getAttendanceByUserAndDate(Long userId, LocalDate date) {
+        return attendanceRepository.findByUserIdAndAttendanceDate(userId, date)
+                .map(this::convertToDTO);
+    }
+    
+    /**
+     * Get all attendances for a user on a specific date
+     */
+    public List<AttendanceDTO> getAllAttendancesByUserAndDate(Long userId, LocalDate date) {
+        return attendanceRepository.findAllByUserIdAndAttendanceDate(userId, date).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Automatically mark time-out for all open attendances at 11:59 PM
+     * This method is called by a scheduled task
+     */
+    public void autoTimeOutAtEndOfDay() {
+        LocalDate today = LocalDate.now();
+        LocalTime endOfDay = LocalTime.of(23, 59, 0);
+        
+        // Find all open attendances for today
+        List<Attendance> openAttendances = attendanceRepository.findByAttendanceDate(today).stream()
+                .filter(a -> a.getTimeOut() == null)
+                .collect(Collectors.toList());
+        
+        for (Attendance attendance : openAttendances) {
+            attendance.setTimeOut(endOfDay);
+            attendanceRepository.save(attendance);
+        }
+        
+        System.out.println("Auto time-out completed for " + openAttendances.size() + " open attendances on " + today);
+    }
+    
+    /**
+     * Get all attendances for a user in a date range
+     */
+    public List<AttendanceDTO> getAttendanceByUserAndDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
+        return attendanceRepository.findByUserIdAndAttendanceDateBetween(userId, startDate, endDate).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get all attendances for a specific date (admin only)
+     * Returns one record per user (the one with earliest time-in)
+     */
+    public List<AttendanceDTO> getAttendanceByDate(LocalDate date) {
+        List<Attendance> allAttendances = attendanceRepository.findByAttendanceDate(date);
+        
+        // Group by user and keep only the first record (earliest time-in) for each user
+        Map<Long, Attendance> userAttendanceMap = new HashMap<>();
+        for (Attendance attendance : allAttendances) {
+            Long userId = attendance.getUser().getId();
+            if (!userAttendanceMap.containsKey(userId)) {
+                userAttendanceMap.put(userId, attendance);
+            } else {
+                // Keep the one with earlier time-in
+                Attendance existing = userAttendanceMap.get(userId);
+                if (attendance.getTimeIn() != null && 
+                    (existing.getTimeIn() == null || attendance.getTimeIn().isBefore(existing.getTimeIn()))) {
+                    // If new record has earlier time-in, update it but preserve later time-out
+                    if (existing.getTimeOut() != null && 
+                        (attendance.getTimeOut() == null || existing.getTimeOut().isAfter(attendance.getTimeOut()))) {
+                        attendance.setTimeOut(existing.getTimeOut());
+                    }
+                    userAttendanceMap.put(userId, attendance);
+                } else if (existing.getTimeIn() != null && attendance.getTimeIn() != null) {
+                    // If existing has earlier time-in, but new has later time-out, update time-out
+                    if (attendance.getTimeOut() != null && 
+                        (existing.getTimeOut() == null || attendance.getTimeOut().isAfter(existing.getTimeOut()))) {
+                        existing.setTimeOut(attendance.getTimeOut());
+                    }
+                }
+            }
+        }
+        
+        return userAttendanceMap.values().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get all attendances in a date range (admin only)
+     */
+    public List<AttendanceDTO> getAllAttendanceByDateRange(LocalDate startDate, LocalDate endDate) {
+        return attendanceRepository.findByAttendanceDateBetween(startDate, endDate).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get weekly report for a specific user
+     * Returns total hours worked in the week starting from weekStart
+     */
+    public BigDecimal getWeeklyTotalHours(Long userId, LocalDate weekStart) {
+        LocalDate weekEnd = weekStart.plusDays(6); // End of week (Sunday)
+        BigDecimal totalHours = attendanceRepository.getWeeklyTotalHours(userId, weekStart, weekEnd);
+        return totalHours != null ? totalHours : BigDecimal.ZERO;
+    }
+    
+    /**
+     * Get employee report for all users by date range (admin only)
+     * Returns a list of user IDs, names, total hours, hourly rate, and total pay
+     */
+    public List<EmployeeReportDTO> getEmployeeReportByDateRange(LocalDate startDate, LocalDate endDate) {
+        List<Object[]> results = attendanceRepository.getAllUsersTotalHoursByDateRange(startDate, endDate);
+        
+        return results.stream()
+                .map(result -> {
+                    EmployeeReportDTO dto = new EmployeeReportDTO();
+                    dto.setUserId(((Number) result[0]).longValue());
+                    dto.setFullName((String) result[1]);
+                    dto.setTotalHours((BigDecimal) result[2]);
+                    
+                    // Get user's hourly pay rate - refresh from database to get latest value
+                    Long userId = dto.getUserId();
+                    User user = userRepository.findById(userId).orElse(null);
+                    BigDecimal hourlyRate = BigDecimal.ZERO;
+                    
+                    if (user != null) {
+                        // Refresh the entity to ensure we have the latest hourly pay rate
+                        // This ensures we get the updated hourly pay rate even if it was just changed
+                        try {
+                            if (entityManager.contains(user)) {
+                                entityManager.refresh(user);
+                            } else {
+                                // If entity is detached, merge it first then refresh
+                                user = entityManager.merge(user);
+                                entityManager.refresh(user);
+                            }
+                        } catch (Exception e) {
+                            // If refresh fails, just use the current value
+                            // This shouldn't happen but provides a fallback
+                        }
+                        hourlyRate = (user.getHourlyPayRate() != null) ? user.getHourlyPayRate() : BigDecimal.ZERO;
+                    }
+                    
+                    dto.setHourlyPayRate(hourlyRate);
+                    
+                    // Calculate total pay: totalHours × hourlyPayRate
+                    BigDecimal totalPay = dto.getTotalHours().multiply(hourlyRate);
+                    dto.setTotalPay(totalPay);
+                    
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get weekly report for all users (admin only) - DEPRECATED, use getEmployeeReportByDateRange
+     * Returns a list of user IDs, names, and their total hours for the week
+     */
+    @Deprecated
+    public List<WeeklyReportDTO> getAllUsersWeeklyReport(LocalDate weekStart) {
+        LocalDate weekEnd = weekStart.plusDays(6); // End of week (Sunday)
+        List<Object[]> results = attendanceRepository.getAllUsersWeeklyTotalHours(weekStart, weekEnd);
+        
+        return results.stream()
+                .map(result -> {
+                    WeeklyReportDTO dto = new WeeklyReportDTO();
+                    dto.setUserId(((Number) result[0]).longValue());
+                    dto.setFullName((String) result[1]);
+                    dto.setTotalHours((BigDecimal) result[2]);
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Update attendance record (admin only)
+     * Allows editing time-in and time-out, which will automatically recalculate total hours
+     */
+    public AttendanceDTO updateAttendance(Long attendanceId, LocalTime timeIn, LocalTime timeOut) {
+        Attendance attendance = attendanceRepository.findById(attendanceId)
+                .orElseThrow(() -> new RuntimeException("Attendance not found with ID: " + attendanceId));
+        
+        // Validate time-out is after time-in if both are provided
+        if (timeIn != null && timeOut != null && timeOut.isBefore(timeIn)) {
+            throw new RuntimeException("Time-out cannot be before time-in");
+        }
+        
+        // Update time-in if provided
+        if (timeIn != null) {
+            attendance.setTimeIn(timeIn);
+        }
+        
+        // Update time-out if provided
+        if (timeOut != null) {
+            attendance.setTimeOut(timeOut);
+        }
+        
+        // Save will trigger @PreUpdate which recalculates total hours
+        attendance = attendanceRepository.save(attendance);
+        return convertToDTO(attendance);
+    }
+    
+    /**
+     * Get start of week (Monday) for a given date
+     */
+    public LocalDate getWeekStart(LocalDate date) {
+        return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    }
+    
+    /**
+     * Convert Attendance entity to DTO
+     */
+    private AttendanceDTO convertToDTO(Attendance attendance) {
+        AttendanceDTO dto = new AttendanceDTO();
+        dto.setId(attendance.getId());
+        dto.setUserId(attendance.getUser().getId());
+        dto.setUsername(attendance.getUser().getUsername());
+        dto.setFullName(attendance.getUser().getFullName());
+        dto.setAttendanceDate(attendance.getAttendanceDate());
+        dto.setTimeIn(attendance.getTimeIn());
+        dto.setTimeOut(attendance.getTimeOut());
+        dto.setTotalHours(attendance.getTotalHours());
+        dto.setCreatedAt(attendance.getCreatedAt());
+        dto.setUpdatedAt(attendance.getUpdatedAt());
+        return dto;
+    }
+    
+    /**
+     * Inner DTO class for weekly report (deprecated, use EmployeeReportDTO)
+     */
+    @Deprecated
+    public static class WeeklyReportDTO {
+        private Long userId;
+        private String fullName;
+        private BigDecimal totalHours;
+        
+        public Long getUserId() {
+            return userId;
+        }
+        
+        public void setUserId(Long userId) {
+            this.userId = userId;
+        }
+        
+        public String getFullName() {
+            return fullName;
+        }
+        
+        public void setFullName(String fullName) {
+            this.fullName = fullName;
+        }
+        
+        public BigDecimal getTotalHours() {
+            return totalHours;
+        }
+        
+        public void setTotalHours(BigDecimal totalHours) {
+            this.totalHours = totalHours;
+        }
+    }
+    
+    /**
+     * Inner DTO class for employee report with pay calculation
+     */
+    public static class EmployeeReportDTO {
+        private Long userId;
+        private String fullName;
+        private BigDecimal totalHours;
+        private BigDecimal hourlyPayRate;
+        private BigDecimal totalPay;
+        
+        public Long getUserId() {
+            return userId;
+        }
+        
+        public void setUserId(Long userId) {
+            this.userId = userId;
+        }
+        
+        public String getFullName() {
+            return fullName;
+        }
+        
+        public void setFullName(String fullName) {
+            this.fullName = fullName;
+        }
+        
+        public BigDecimal getTotalHours() {
+            return totalHours;
+        }
+        
+        public void setTotalHours(BigDecimal totalHours) {
+            this.totalHours = totalHours;
+        }
+        
+        public BigDecimal getHourlyPayRate() {
+            return hourlyPayRate;
+        }
+        
+        public void setHourlyPayRate(BigDecimal hourlyPayRate) {
+            this.hourlyPayRate = hourlyPayRate;
+        }
+        
+        public BigDecimal getTotalPay() {
+            return totalPay;
+        }
+        
+        public void setTotalPay(BigDecimal totalPay) {
+            this.totalPay = totalPay;
+        }
+    }
+}
+
+

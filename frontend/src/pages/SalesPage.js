@@ -368,7 +368,8 @@ const SalesPage = () => {
           itemBarcode: 'N/A',
           quantity: 1,
           unitPrice: price,
-          totalPrice: price
+          totalPrice: price,
+          vatRate: 23.00 // Default VAT for quick sale items
         };
         return [saleItem, ...currentCart];
       }
@@ -396,7 +397,8 @@ const SalesPage = () => {
           itemBarcode: item.barcode,
           quantity: 1,
           unitPrice: item.price,
-          totalPrice: item.price
+          totalPrice: item.price,
+          vatRate: item.vatRate || 23.00 // Add VAT rate from item
         };
 
       addOrUpdateCartItem(newCartItem);
@@ -437,6 +439,7 @@ const SalesPage = () => {
         quantity: data.quantity,
         unitPrice: data.unitPrice,
         totalPrice: data.unitPrice * data.quantity,
+        vatRate: item.vatRate || 23.00 // Add VAT rate from item
       };
 
     addOrUpdateCartItem(newCartItem, data.quantity);
@@ -668,32 +671,28 @@ const SalesPage = () => {
     setNotesVatDialogOpen(false); // Close notes/VAT dialog
 
     try {
-      // Apply selected VAT rate to all items if one is selected
-      const vatRate = selectedVatRate !== null ? parseFloat(selectedVatRate) : null;
-      
       // Calculate total amount from original prices (actual price customer pays - including VAT)
-      // This total should NOT change based on selected VAT rate - it's the actual price paid
       let totalAmount = 0;
       const saleItems = cart.map((item) => {
         // Get the actual price the customer pays (with discounts, including original VAT)
         const actualItemPrice = calculateDiscountedItemPrice(item);
         
-        // Add to total - this is the actual price paid (doesn't change based on selected VAT)
+        // Add to total - this is the actual price paid
         totalAmount += actualItemPrice;
         
-        // For sale items, store the actual price paid and the selected VAT rate
-        // The backend will calculate VAT breakdown based on selected VAT rate
+        // For sale items, store the actual price paid and the individual item VAT rate
+        // The backend will calculate VAT breakdown based on individual item VAT rate
         return {
           itemId: item.itemId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: actualItemPrice, // Store actual price paid (including original VAT)
-          vatRate: vatRate !== null ? vatRate : (item.vatRate || 23.00) // Store selected VAT rate for record-keeping
+          vatRate: item.vatRate || 23.00 // Use individual item VAT rate
         };
       });
 
       const saleData = {
-        totalAmount: totalAmount, // Total is actual price paid (including VAT) - doesn't change based on selected VAT
+        totalAmount: totalAmount, // Total is actual price paid (including VAT)
         subtotalAmount: calculateSubtotal(),
         discountAmount: calculateDiscountAmount(),
         discountType: appliedDiscount?.type || null,
@@ -702,7 +701,7 @@ const SalesPage = () => {
         saleItems: saleItems,
         userId: user?.id || null,
         notes: saleNotes || null, // Include notes in sale data
-        selectedVatRate: vatRate !== null ? vatRate : null, // Include selected VAT rate from sales page
+        selectedVatRate: null, // No longer using selectedVatRate - each item has its own VAT
         cashAmount: parseFloat(cashAmount || 0),
         changeDue: parseFloat(cashAmount || 0) > 0 ? (parseFloat(cashAmount || 0) - totalAmount) : 0
       };
@@ -716,7 +715,6 @@ const SalesPage = () => {
       setCashAmount('');
       setSelectedNotes({});
       setSaleNotes(''); // Clear sale notes after sale
-      setSelectedVatRate(null); // Clear selected VAT rate
       setAppliedDiscount(null); // Clear discount after sale
       setSelectedCartItem(null); // Clear selected item after sale
       setCustomDiscountAmount('');
@@ -753,32 +751,28 @@ const SalesPage = () => {
     setNotesVatDialogOpen(false); // Close notes/VAT dialog
 
     try {
-      // Apply selected VAT rate to all items if one is selected
-      const vatRate = selectedVatRate !== null ? parseFloat(selectedVatRate) : null;
-      
       // Calculate total amount from original prices (actual price customer pays - including VAT)
-      // This total should NOT change based on selected VAT rate - it's the actual price paid
       let totalAmount = 0;
       const saleItems = cart.map((item) => {
         // Get the actual price the customer pays (with discounts, including original VAT)
         const actualItemPrice = calculateDiscountedItemPrice(item);
         
-        // Add to total - this is the actual price paid (doesn't change based on selected VAT)
+        // Add to total - this is the actual price paid
         totalAmount += actualItemPrice;
         
-        // For sale items, store the actual price paid and the selected VAT rate
-        // The backend will calculate VAT breakdown based on selected VAT rate
+        // For sale items, store the actual price paid and the individual item VAT rate
+        // The backend will calculate VAT breakdown based on individual item VAT rate
         return {
           itemId: item.itemId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: actualItemPrice, // Store actual price paid (including original VAT)
-          vatRate: vatRate !== null ? vatRate : (item.vatRate || 23.00) // Store selected VAT rate for record-keeping
+          vatRate: item.vatRate || 23.00 // Use individual item VAT rate
         };
       });
 
       const saleData = {
-        totalAmount: totalAmount, // Total is actual price paid (including VAT) - doesn't change based on selected VAT
+        totalAmount: totalAmount, // Total is actual price paid (including VAT)
         subtotalAmount: calculateSubtotal(),
         discountAmount: calculateDiscountAmount(),
         discountType: appliedDiscount?.type || null,
@@ -787,7 +781,7 @@ const SalesPage = () => {
         saleItems: saleItems,
         userId: user?.id || null,
         notes: saleNotes || null, // Include notes in sale data
-        selectedVatRate: vatRate !== null ? vatRate : null, // Include selected VAT rate from sales page
+        selectedVatRate: null, // No longer using selectedVatRate - each item has its own VAT
       };
 
       const response = await salesAPI.create(saleData);
@@ -797,7 +791,6 @@ const SalesPage = () => {
       
       setCart([]);
       setSaleNotes(''); // Clear sale notes after sale
-      setSelectedVatRate(null); // Clear selected VAT rate
       setAppliedDiscount(null); // Clear discount after sale
       setCustomDiscountAmount('');
       setSelectedCartItem(null); // Clear selected item after sale
@@ -913,7 +906,8 @@ const SalesPage = () => {
       itemBarcode: item.barcode || 'N/A',
       quantity: 1,
       unitPrice: parseFloat(item.price),
-      totalPrice: parseFloat(item.price)
+      totalPrice: parseFloat(item.price),
+      vatRate: item.vatRate || 23.00 // Add VAT rate from item
     };
 
     addOrUpdateCartItem(cartItem);
@@ -1019,6 +1013,20 @@ const SalesPage = () => {
             originalPrice: originalPrice,
             discountAmount: discountAmount,
             discountApplied: discountAmount > 0
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleItemVatChange = (itemId, vatRate) => {
+    setCart(prevCart => 
+      prevCart.map(item => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            vatRate: parseFloat(vatRate)
           };
         }
         return item;
@@ -1786,12 +1794,13 @@ const SalesPage = () => {
                   <Table striped hover className="mb-0" size="sm">
                       <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                         <tr>
-                          <th style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>ID</th>
-                          <th style={{ width: '40%', fontSize: '1rem', padding: '0.6rem' }}>Item</th>
-                          <th className="text-end" style={{ width: '12%', fontSize: '1rem', padding: '0.6rem' }}>Price</th>
-                          <th className="text-center" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Quantity</th>
-                          <th className="text-end" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Discount</th>
-                          <th className="text-end" style={{ width: '20%', fontSize: '1rem', padding: '0.6rem' }}>Total</th>
+                          <th style={{ width: '6%', fontSize: '1rem', padding: '0.6rem' }}>ID</th>
+                          <th style={{ width: '35%', fontSize: '1rem', padding: '0.6rem' }}>Item</th>
+                          <th className="text-end" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Price</th>
+                          <th className="text-center" style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>Quantity</th>
+                          <th className="text-end" style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>Discount</th>
+                          <th className="text-center" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>VAT</th>
+                          <th className="text-end" style={{ width: '13%', fontSize: '1rem', padding: '0.6rem' }}>Total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1845,6 +1854,19 @@ const SalesPage = () => {
                                 onClick={(e) => e.stopPropagation()}
                                 style={{ width: '60px', fontSize: '0.9rem', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                               />
+                            </td>
+                            <td className="text-center" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                              <Form.Select
+                                size="sm"
+                                value={item.vatRate || 23.00}
+                                onChange={(e) => handleItemVatChange(item.id, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ width: '80px', fontSize: '0.9rem', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
+                              >
+                                <option value="0">0%</option>
+                                <option value="13.5">13.5%</option>
+                                <option value="23">23%</option>
+                              </Form.Select>
                             </td>
                             <td className="text-end fw-bold" style={{ fontSize: '1rem', padding: '0.6rem' }}>€{item.totalPrice.toFixed(2)}</td>
                           </tr>
@@ -2973,12 +2995,12 @@ const SalesPage = () => {
         </Modal.Body>
       </Modal>
 
-      {/* Notes and VAT Selection Dialog */}
+      {/* Notes Dialog */}
       <Modal show={notesVatDialogOpen} onHide={() => setNotesVatDialogOpen(false)} centered size="lg">
         <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
           <Modal.Title style={{ color: '#ffffff' }}>
             <i className="bi bi-sticky me-2"></i>
-            Sale Notes & VAT Selection
+            Sale Notes
           </Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
@@ -3008,44 +3030,12 @@ const SalesPage = () => {
               {saleNotes.length}/1000 characters
             </Form.Text>
           </div>
-
-          <div className="mb-4">
-            <label className="form-label fw-bold mb-3" style={{ color: '#ffffff', fontSize: '1.1rem' }}>
-              <i className="bi bi-percent me-2"></i>
-              Select VAT Rate (Optional)
-            </label>
-            <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-              {[0, 13.5, 23].map((rate) => (
-                <Button
-                  key={rate}
-                  onClick={() => setSelectedVatRate(selectedVatRate === rate ? null : rate)}
-                  className={`fw-bold ${selectedVatRate === rate ? 'active' : ''}`}
-                  size="lg"
-                  style={{ 
-                    padding: '1rem', 
-                    fontSize: '1.2rem',
-                    backgroundColor: selectedVatRate === rate ? '#ffc107' : '#3a3a3a',
-                    border: selectedVatRate === rate ? '3px solid #ffffff' : '1px solid #555',
-                    color: selectedVatRate === rate ? '#000000' : '#ffffff'
-                  }}
-                >
-                  {rate}%
-                </Button>
-              ))}
-            </div>
-            <Form.Text className="text-muted mt-2 d-block" style={{ color: '#ffffff', fontSize: '0.95rem', fontWeight: '500' }}>
-              {selectedVatRate !== null 
-                ? `Selected: ${selectedVatRate}% VAT will be applied to all items`
-                : 'No VAT override selected - items will use their default VAT rates'}
-            </Form.Text>
-          </div>
         </Modal.Body>
         <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
           <Button 
             onClick={() => {
               setNotesVatDialogOpen(false);
               setSaleNotes('');
-              setSelectedVatRate(null);
             }}
             style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
           >

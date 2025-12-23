@@ -755,7 +755,20 @@ const InventoryPage = () => {
               </tr>
             </thead>
             <tbody>
-              {getFilteredAndSortedItems().map((item) => (
+              {getFilteredAndSortedItems().length === 0 ? (
+                <tr>
+                  <td colSpan="9" className="text-center py-5">
+                    <div style={{ color: '#aaaaaa' }}>
+                      <i className="bi bi-inbox" style={{ fontSize: '3rem', display: 'block', marginBottom: '1rem' }}></i>
+                      <p className="mb-0">No items found matching the current filters.</p>
+                      {filters.stockFilter === 'out' && (
+                        <p className="mt-2 small">Try selecting "All Items" to see all items including out-of-stock.</p>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                getFilteredAndSortedItems().map((item) => (
                 <tr key={item.id}>
                   <td className="fw-bold">{item.name}</td>
                   <td>
@@ -767,7 +780,7 @@ const InventoryPage = () => {
                   <td className="text-end fw-bold">€{item.price.toFixed(2)}</td>
                   <td className="text-center">
                     <Badge 
-                      bg={item.stockQuantity <= 10 ? 'warning' : 'success'}
+                      bg={item.stockQuantity <= 0 ? 'danger' : item.stockQuantity <= 10 ? 'warning' : 'success'}
                       className="fs-6"
                     >
                       {item.stockQuantity}
@@ -848,7 +861,8 @@ const InventoryPage = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </Table>
           

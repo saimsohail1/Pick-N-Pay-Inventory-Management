@@ -186,22 +186,28 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
     sum + parseFloat(item.vatAmount || 0), 0
   );
   
-  // Use the selected VAT rate from the sale (this is the VAT rate selected on the sales page)
-  // This is the ONLY VAT rate that should be used - it applies to all items in the sale
+  // Calculate weighted average VAT rate from all items (each item can have different VAT rates)
+  let weightedVatSum = 0;
+  let totalGrossForAvg = 0;
   let selectedVatRate = 0;
-  if (sale.selectedVatRate != null) {
-    // Use the selected VAT rate stored in the sale
-    selectedVatRate = parseFloat(sale.selectedVatRate);
-  } else if (sale.saleItems && sale.saleItems.length > 0) {
-    // Fallback: Get VAT rate from first item if selectedVatRate not stored (for old sales)
-    selectedVatRate = parseFloat(sale.saleItems[0].vatRate || 0);
-  }
   
-  // If still no VAT rate found, calculate from totals
-  if (selectedVatRate === 0 && subtotalExcludingVat > 0) {
-    selectedVatRate = (totalVat / subtotalExcludingVat) * 100;
-  } else if (selectedVatRate === 0) {
-    selectedVatRate = 23; // Default fallback
+  if (sale.saleItems && sale.saleItems.length > 0) {
+    sale.saleItems.forEach(item => {
+      const gross = parseFloat(item.totalPrice || 0);
+      const vatRate = parseFloat(item.vatRate || 0);
+      if (gross > 0 && vatRate > 0) {
+        weightedVatSum += vatRate * gross;
+        totalGrossForAvg += gross;
+      }
+    });
+    
+    // Calculate weighted average VAT percentage
+    if (totalGrossForAvg > 0) {
+      selectedVatRate = weightedVatSum / totalGrossForAvg;
+    } else if (subtotalExcludingVat > 0) {
+      // Fallback: calculate from totals if no individual VAT rates available
+      selectedVatRate = (totalVat / subtotalExcludingVat) * 100;
+    }
   }
 
   return `
@@ -908,10 +914,27 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         </thead>
         <tbody>
           ${sales.map((sale, index) => {
-            // Get VAT rate from first item (all items in a sale have the same VAT rate)
-            const vatRate = sale.saleItems && sale.saleItems.length > 0 
-              ? parseFloat(sale.saleItems[0].vatRate || 23.00).toFixed(1) 
-              : '23.0';
+            // Calculate weighted average VAT rate from all items in the sale
+            let weightedVatSum = 0;
+            let totalGrossForAvg = 0;
+            let vatRate = 0;
+            
+            if (sale.saleItems && sale.saleItems.length > 0) {
+              sale.saleItems.forEach(item => {
+                const gross = parseFloat(item.totalPrice || 0);
+                const itemVatRate = parseFloat(item.vatRate || 0);
+                if (gross > 0 && itemVatRate > 0) {
+                  weightedVatSum += itemVatRate * gross;
+                  totalGrossForAvg += gross;
+                }
+              });
+              
+              if (totalGrossForAvg > 0) {
+                vatRate = weightedVatSum / totalGrossForAvg;
+              }
+            }
+            
+            const vatRateDisplay = vatRate > 0 ? vatRate.toFixed(1) : '0.0';
             
             return `
             <tr>
@@ -932,7 +955,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
                   </div>
                 `).join('')}
                 <div class="vat-info" style="margin-top: 5px; padding-top: 5px; border-top: 1px dotted #ccc; font-weight: bold;">
-                  VAT: ${vatRate}%
+                  VAT: ${vatRateDisplay}%
                 </div>
               </td>
               <td class="right total-amount">€${parseFloat(sale.totalAmount || 0).toFixed(2)}</td>

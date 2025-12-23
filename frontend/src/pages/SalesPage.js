@@ -398,7 +398,7 @@ const SalesPage = () => {
           quantity: 1,
           unitPrice: item.price,
           totalPrice: item.price,
-          vatRate: item.vatRate || 23.00 // Add VAT rate from item
+          vatRate: item.vatRate != null ? item.vatRate : 23.00 // Add VAT rate from item (0 is valid)
         };
 
       addOrUpdateCartItem(newCartItem);
@@ -439,7 +439,7 @@ const SalesPage = () => {
         quantity: data.quantity,
         unitPrice: data.unitPrice,
         totalPrice: data.unitPrice * data.quantity,
-        vatRate: item.vatRate || 23.00 // Add VAT rate from item
+        vatRate: item.vatRate != null ? item.vatRate : 23.00 // Add VAT rate from item (0 is valid)
       };
 
     addOrUpdateCartItem(newCartItem, data.quantity);
@@ -687,7 +687,7 @@ const SalesPage = () => {
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: actualItemPrice, // Store actual price paid (including original VAT)
-          vatRate: item.vatRate || 23.00 // Use individual item VAT rate
+          vatRate: item.vatRate != null ? item.vatRate : 23.00 // Use individual item VAT rate (0 is valid)
         };
       });
 
@@ -767,7 +767,7 @@ const SalesPage = () => {
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: actualItemPrice, // Store actual price paid (including original VAT)
-          vatRate: item.vatRate || 23.00 // Use individual item VAT rate
+          vatRate: item.vatRate != null ? item.vatRate : 23.00 // Use individual item VAT rate (0 is valid)
         };
       });
 
@@ -907,7 +907,7 @@ const SalesPage = () => {
       quantity: 1,
       unitPrice: parseFloat(item.price),
       totalPrice: parseFloat(item.price),
-      vatRate: item.vatRate || 23.00 // Add VAT rate from item
+      vatRate: item.vatRate != null ? item.vatRate : 23.00 // Add VAT rate from item (0 is valid)
     };
 
     addOrUpdateCartItem(cartItem);
@@ -1858,7 +1858,7 @@ const SalesPage = () => {
                             <td className="text-center" style={{ fontSize: '1rem', padding: '0.6rem' }}>
                               <Form.Select
                                 size="sm"
-                                value={item.vatRate || 23.00}
+                                value={item.vatRate != null ? item.vatRate : 23.00}
                                 onChange={(e) => handleItemVatChange(item.id, e.target.value)}
                                 onClick={(e) => e.stopPropagation()}
                                 style={{ width: '80px', fontSize: '0.9rem', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
@@ -2753,7 +2753,7 @@ const SalesPage = () => {
                     barcode: scannedBarcode,
                     price: cachedData.price || '',
                     stockQuantity: cachedData.stockQuantity || '',
-                    vatRate: cachedData.vatRate || '23.00',
+                    vatRate: cachedData.vatRate != null ? cachedData.vatRate : '23.00', // 0 is valid VAT rate
                     categoryId: cachedData.categoryId || ''
                   });
                   setSuccess('Previous form data restored for this barcode!');

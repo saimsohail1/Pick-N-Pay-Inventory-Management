@@ -664,13 +664,11 @@ async function sendDrawerCommandViaRawPrint(printerName, drawerCommand) {
       
       // Use PowerShell to send raw data via Windows Print API (winspool.drv)
       const escapedTempFile = tempFile.replace(/\\/g, '\\\\').replace(/'/g, "''");
+      // Escape printer name for PowerShell (escape single quotes and backticks)
+      const escapedPrinterName = printerName.replace(/'/g, "''").replace(/`/g, '``').replace(/\$/g, '`$');
       const psCmd = `
 $ErrorActionPreference = 'Stop'
-$printer = Get-CimInstance Win32_Printer | Where-Object { $_.Default -eq $true }
-if (-not $printer) {
-    Write-Output "ERROR: Printer not found"
-    exit 1
-}
+$printerName = '${escapedPrinterName}'
 $bytes = [System.IO.File]::ReadAllBytes('${escapedTempFile}')
 Add-Type -TypeDefinition @"
 using System;
@@ -699,7 +697,7 @@ public struct DOCINFOA {
 }
 "@
 $hPrinter = [IntPtr]::Zero
-if ([RawPrint]::OpenPrinter($printer.Name, [ref]$hPrinter, [IntPtr]::Zero)) {
+if ([RawPrint]::OpenPrinter($printerName, [ref]$hPrinter, [IntPtr]::Zero)) {
     try {
         $docInfo = New-Object DOCINFOA
         $docInfo.pDocName = "DrawerOpen"
@@ -752,11 +750,12 @@ if ([RawPrint]::OpenPrinter($printer.Name, [ref]$hPrinter, [IntPtr]::Zero)) {
             }
             
             const output = stdout.trim();
+            logToFile('INFO', 'Raw Print API response', { output, stderr, printerName });
             if (output.includes('SUCCESS')) {
-              logToFile('INFO', 'Drawer command sent successfully via Raw Print API');
-              resolve({ success: true, message: 'Cash drawer opened successfully via Windows Raw Print API' });
+              logToFile('INFO', 'Drawer command sent successfully via Raw Print API', { printerName });
+              resolve({ success: true, message: 'Cash drawer opened successfully via Windows Raw Print API', printer: printerName });
             } else {
-              logToFile('ERROR', 'Raw Print API returned error', { output, stderr });
+              logToFile('ERROR', 'Raw Print API returned error', { output, stderr, printerName });
               reject(new Error(`Raw Print API error: ${output || stderr || 'Unknown error'}`));
             }
           }

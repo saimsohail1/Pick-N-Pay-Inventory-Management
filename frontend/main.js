@@ -51,7 +51,7 @@ if (process.platform !== 'win32') {
   app.disableHardwareAcceleration();
 }
 
-const DEFAULT_PRINTER = 'SGT-116Receipt'; // ✅ Your actual printer name
+const DEFAULT_PRINTER = 'POS-80C'; // ✅ Your actual printer name (can be overridden by system default)
 
 let mainWindow;
 let backendProcess;
@@ -274,16 +274,14 @@ ipcMain.handle('open-till', async (event, options = {}) => {
           logToFile('INFO', 'Found default printer port', { port: defaultPort });
           isUsbPort = defaultPort.toUpperCase().startsWith('USB');
           
-          // If it's a USB port, try Windows Raw Print API method
+          // If it's a USB port (like USB003), use Windows Raw Print API method
+          // This is the ONLY method that works for USB printers - confirmed by user testing
+          // USB003 is the correct port for POS-80C printer
           if (isUsbPort) {
-            logToFile('INFO', 'USB port detected, trying Windows Raw Print API method', { port: defaultPort });
-            try {
-              const result = await openDrawerViaWindowsRawPrint(drawerCommands);
-              if (result.success) return result;
-              logToFile('WARN', 'Windows Raw Print API method failed, trying serial ports', { error: result.message });
-            } catch (error) {
-              logToFile('WARN', 'Windows Raw Print API method failed', { error: error.message });
-            }
+            logToFile('INFO', 'USB port detected - using Windows Raw Print API (required for USB printers like USB003)', { port: defaultPort });
+            // For USB ports, Raw Print API is the only method that works
+            // Don't fall through to other methods - they won't work for USB
+            return await openDrawerViaWindowsRawPrint(drawerCommands);
           } else {
             // Try direct port access for non-USB ports
             try {
@@ -599,41 +597,74 @@ async function openDrawerViaWindowsRawPrint(commands) {
   }
   
   try {
-    // Get default printer name
+    // Get default printer name and port
     const { exec } = require('child_process');
-    const printerName = await new Promise((resolve, reject) => {
-      exec('powershell -Command "$printer = Get-CimInstance Win32_Printer | Where-Object {$_.Default -eq $true}; if ($printer) { Write-Output $printer.Name }"',
+    const printerInfo = await new Promise((resolve, reject) => {
+      exec('powershell -Command "$printer = Get-CimInstance Win32_Printer | Where-Object {$_.Default -eq $true}; if ($printer) { Write-Output \"$($printer.Name)|$($printer.PortName)\" }"',
         { timeout: 5000 },
         (error, stdout) => {
           if (error || !stdout || !stdout.trim()) {
-            reject(new Error('Could not get default printer name'));
+            reject(new Error('Could not get default printer info'));
             return;
           }
-          resolve(stdout.trim());
+          const parts = stdout.trim().split('|');
+          resolve({ name: parts[0], port: parts[1] || 'unknown' });
         }
       );
     });
     
-    logToFile('INFO', 'Sending drawer command via Windows Raw Print API', { printer: printerName });
+    logToFile('INFO', 'Sending drawer command via Windows Raw Print API', { 
+      printer: printerInfo.name, 
+      port: printerInfo.port,
+      commandCount: commands.length 
+    });
     
-    // Use the first command (most common ESC/POS drawer open command)
-    const drawerCommand = commands[0];
+    const printerName = printerInfo.name;
     
-    // Write raw bytes to temp file, then use PowerShell to send via Windows Print API
-    return new Promise((resolve, reject) => {
-      const tempDir = require('os').tmpdir();
-      const tempFile = path.join(tempDir, `drawer_cmd_${Date.now()}.bin`);
+    // Try all commands sequentially until one succeeds
+    for (let cmdIndex = 0; cmdIndex < commands.length; cmdIndex++) {
+      const drawerCommand = commands[cmdIndex];
+      logToFile('INFO', 'Trying drawer command', { index: cmdIndex, command: Array.from(drawerCommand).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ') });
       
-      // Write raw bytes to temp file
-      fs.writeFile(tempFile, drawerCommand, (writeErr) => {
-        if (writeErr) {
-          reject(new Error(`Failed to create temp file: ${writeErr.message}`));
-          return;
+      try {
+        const result = await sendDrawerCommandViaRawPrint(printerName, drawerCommand);
+        if (result.success) {
+          return result;
         }
-        
-        // Use PowerShell to send raw data via Windows Print API (winspool.drv)
-        const escapedTempFile = tempFile.replace(/\\/g, '\\\\').replace(/'/g, "''");
-        const psCmd = `
+        logToFile('WARN', 'Drawer command failed, trying next', { index: cmdIndex, error: result.message });
+      } catch (error) {
+        logToFile('WARN', 'Drawer command exception, trying next', { index: cmdIndex, error: error.message });
+        if (cmdIndex === commands.length - 1) {
+          throw error; // Throw last error if all commands fail
+        }
+      }
+    }
+    
+    throw new Error('All drawer commands failed via Raw Print API');
+  } catch (error) {
+    logToFile('ERROR', 'Raw Print API exception', { error: error.message });
+    throw error;
+  }
+}
+
+/**
+ * Send a single drawer command via Windows Raw Print API
+ */
+async function sendDrawerCommandViaRawPrint(printerName, drawerCommand) {
+  return new Promise((resolve, reject) => {
+    const tempDir = require('os').tmpdir();
+    const tempFile = path.join(tempDir, `drawer_cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.bin`);
+    
+    // Write raw bytes to temp file
+    fs.writeFile(tempFile, drawerCommand, (writeErr) => {
+      if (writeErr) {
+        reject(new Error(`Failed to create temp file: ${writeErr.message}`));
+        return;
+      }
+      
+      // Use PowerShell to send raw data via Windows Print API (winspool.drv)
+      const escapedTempFile = tempFile.replace(/\\/g, '\\\\').replace(/'/g, "''");
+      const psCmd = `
 $ErrorActionPreference = 'Stop'
 $printer = Get-CimInstance Win32_Printer | Where-Object { $_.Default -eq $true }
 if (-not $printer) {

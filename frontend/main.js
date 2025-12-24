@@ -239,95 +239,61 @@ ipcMain.on('toggle-fullscreen', () => {
  * Sends ESC/POS drawer open command directly to printer port (no printing)
  */
 ipcMain.handle('open-till', async (event, options = {}) => {
-  const { printerPort, serialPort } = options;
+  logToFile('INFO', 'Opening till - using simple print job approach', { platform: process.platform });
   
-  logToFile('INFO', 'Opening till - sending ESC/POS drawer command', { printerPort, serialPort, platform: process.platform });
-  
-  // Multiple ESC/POS commands to try (different printers use different commands)
-  const drawerCommands = [
-    Buffer.from([0x1B, 0x70, 0x00, 0x19, 0x78]), // ESC p 0 25 120 (most common)
-    Buffer.from([0x1B, 0x70, 0x01, 0x19, 0xFA]), // ESC p 1 25 250 (pin 1)
-    Buffer.from([0x1B, 0x70, 0x00, 0x32, 0x78]), // ESC p 0 50 120
-    Buffer.from([0x10, 0x14, 0x01, 0x00, 0x01]), // Alternative command
-    Buffer.from([0x1B, 0x70, 0x00, 0x64, 0x64]), // ESC p 0 100 100
-  ];
-  
+  // SIMPLE APPROACH: Use the existing print-silent handler with minimal HTML
+  // This sends a tiny print job which should trigger the drawer to open
   try {
-    // Method 1: Try serial port if specified
-    if (serialPort && SerialPort) {
-      logToFile('INFO', 'Attempting to open drawer via specified serial port', { port: serialPort });
-      return await openDrawerViaSerial(serialPort, drawerCommands);
-    }
+    // Create minimal HTML document (just a space - smallest possible)
+    const minimalHTML = '<html><body style="margin:0;padding:0;"> </body></html>';
     
-    // Method 2: Try Windows printer port (get default printer port first, then try common ports)
-    if (process.platform === 'win32') {
-      logToFile('INFO', 'Attempting to open drawer via Windows printer port');
-      
-      let defaultPort = null;
-      let isUsbPort = false;
-      
-      // First, try to get and use the default printer port
-      if (!printerPort) {
-        logToFile('INFO', 'Getting default printer port from Windows');
-        defaultPort = await getDefaultPrinterPort();
-        if (defaultPort) {
-          logToFile('INFO', 'Found default printer port', { port: defaultPort });
-          isUsbPort = defaultPort.toUpperCase().startsWith('USB');
-          
-          // If it's a USB port (like USB003), use Windows Raw Print API method
-          // This is the ONLY method that works for USB printers - confirmed by user testing
-          // USB003 is the correct port for POS-80C printer
-          if (isUsbPort) {
-            logToFile('INFO', 'USB port detected - using Windows Raw Print API (required for USB printers like USB003)', { port: defaultPort });
-            // For USB ports, Raw Print API is the only method that works
-            // Don't fall through to other methods - they won't work for USB
-            return await openDrawerViaWindowsRawPrint(drawerCommands);
-          } else {
-            // Try direct port access for non-USB ports
-            try {
-              const result = await openDrawerViaWindowsPort(defaultPort, drawerCommands);
-              if (result.success) return result;
-            } catch (error) {
-              logToFile('WARN', 'Default printer port failed, trying common ports', { port: defaultPort, error: error.message });
-            }
-          }
-        }
-      }
-      
-      // Then try the specified port or common ports
-      try {
-        const result = await openDrawerViaWindowsPort(printerPort, drawerCommands);
-        if (result.success) return result;
-      } catch (error) {
-        logToFile('WARN', 'Windows port method failed', { error: error.message });
-        
-        // If it was a USB port, provide specific error message
-        if (isUsbPort && defaultPort) {
-          throw new Error(`USB printer detected (${defaultPort}). USB printers cannot be accessed directly. The cash drawer may open automatically when printing receipts, or you may need to configure a serial/COM port for the drawer.`);
-        }
-      }
-    }
+    logToFile('INFO', 'Sending minimal print job to open drawer');
     
-    // Method 3: Try all available serial ports
-    if (SerialPort) {
-      logToFile('INFO', 'Attempting to find and try all available serial ports');
-      return await openDrawerViaAllSerialPorts(drawerCommands);
-    }
-    
-    // Fallback: Return error with helpful message
-    logToFile('ERROR', 'No method available to open drawer', { 
-      hasSerialPort: !!SerialPort, 
-      platform: process.platform,
-      providedPort: !!printerPort,
-      providedSerialPort: !!serialPort
+    // Use Electron's built-in silent printing (same as receipt printing)
+    const printWindow = new BrowserWindow({
+      show: false,
+      webPreferences: { sandbox: true }
     });
-    
-    return { 
-      success: false, 
-      message: 'Unable to open drawer. Please check the log file for details. You may need to specify the printer port manually.' 
-    };
+
+    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(minimalHTML);
+    await printWindow.loadURL(dataUrl);
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (!printWindow.isDestroyed()) printWindow.close();
+        reject(new Error('Print operation timed out'));
+      }, 10000);
+      
+      printWindow.webContents.once('did-finish-load', () => {
+        printWindow.webContents.print({
+          silent: true,
+          printBackground: false
+          // Use default printer (should be POS-80C)
+        }, (success, failureReason) => {
+          clearTimeout(timeout);
+          if (!printWindow.isDestroyed()) {
+            setTimeout(() => printWindow.close(), 300);
+          }
+          
+          if (success) {
+            logToFile('INFO', 'Drawer opened successfully via simple print job');
+            resolve({ success: true, message: 'Cash drawer opened successfully' });
+          } else {
+            logToFile('ERROR', 'Simple print job failed', { failureReason });
+            reject(new Error(`Failed to open drawer: ${failureReason || 'Print failed'}`));
+          }
+        });
+      });
+      
+      printWindow.on('error', (err) => {
+        clearTimeout(timeout);
+        if (!printWindow.isDestroyed()) printWindow.close();
+        logToFile('ERROR', 'Print window error', { error: err.message });
+        reject(err);
+      });
+    });
   } catch (error) {
-    logToFile('ERROR', 'Failed to open till', { error: error.message, stack: error.stack });
+    logToFile('ERROR', 'Failed to open till via simple print job', { error: error.message, stack: error.stack });
     return { success: false, message: error.message || 'Failed to open cash drawer' };
   }
 });

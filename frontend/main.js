@@ -599,27 +599,60 @@ async function openDrawerViaWindowsRawPrint(commands) {
   try {
     // Get default printer name and port
     const { exec } = require('child_process');
-    const printerInfo = await new Promise((resolve, reject) => {
-      exec('powershell -Command "$printer = Get-CimInstance Win32_Printer | Where-Object {$_.Default -eq $true}; if ($printer) { Write-Output \"$($printer.Name)|$($printer.PortName)\" }"',
-        { timeout: 5000 },
-        (error, stdout) => {
-          if (error || !stdout || !stdout.trim()) {
-            reject(new Error('Could not get default printer info'));
-            return;
+    let printerName = null;
+    let printerPort = null;
+    
+    try {
+      const printerInfo = await new Promise((resolve, reject) => {
+        exec('powershell -Command "$printer = Get-CimInstance Win32_Printer | Where-Object {$_.Default -eq $true}; if ($printer) { Write-Output \"$($printer.Name)|$($printer.PortName)\" }"',
+          { timeout: 5000 },
+          (error, stdout) => {
+            if (error || !stdout || !stdout.trim()) {
+              reject(new Error('Could not get default printer info'));
+              return;
+            }
+            const parts = stdout.trim().split('|');
+            resolve({ name: parts[0], port: parts[1] || 'unknown' });
           }
-          const parts = stdout.trim().split('|');
-          resolve({ name: parts[0], port: parts[1] || 'unknown' });
-        }
-      );
-    });
+        );
+      });
+      printerName = printerInfo.name;
+      printerPort = printerInfo.port;
+    } catch (error) {
+      logToFile('WARN', 'Could not get default printer, using fallback', { error: error.message });
+      // Fallback: try to find POS-80C printer specifically
+      try {
+        const printerInfo = await new Promise((resolve, reject) => {
+          exec('powershell -Command "$printer = Get-CimInstance Win32_Printer | Where-Object {$_.Name -eq \"POS-80C\"}; if ($printer) { Write-Output \"$($printer.Name)|$($printer.PortName)\" }"',
+            { timeout: 5000 },
+            (error, stdout) => {
+              if (error || !stdout || !stdout.trim()) {
+                reject(new Error('Could not find POS-80C printer'));
+                return;
+              }
+              const parts = stdout.trim().split('|');
+              resolve({ name: parts[0], port: parts[1] || 'unknown' });
+            }
+          );
+        });
+        printerName = printerInfo.name;
+        printerPort = printerInfo.port;
+      } catch (fallbackError) {
+        // Last resort: use hardcoded name
+        printerName = 'POS-80C';
+        logToFile('WARN', 'Using hardcoded printer name POS-80C', { error: fallbackError.message });
+      }
+    }
+    
+    if (!printerName) {
+      printerName = 'POS-80C'; // Default fallback
+    }
     
     logToFile('INFO', 'Sending drawer command via Windows Raw Print API', { 
-      printer: printerInfo.name, 
-      port: printerInfo.port,
+      printer: printerName, 
+      port: printerPort || 'unknown',
       commandCount: commands.length 
     });
-    
-    const printerName = printerInfo.name;
     
     // Try all commands sequentially until one succeeds
     for (let cmdIndex = 0; cmdIndex < commands.length; cmdIndex++) {

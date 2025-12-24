@@ -239,61 +239,145 @@ ipcMain.on('toggle-fullscreen', () => {
  * Sends ESC/POS drawer open command directly to printer port (no printing)
  */
 ipcMain.handle('open-till', async (event, options = {}) => {
-  logToFile('INFO', 'Opening till - using simple print job approach', { platform: process.platform });
+  logToFile('INFO', 'Opening till - direct PowerShell raw command', { platform: process.platform });
   
-  // SIMPLE APPROACH: Use the existing print-silent handler with minimal HTML
-  // This sends a tiny print job which should trigger the drawer to open
+  if (process.platform !== 'win32') {
+    return { success: false, message: 'Cash drawer opening is only supported on Windows' };
+  }
+  
   try {
-    // Create minimal HTML document (just a space - smallest possible)
-    const minimalHTML = '<html><body style="margin:0;padding:0;"> </body></html>';
+    const { exec } = require('child_process');
     
-    logToFile('INFO', 'Sending minimal print job to open drawer');
+    // ABSOLUTE SIMPLEST: One-line PowerShell that sends raw ESC/POS drawer command
+    // ESC p 0 25 250 = [27, 112, 0, 25, 250] = open drawer on pin 0
+    // ESC p 0 25 120 = [27, 112, 0, 25, 120] = alternative command
+    const drawerCommands = [
+      [27, 112, 0, 25, 250], // Most common
+      [27, 112, 0, 25, 120], // Alternative
+      [27, 112, 1, 25, 250], // Pin 1
+      [27, 112, 0, 50, 250], // Different timing
+    ];
     
-    // Use Electron's built-in silent printing (same as receipt printing)
-    const printWindow = new BrowserWindow({
-      show: false,
-      webPreferences: { sandbox: true }
-    });
-
-    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(minimalHTML);
-    await printWindow.loadURL(dataUrl);
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        if (!printWindow.isDestroyed()) printWindow.close();
-        reject(new Error('Print operation timed out'));
-      }, 10000);
+    // Try each command until one works
+    for (let i = 0; i < drawerCommands.length; i++) {
+      const cmdBytes = drawerCommands[i];
+      logToFile('INFO', `Trying drawer command ${i + 1}/${drawerCommands.length}`, { bytes: cmdBytes });
       
-      printWindow.webContents.once('did-finish-load', () => {
-        printWindow.webContents.print({
-          silent: true,
-          printBackground: false
-          // Use default printer (should be POS-80C)
-        }, (success, failureReason) => {
-          clearTimeout(timeout);
-          if (!printWindow.isDestroyed()) {
-            setTimeout(() => printWindow.close(), 300);
-          }
+      try {
+        const result = await new Promise((resolve, reject) => {
+          // PowerShell one-liner: send raw bytes to default printer using RAW print
+          const psCmd = `$printer = Get-CimInstance Win32_Printer | Where-Object {$_.Name -eq 'POS-80C' -or $_.Default -eq $true} | Select-Object -First 1; if ($printer) { $bytes = [byte[]](${cmdBytes.join(',')}); $printer | Out-Printer -InputObject ([System.Text.Encoding]::Default.GetString($bytes)) 2>&1; Write-Output "SUCCESS" } else { Write-Output "ERROR: Printer not found" }`;
           
-          if (success) {
-            logToFile('INFO', 'Drawer opened successfully via simple print job');
-            resolve({ success: true, message: 'Cash drawer opened successfully' });
-          } else {
-            logToFile('ERROR', 'Simple print job failed', { failureReason });
-            reject(new Error(`Failed to open drawer: ${failureReason || 'Print failed'}`));
-          }
+          // Actually, let's use a simpler approach - direct raw print via .NET
+          const rawPsCmd = `
+$printer = Get-CimInstance Win32_Printer | Where-Object {$_.Name -eq 'POS-80C' -or $_.Default -eq $true} | Select-Object -First 1
+if (-not $printer) { Write-Output "ERROR: Printer not found"; exit 1 }
+$bytes = [byte[]](${cmdBytes.join(',')})
+Add-Type -AssemblyName System.Drawing
+$doc = New-Object System.Drawing.Printing.PrintDocument
+$doc.PrinterSettings.PrinterName = $printer.Name
+$doc.PrinterSettings.PrintToFile = $false
+$handler = {
+    param($sender, $e)
+    $e.Graphics.DrawString([System.Text.Encoding]::Default.GetString($bytes), (New-Object System.Drawing.Font("Courier New", 8)), (New-Object System.Drawing.SolidBrush([System.Drawing.Color]::Black)), 0, 0)
+}
+$doc.add_PrintPage($handler)
+$doc.Print()
+Write-Output "SUCCESS"
+          `.trim();
+          
+          // Use Windows Raw Print API via PowerShell - SIMPLIFIED
+          const rawPrintCmd = `
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class RawPrint {
+    [DllImport("winspool.drv", CharSet=CharSet.Ansi)]
+    public static extern bool OpenPrinter(string szPrinter, out IntPtr hPrinter, IntPtr pd);
+    [DllImport("winspool.drv")]
+    public static extern bool ClosePrinter(IntPtr hPrinter);
+    [DllImport("winspool.drv", CharSet=CharSet.Ansi)]
+    public static extern bool StartDocPrinter(IntPtr hPrinter, int level, DOCINFOA di);
+    [DllImport("winspool.drv")]
+    public static extern bool EndDocPrinter(IntPtr hPrinter);
+    [DllImport("winspool.drv")]
+    public static extern bool StartPagePrinter(IntPtr hPrinter);
+    [DllImport("winspool.drv")]
+    public static extern bool EndPagePrinter(IntPtr hPrinter);
+    [DllImport("winspool.drv")]
+    public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, int dwCount, out int dwWritten);
+}
+[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi)]
+public struct DOCINFOA {
+    public string pDocName;
+    public string pOutputFile;
+    public string pDataType;
+}
+"@
+$printer = Get-CimInstance Win32_Printer | Where-Object {$_.Name -eq 'POS-80C' -or $_.Default -eq $true} | Select-Object -First 1
+if (-not $printer) { Write-Output "ERROR: Printer not found"; exit 1 }
+$bytes = [byte[]](${cmdBytes.join(',')})
+$hPrinter = [IntPtr]::Zero
+if ([RawPrint]::OpenPrinter($printer.Name, [ref]$hPrinter, [IntPtr]::Zero)) {
+    try {
+        $docInfo = New-Object DOCINFOA
+        $docInfo.pDocName = "Drawer"
+        $docInfo.pDataType = "RAW"
+        if ([RawPrint]::StartDocPrinter($hPrinter, 1, $docInfo)) {
+            try {
+                if ([RawPrint]::StartPagePrinter($hPrinter)) {
+                    try {
+                        $gc = [System.Runtime.InteropServices.GCHandle]::Alloc($bytes, [System.Runtime.InteropServices.GCHandleType]::Pinned)
+                        try {
+                            $written = 0
+                            if ([RawPrint]::WritePrinter($hPrinter, $gc.AddrOfPinnedObject(), $bytes.Length, [ref]$written)) {
+                                Write-Output "SUCCESS"
+                            } else {
+                                Write-Output "ERROR: Write failed"
+                            }
+                        } finally { $gc.Free() }
+                    } finally { [RawPrint]::EndPagePrinter($hPrinter) | Out-Null }
+                } else {
+                    Write-Output "ERROR: StartPage failed"
+                }
+            } finally { [RawPrint]::EndDocPrinter($hPrinter) | Out-Null }
+        } else {
+            Write-Output "ERROR: StartDoc failed"
+        }
+    } finally { [RawPrint]::ClosePrinter($hPrinter) | Out-Null }
+} else {
+    Write-Output "ERROR: OpenPrinter failed"
+}
+          `.trim();
+          
+          exec(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${rawPrintCmd.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`,
+            { timeout: 5000 },
+            (error, stdout, stderr) => {
+              const output = (stdout || '').trim();
+              if (output.includes('SUCCESS')) {
+                resolve({ success: true });
+              } else {
+                reject(new Error(output || stderr || error?.message || 'Unknown error'));
+              }
+            }
+          );
         });
-      });
-      
-      printWindow.on('error', (err) => {
-        clearTimeout(timeout);
-        if (!printWindow.isDestroyed()) printWindow.close();
-        logToFile('ERROR', 'Print window error', { error: err.message });
-        reject(err);
-      });
-    });
+        
+        if (result.success) {
+          logToFile('INFO', 'Drawer opened successfully', { commandIndex: i });
+          return { success: true, message: 'Cash drawer opened successfully' };
+        }
+      } catch (cmdError) {
+        logToFile('WARN', `Drawer command ${i + 1} failed`, { error: cmdError.message });
+        if (i === drawerCommands.length - 1) {
+          throw cmdError;
+        }
+      }
+    }
+    
+    throw new Error('All drawer commands failed');
   } catch (error) {
-    logToFile('ERROR', 'Failed to open till via simple print job', { error: error.message, stack: error.stack });
+    logToFile('ERROR', 'Failed to open till', { error: error.message, stack: error.stack });
     return { success: false, message: error.message || 'Failed to open cash drawer' };
   }
 });

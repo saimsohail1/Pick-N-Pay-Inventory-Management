@@ -763,10 +763,6 @@ if ([RawPrint]::OpenPrinter($printer.Name, [ref]$hPrinter, [IntPtr]::Zero)) {
         );
       });
     });
-  } catch (error) {
-    logToFile('ERROR', 'Raw Print API exception', { error: error.message });
-    throw error;
-  }
 }
 
 /**

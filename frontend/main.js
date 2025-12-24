@@ -263,17 +263,30 @@ ipcMain.handle('open-till', async (event, options = {}) => {
     if (process.platform === 'win32') {
       logToFile('INFO', 'Attempting to open drawer via Windows printer port');
       
+      let defaultPort = null;
+      let isUsbPort = false;
+      
       // First, try to get and use the default printer port
       if (!printerPort) {
         logToFile('INFO', 'Getting default printer port from Windows');
-        const defaultPort = await getDefaultPrinterPort();
+        defaultPort = await getDefaultPrinterPort();
         if (defaultPort) {
-          logToFile('INFO', 'Found default printer port, trying it first', { port: defaultPort });
-          try {
-            const result = await openDrawerViaWindowsPort(defaultPort, drawerCommands);
-            if (result.success) return result;
-          } catch (error) {
-            logToFile('WARN', 'Default printer port failed, trying common ports', { port: defaultPort, error: error.message });
+          logToFile('INFO', 'Found default printer port', { port: defaultPort });
+          isUsbPort = defaultPort.toUpperCase().startsWith('USB');
+          
+          // If it's a USB port, note that direct access won't work
+          // USB printers require sending commands through the print spooler or printer driver
+          if (isUsbPort) {
+            logToFile('WARN', 'USB port detected - direct port access not supported for USB printers', { port: defaultPort });
+            // USB ports will be skipped in openDrawerViaWindowsPort, but we note it for the error message
+          } else {
+            // Try direct port access for non-USB ports
+            try {
+              const result = await openDrawerViaWindowsPort(defaultPort, drawerCommands);
+              if (result.success) return result;
+            } catch (error) {
+              logToFile('WARN', 'Default printer port failed, trying common ports', { port: defaultPort, error: error.message });
+            }
           }
         }
       }
@@ -284,6 +297,11 @@ ipcMain.handle('open-till', async (event, options = {}) => {
         if (result.success) return result;
       } catch (error) {
         logToFile('WARN', 'Windows port method failed', { error: error.message });
+        
+        // If it was a USB port, provide specific error message
+        if (isUsbPort && defaultPort) {
+          throw new Error(`USB printer detected (${defaultPort}). USB printers cannot be accessed directly. The cash drawer may open automatically when printing receipts, or you may need to configure a serial/COM port for the drawer.`);
+        }
       }
     }
     
@@ -454,6 +472,16 @@ async function openDrawerViaWindowsPort(printerPort, commands) {
       }
       
       const portName = commonPorts[portIndex];
+      
+      // Skip USB ports immediately - they cannot be accessed directly via file writes
+      // USB printers need to be accessed through the Windows print spooler
+      if (portName.toUpperCase().startsWith('USB')) {
+        logToFile('INFO', 'USB port detected, skipping direct access (requires print spooler)', { port: portName });
+        portIndex++;
+        setTimeout(tryPort, 10);
+        return;
+      }
+      
       logToFile('INFO', 'Trying Windows port', { port: portName });
       
       // Handle different port name formats
@@ -461,9 +489,6 @@ async function openDrawerViaWindowsPort(printerPort, commands) {
       if (portName.startsWith('\\\\.\\')) {
         // Already in correct format
         portPath = portName;
-      } else if (portName.startsWith('USB') || portName.match(/^[A-Z]+[0-9]+$/)) {
-        // USB or other named ports - try without prefix first, then with
-        portPath = `\\\\.\\${portName}`;
       } else {
         // Standard COM/LPT ports
         portPath = `\\\\.\\${portName}`;
@@ -495,11 +520,16 @@ async function openDrawerViaWindowsPort(printerPort, commands) {
           
           if (err) {
             // ENOENT means port doesn't exist - skip quickly
-            // ETIMEDOUT means port exists but is busy - try next command
+            // EPERM means permission denied (port is locked/busy) - skip this port entirely
+            // ETIMEDOUT means port exists but is busy - skip this port entirely
             if (err.code === 'ENOENT') {
               logToFile('INFO', 'Port does not exist, skipping', { port: portName });
               portIndex++;
               setTimeout(tryPort, 50);
+            } else if (err.code === 'EPERM' || err.code === 'ETIMEDOUT') {
+              logToFile('WARN', 'Port is locked or busy, skipping port entirely', { port: portName, code: err.code });
+              portIndex++;
+              setTimeout(tryPort, 100);
             } else {
               logToFile('WARN', 'Failed to write command to port', { port: portName, commandIndex, error: err.message, code: err.code });
               commandIndex++;

@@ -306,10 +306,6 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         </div>
       </div>
       
-      <div class="vat-info">
-        <div class="center">VAT No: ${sale.vatNumber || 'N/A'}</div>
-      </div>
-      
       <div class="divider"></div>
       
       <div style="margin-top: 10px; padding: 8px; border: 1px dashed #000; font-size: 11px; font-weight: 700; line-height: 1.3;">
@@ -341,7 +337,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
  * @param {string} startDate - Report start date
  * @returns {string} HTML content
  */
-export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", startDate, companyAddress = '', companyPhone = '', vatNumber = '', website = '') => {
+export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", startDate, companyAddress = '', companyPhone = '', vatNumber = '', website = '', eircode = '') => {
   // Format date as DD/MM/YYYY or handle date range string
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -601,7 +597,7 @@ export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", start
       <div class="header">
         <div class="company-name">${companyName}</div>
         ${companyAddress ? `<div class="address">${companyAddress}</div>` : ''}
-        ${vatNumber ? `<div class="address" style="font-size: 13px; font-weight: 700;">VAT No: ${vatNumber}</div>` : ''}
+        ${eircode ? `<div class="address" style="font-size: 13px; font-weight: 700;">${eircode}</div>` : ''}
         ${companyPhone ? `<div class="phone">Tel: ${companyPhone}</div>` : ''}
         ${website ? `<div class="phone" style="font-size: 12px;">Website: ${website}</div>` : ''}
         <div class="date">${formatDate(startDate)}</div>
@@ -710,7 +706,7 @@ export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", start
  * @param {string} dateRange - Date range
  * @returns {string} HTML content
  */
-export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateRange = '', vatNumber = '', companyAddress = '', companyPhone = '', website = '') => {
+export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateRange = '', vatNumber = '', companyAddress = '', companyPhone = '', website = '', eircode = '') => {
   const totalAmount = sales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount || 0), 0);
   
   return `
@@ -894,7 +890,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
       <div class="header">
         <h1>${companyName.toUpperCase()}</h1>
         ${companyAddress ? `<div class="subtitle">${companyAddress}</div>` : ''}
-        ${vatNumber ? `<div class="subtitle">VAT No: ${vatNumber}</div>` : ''}
+        ${eircode ? `<div class="subtitle">${eircode}</div>` : ''}
         ${companyPhone ? `<div class="subtitle">Tel: ${companyPhone}</div>` : ''}
         ${website ? `<div class="subtitle">Website: ${website}</div>` : ''}
         <div class="subtitle">SALES HISTORY</div>

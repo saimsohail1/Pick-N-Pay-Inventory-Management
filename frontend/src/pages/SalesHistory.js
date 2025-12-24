@@ -240,7 +240,8 @@ const SalesHistory = () => {
             address: settingsData.address || '',
             vatNumber: settingsData.vatNumber || '',
             phone: settingsData.phone || '',
-            website: settingsData.website || ''
+            website: settingsData.website || '',
+            eircode: settingsData.eircode || ''
           };
         }
     } catch (err) {

@@ -255,7 +255,8 @@ const DailyReport = () => {
             address: settingsData.address || '',
             vatNumber: settingsData.vatNumber || '',
             phone: settingsData.phone || '',
-            website: settingsData.website || ''
+            website: settingsData.website || '',
+            eircode: settingsData.eircode || ''
           };
         }
       } catch (err) {
@@ -271,7 +272,8 @@ const DailyReport = () => {
         currentCompanySettings.address || '',
         currentCompanySettings.phone || '',
         currentCompanySettings.vatNumber || '',
-        currentCompanySettings.website || ''
+        currentCompanySettings.website || '',
+        currentCompanySettings.eircode || ''
       );
       
       // Use silent printing (no dialog) - works in Electron

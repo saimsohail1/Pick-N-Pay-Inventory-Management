@@ -2095,14 +2095,28 @@ const SalesPage = () => {
                             console.log('💰 Result keys:', result ? Object.keys(result) : 'null');
                             
                             if (result && result.success) {
-                              const successMsg = `Cash drawer opened successfully! ${result.printer ? `(Printer: ${result.printer})` : ''}`;
+                              const successMsg = `Cash drawer opened successfully! ${result.message || ''}`;
                               setSuccess(successMsg);
                               addTimeout(() => setSuccess(null), 3000);
                               console.log('✅', successMsg);
                             } else {
-                              const errorMsg = result?.message || result?.error || 'Failed to open cash drawer. Please check printer connection and drawer cable.';
+                              let errorMsg = result?.message || result?.error || 'Failed to open cash drawer.';
+                              
+                              // Try to get available ports for better error message
+                              try {
+                                const portsInfo = await window.electron.ipcRenderer.invoke('get-serial-ports');
+                                if (portsInfo && portsInfo.serialPorts && portsInfo.serialPorts.length > 0) {
+                                  const portList = portsInfo.serialPorts.map(p => p.path).join(', ');
+                                  errorMsg += ` Found ${portsInfo.serialPorts.length} serial port(s): ${portList}. Check log file for details.`;
+                                } else if (portsInfo && portsInfo.windowsPorts && portsInfo.windowsPorts.length > 0) {
+                                  errorMsg += ` Will try Windows ports: ${portsInfo.windowsPorts.join(', ')}. Check log file for details.`;
+                                }
+                              } catch (portError) {
+                                console.warn('Could not get port info:', portError);
+                              }
+                              
                               setError(errorMsg);
-                              addTimeout(() => setError(null), 8000);
+                              addTimeout(() => setError(null), 10000);
                               console.error('❌ Open Till failed:', result);
                             }
                           } catch (invokeError) {
@@ -2110,9 +2124,21 @@ const SalesPage = () => {
                             console.error('❌ Error name:', invokeError.name);
                             console.error('❌ Error message:', invokeError.message);
                             console.error('❌ Error stack:', invokeError.stack);
-                            const errorMsg = `IPC invoke failed: ${invokeError.message || invokeError.toString()}`;
+                            
+                            let errorMsg = `Failed to open cash drawer: ${invokeError.message || invokeError.toString()}`;
+                            
+                            // Try to get available ports for better error message
+                            try {
+                              const portsInfo = await window.electron.ipcRenderer.invoke('get-serial-ports');
+                              if (portsInfo && portsInfo.serialPorts && portsInfo.serialPorts.length > 0) {
+                                errorMsg += ` Available ports: ${portsInfo.serialPorts.map(p => p.path).join(', ')}. Check console/logs for details.`;
+                              }
+                            } catch (portError) {
+                              console.warn('Could not get port info:', portError);
+                            }
+                            
                             setError(errorMsg);
-                            addTimeout(() => setError(null), 8000);
+                            addTimeout(() => setError(null), 10000);
                           }
                         } catch (err) {
                           console.error('❌ Unexpected error opening cash drawer:', err);

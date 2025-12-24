@@ -286,8 +286,11 @@ $doc.Print()
 Write-Output "SUCCESS"
           `.trim();
           
-          // Use Windows Raw Print API via PowerShell - SIMPLIFIED
-          const rawPrintCmd = `
+          // Use Windows Raw Print API via PowerShell - write script to temp file to avoid escaping issues
+          const tempDir = require('os').tmpdir();
+          const tempScriptFile = path.join(tempDir, `drawer_script_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.ps1`);
+          
+          const rawPrintScript = `
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -350,9 +353,20 @@ if ([RawPrint]::OpenPrinter($printer.Name, [ref]$hPrinter, [IntPtr]::Zero)) {
 }
           `.trim();
           
-          exec(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${rawPrintCmd.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`,
+          // Write script to temp file
+          fs.writeFileSync(tempScriptFile, rawPrintScript, 'utf8');
+          
+          // Execute the script file
+          exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${tempScriptFile}"`,
             { timeout: 5000 },
             (error, stdout, stderr) => {
+              // Clean up temp script file
+              try {
+                fs.unlinkSync(tempScriptFile);
+              } catch (unlinkErr) {
+                // Ignore cleanup errors
+              }
+              
               const output = (stdout || '').trim();
               if (output.includes('SUCCESS')) {
                 resolve({ success: true });

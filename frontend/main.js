@@ -259,18 +259,31 @@ ipcMain.handle('open-till', async (event, options = {}) => {
       return await openDrawerViaSerial(serialPort, drawerCommands);
     }
     
-    // Method 2: Try Windows printer port (LPT/COM) or get default printer port
+    // Method 2: Try Windows printer port (get default printer port first, then try common ports)
     if (process.platform === 'win32') {
       logToFile('INFO', 'Attempting to open drawer via Windows printer port');
-      const result = await openDrawerViaWindowsPort(printerPort, drawerCommands);
-      if (result.success) return result;
       
-      // If Windows port method failed, try to get default printer port
-      logToFile('INFO', 'Trying to get default printer port');
-      const defaultPort = await getDefaultPrinterPort();
-      if (defaultPort) {
-        logToFile('INFO', 'Found default printer port', { port: defaultPort });
-        return await openDrawerViaWindowsPort(defaultPort, drawerCommands);
+      // First, try to get and use the default printer port
+      if (!printerPort) {
+        logToFile('INFO', 'Getting default printer port from Windows');
+        const defaultPort = await getDefaultPrinterPort();
+        if (defaultPort) {
+          logToFile('INFO', 'Found default printer port, trying it first', { port: defaultPort });
+          try {
+            const result = await openDrawerViaWindowsPort(defaultPort, drawerCommands);
+            if (result.success) return result;
+          } catch (error) {
+            logToFile('WARN', 'Default printer port failed, trying common ports', { port: defaultPort, error: error.message });
+          }
+        }
+      }
+      
+      // Then try the specified port or common ports
+      try {
+        const result = await openDrawerViaWindowsPort(printerPort, drawerCommands);
+        if (result.success) return result;
+      } catch (error) {
+        logToFile('WARN', 'Windows port method failed', { error: error.message });
       }
     }
     
@@ -424,11 +437,11 @@ async function openDrawerViaSerial(portPath, commands) {
 }
 
 /**
- * Open drawer via Windows printer port (LPT/COM) - tries multiple commands
+ * Open drawer via Windows printer port (LPT/COM/USB) - tries multiple commands
  */
 async function openDrawerViaWindowsPort(printerPort, commands) {
   return new Promise((resolve, reject) => {
-    // Common Windows printer ports
+    // Common Windows printer ports (only if no specific port provided)
     const commonPorts = printerPort 
       ? [printerPort] 
       : ['LPT1', 'LPT2', 'LPT3', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8'];
@@ -436,33 +449,62 @@ async function openDrawerViaWindowsPort(printerPort, commands) {
     let portIndex = 0;
     const tryPort = () => {
       if (portIndex >= commonPorts.length) {
-        reject(new Error('Could not open drawer on any available Windows port. Check log file for details.'));
+        reject(new Error('Could not open drawer on any available Windows port. The printer may be connected via USB and require a different port name. Check Windows Printer settings for the actual port name.'));
         return;
       }
       
       const portName = commonPorts[portIndex];
       logToFile('INFO', 'Trying Windows port', { port: portName });
       
-      // Use fs to write directly to port (Windows allows this)
-      const portPath = `\\\\.\\${portName}`;
+      // Handle different port name formats
+      let portPath;
+      if (portName.startsWith('\\\\.\\')) {
+        // Already in correct format
+        portPath = portName;
+      } else if (portName.startsWith('USB') || portName.match(/^[A-Z]+[0-9]+$/)) {
+        // USB or other named ports - try without prefix first, then with
+        portPath = `\\\\.\\${portName}`;
+      } else {
+        // Standard COM/LPT ports
+        portPath = `\\\\.\\${portName}`;
+      }
       
       let commandIndex = 0;
       const tryCommand = () => {
         if (commandIndex >= commands.length) {
           // All commands failed on this port, try next port
           portIndex++;
-          setTimeout(tryPort, 100);
+          // Skip quickly if port doesn't exist (ENOENT), wait longer if it exists but timed out
+          const delay = portName.startsWith('COM') ? 200 : 100;
+          setTimeout(tryPort, delay);
           return;
         }
         
         const cmd = commands[commandIndex];
         logToFile('INFO', 'Trying command on Windows port', { port: portName, commandIndex });
         
+        // Use writeFile with a timeout wrapper
+        const writeTimeout = setTimeout(() => {
+          logToFile('WARN', 'Write operation timed out', { port: portName, commandIndex });
+          commandIndex++;
+          setTimeout(tryCommand, 50);
+        }, 2000); // 2 second timeout per write
+        
         fs.writeFile(portPath, cmd, (err) => {
+          clearTimeout(writeTimeout);
+          
           if (err) {
-            logToFile('WARN', 'Failed to write command to port', { port: portName, commandIndex, error: err.message });
-            commandIndex++;
-            setTimeout(tryCommand, 50);
+            // ENOENT means port doesn't exist - skip quickly
+            // ETIMEDOUT means port exists but is busy - try next command
+            if (err.code === 'ENOENT') {
+              logToFile('INFO', 'Port does not exist, skipping', { port: portName });
+              portIndex++;
+              setTimeout(tryPort, 50);
+            } else {
+              logToFile('WARN', 'Failed to write command to port', { port: portName, commandIndex, error: err.message, code: err.code });
+              commandIndex++;
+              setTimeout(tryCommand, 100);
+            }
           } else {
             logToFile('INFO', 'Drawer opened via Windows port', { port: portName, commandIndex });
             resolve({ success: true, message: `Cash drawer opened successfully via ${portName}` });
@@ -521,21 +563,29 @@ async function getDefaultPrinterPort() {
   }
   
   try {
-    // Use PowerShell to get default printer port
+    // Use PowerShell to get default printer port and name
     const { exec } = require('child_process');
     return new Promise((resolve) => {
-      exec('powershell -Command "Get-CimInstance Win32_Printer | Where-Object {$_.Default -eq $true} | Select-Object -ExpandProperty PortName"', 
+      // Get both printer name and port name
+      const cmd = 'powershell -Command "$printer = Get-CimInstance Win32_Printer | Where-Object {$_.Default -eq $true}; if ($printer) { Write-Output $printer.PortName }"';
+      exec(cmd, 
         { timeout: 5000 }, 
         (error, stdout, stderr) => {
-          if (error || !stdout) {
-            logToFile('WARN', 'Could not get default printer port', { error: error?.message });
+          if (error) {
+            logToFile('WARN', 'Could not get default printer port', { error: error.message, stderr });
             resolve(null);
             return;
           }
           
           const port = stdout.trim();
+          if (!port || port.length === 0) {
+            logToFile('WARN', 'Default printer port is empty or not found');
+            resolve(null);
+            return;
+          }
+          
           logToFile('INFO', 'Found default printer port', { port });
-          resolve(port || null);
+          resolve(port);
         }
       );
     });

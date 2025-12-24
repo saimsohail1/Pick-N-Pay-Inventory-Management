@@ -2102,21 +2102,29 @@ const SalesPage = () => {
                             } else {
                               let errorMsg = result?.message || result?.error || 'Failed to open cash drawer.';
                               
+                              // Add helpful guidance for Windows users
+                              if (errorMsg.includes('Windows port')) {
+                                errorMsg += ' To find your printer port: Open Windows Settings > Devices > Printers & scanners, select your printer, click "Manage", then check "Printer properties" > "Ports" tab.';
+                              }
+                              
                               // Try to get available ports for better error message
                               try {
                                 const portsInfo = await window.electron.ipcRenderer.invoke('get-serial-ports');
+                                if (portsInfo && portsInfo.defaultPrinterPort) {
+                                  errorMsg += ` Default printer port: ${portsInfo.defaultPrinterPort}.`;
+                                }
                                 if (portsInfo && portsInfo.serialPorts && portsInfo.serialPorts.length > 0) {
                                   const portList = portsInfo.serialPorts.map(p => p.path).join(', ');
-                                  errorMsg += ` Found ${portsInfo.serialPorts.length} serial port(s): ${portList}. Check log file for details.`;
-                                } else if (portsInfo && portsInfo.windowsPorts && portsInfo.windowsPorts.length > 0) {
-                                  errorMsg += ` Will try Windows ports: ${portsInfo.windowsPorts.join(', ')}. Check log file for details.`;
+                                  errorMsg += ` Found ${portsInfo.serialPorts.length} serial port(s): ${portList}.`;
                                 }
+                                errorMsg += ' Check log file for detailed error information.';
                               } catch (portError) {
                                 console.warn('Could not get port info:', portError);
+                                errorMsg += ' Check log file for details.';
                               }
                               
                               setError(errorMsg);
-                              addTimeout(() => setError(null), 10000);
+                              addTimeout(() => setError(null), 15000);
                               console.error('❌ Open Till failed:', result);
                             }
                           } catch (invokeError) {

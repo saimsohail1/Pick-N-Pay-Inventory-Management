@@ -274,11 +274,16 @@ ipcMain.handle('open-till', async (event, options = {}) => {
           logToFile('INFO', 'Found default printer port', { port: defaultPort });
           isUsbPort = defaultPort.toUpperCase().startsWith('USB');
           
-          // If it's a USB port, note that direct access won't work
-          // USB printers require sending commands through the print spooler or printer driver
+          // If it's a USB port, try Windows Raw Print API method
           if (isUsbPort) {
-            logToFile('WARN', 'USB port detected - direct port access not supported for USB printers', { port: defaultPort });
-            // USB ports will be skipped in openDrawerViaWindowsPort, but we note it for the error message
+            logToFile('INFO', 'USB port detected, trying Windows Raw Print API method', { port: defaultPort });
+            try {
+              const result = await openDrawerViaWindowsRawPrint(drawerCommands);
+              if (result.success) return result;
+              logToFile('WARN', 'Windows Raw Print API method failed, trying serial ports', { error: result.message });
+            } catch (error) {
+              logToFile('WARN', 'Windows Raw Print API method failed', { error: error.message });
+            }
           } else {
             // Try direct port access for non-USB ports
             try {
@@ -580,6 +585,155 @@ async function openDrawerViaAllSerialPorts(commands) {
     throw new Error(`Tried all ${ports.length} available serial ports but could not open drawer. Ports tried: ${ports.map(p => p.path).join(', ')}`);
   } catch (error) {
     logToFile('ERROR', 'Auto-detect failed', { error: error.message });
+    throw error;
+  }
+}
+
+/**
+ * Open drawer via Windows Raw Print API (for USB printers)
+ * Sends raw ESC/POS command directly to printer queue
+ */
+async function openDrawerViaWindowsRawPrint(commands) {
+  if (process.platform !== 'win32') {
+    throw new Error('Windows Raw Print API is only available on Windows');
+  }
+  
+  try {
+    // Get default printer name
+    const { exec } = require('child_process');
+    const printerName = await new Promise((resolve, reject) => {
+      exec('powershell -Command "$printer = Get-CimInstance Win32_Printer | Where-Object {$_.Default -eq $true}; if ($printer) { Write-Output $printer.Name }"',
+        { timeout: 5000 },
+        (error, stdout) => {
+          if (error || !stdout || !stdout.trim()) {
+            reject(new Error('Could not get default printer name'));
+            return;
+          }
+          resolve(stdout.trim());
+        }
+      );
+    });
+    
+    logToFile('INFO', 'Sending drawer command via Windows Raw Print API', { printer: printerName });
+    
+    // Use the first command (most common ESC/POS drawer open command)
+    const drawerCommand = commands[0];
+    
+    // Write raw bytes to temp file, then use PowerShell to send via Windows Print API
+    return new Promise((resolve, reject) => {
+      const tempDir = require('os').tmpdir();
+      const tempFile = path.join(tempDir, `drawer_cmd_${Date.now()}.bin`);
+      
+      // Write raw bytes to temp file
+      fs.writeFile(tempFile, drawerCommand, (writeErr) => {
+        if (writeErr) {
+          reject(new Error(`Failed to create temp file: ${writeErr.message}`));
+          return;
+        }
+        
+        // Use PowerShell to send raw data via Windows Print API (winspool.drv)
+        const escapedTempFile = tempFile.replace(/\\/g, '\\\\').replace(/'/g, "''");
+        const psCmd = `
+$ErrorActionPreference = 'Stop'
+$printer = Get-CimInstance Win32_Printer | Where-Object { $_.Default -eq $true }
+if (-not $printer) {
+    Write-Output "ERROR: Printer not found"
+    exit 1
+}
+$bytes = [System.IO.File]::ReadAllBytes('${escapedTempFile}')
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class RawPrint {
+    [DllImport("winspool.drv", CharSet=CharSet.Ansi, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+    public static extern bool OpenPrinter([MarshalAs(UnmanagedType.LPStr)] string szPrinter, out IntPtr hPrinter, IntPtr pd);
+    [DllImport("winspool.drv", CharSet=CharSet.Ansi, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+    public static extern bool ClosePrinter(IntPtr hPrinter);
+    [DllImport("winspool.drv", CharSet=CharSet.Ansi, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+    public static extern bool StartDocPrinter(IntPtr hPrinter, int level, DOCINFOA di);
+    [DllImport("winspool.drv", CharSet=CharSet.Ansi, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+    public static extern bool EndDocPrinter(IntPtr hPrinter);
+    [DllImport("winspool.drv", CharSet=CharSet.Ansi, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+    public static extern bool StartPagePrinter(IntPtr hPrinter);
+    [DllImport("winspool.drv", CharSet=CharSet.Ansi, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+    public static extern bool EndPagePrinter(IntPtr hPrinter);
+    [DllImport("winspool.drv", CharSet=CharSet.Ansi, ExactSpelling=true, CallingConvention=CallingConvention.StdCall)]
+    public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, int dwCount, out int dwWritten);
+}
+[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi)]
+public struct DOCINFOA {
+    [MarshalAs(UnmanagedType.LPStr)] public string pDocName;
+    [MarshalAs(UnmanagedType.LPStr)] public string pOutputFile;
+    [MarshalAs(UnmanagedType.LPStr)] public string pDataType;
+}
+"@
+$hPrinter = [IntPtr]::Zero
+if ([RawPrint]::OpenPrinter($printer.Name, [ref]$hPrinter, [IntPtr]::Zero)) {
+    try {
+        $docInfo = New-Object DOCINFOA
+        $docInfo.pDocName = "DrawerOpen"
+        $docInfo.pDataType = "RAW"
+        if ([RawPrint]::StartDocPrinter($hPrinter, 1, $docInfo)) {
+            try {
+                if ([RawPrint]::StartPagePrinter($hPrinter)) {
+                    try {
+                        $gcHandle = [System.Runtime.InteropServices.GCHandle]::Alloc($bytes, [System.Runtime.InteropServices.GCHandleType]::Pinned)
+                        try {
+                            $written = 0
+                            if ([RawPrint]::WritePrinter($hPrinter, $gcHandle.AddrOfPinnedObject(), $bytes.Length, [ref]$written)) {
+                                Write-Output "SUCCESS"
+                            } else {
+                                Write-Output "ERROR: WritePrinter failed - $([System.Runtime.InteropServices.Marshal]::GetLastWin32Error())"
+                            }
+                        } finally {
+                            $gcHandle.Free()
+                        }
+                    } finally {
+                        [RawPrint]::EndPagePrinter($hPrinter) | Out-Null
+                    }
+                } else {
+                    Write-Output "ERROR: StartPagePrinter failed - $([System.Runtime.InteropServices.Marshal]::GetLastWin32Error())"
+                }
+            } finally {
+                [RawPrint]::EndDocPrinter($hPrinter) | Out-Null
+            }
+        } else {
+            Write-Output "ERROR: StartDocPrinter failed - $([System.Runtime.InteropServices.Marshal]::GetLastWin32Error())"
+        }
+    } finally {
+        [RawPrint]::ClosePrinter($hPrinter) | Out-Null
+    }
+} else {
+    Write-Output "ERROR: OpenPrinter failed - $([System.Runtime.InteropServices.Marshal]::GetLastWin32Error())"
+}
+        `.trim();
+        
+        exec(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psCmd.replace(/"/g, '\\"')}"`, 
+          { timeout: 10000 },
+          (error, stdout, stderr) => {
+            // Clean up temp file
+            fs.unlink(tempFile, () => {});
+            
+            if (error) {
+              logToFile('ERROR', 'Raw Print API failed', { error: error.message, stderr, stdout });
+              reject(new Error(`Failed to send command via Raw Print API: ${error.message}`));
+              return;
+            }
+            
+            const output = stdout.trim();
+            if (output.includes('SUCCESS')) {
+              logToFile('INFO', 'Drawer command sent successfully via Raw Print API');
+              resolve({ success: true, message: 'Cash drawer opened successfully via Windows Raw Print API' });
+            } else {
+              logToFile('ERROR', 'Raw Print API returned error', { output, stderr });
+              reject(new Error(`Raw Print API error: ${output || stderr || 'Unknown error'}`));
+            }
+          }
+        );
+      });
+    });
+  } catch (error) {
+    logToFile('ERROR', 'Raw Print API exception', { error: error.message });
     throw error;
   }
 }

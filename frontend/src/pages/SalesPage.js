@@ -2083,10 +2083,11 @@ const SalesPage = () => {
                           console.log('💰 IPC invoke function exists:', typeof window.electron.ipcRenderer.invoke === 'function');
                           
                           try {
-                            // Pass company info for the "Till Opened" receipt
+                            // Send ESC/POS command directly to open drawer (no printing)
                             const result = await window.electron.ipcRenderer.invoke('open-till', {
-                              companyName: companyName,
-                              companyAddress: companyAddress
+                              // Optional: specify printerPort or serialPort if needed
+                              // printerPort: 'LPT1', // Windows port (LPT1, LPT2, COM1, etc.)
+                              // serialPort: '/dev/ttyUSB0' // Linux/Mac serial port
                             });
                             
                             console.log('💰 Open Till IPC result received:', result);
@@ -2126,7 +2127,7 @@ const SalesPage = () => {
                         }
                       }}
                       disabled={loading}
-                      title="Open cash drawer (ESC/POS command sent directly to printer port)"
+                      title="Open cash drawer directly (ESC/POS command - no printing)"
                     >
                       <i className="bi bi-cash-stack me-2"></i>
                       Open Till

@@ -235,86 +235,193 @@ ipcMain.on('toggle-fullscreen', () => {
 });
 
 /**
- * IPC handler for opening cash drawer via printer
- * Prints a small "Till Opened" receipt which triggers the drawer via printer driver
+ * IPC handler for opening cash drawer directly via ESC/POS command
+ * Sends ESC/POS drawer open command directly to printer port (no printing)
  */
 ipcMain.handle('open-till', async (event, options = {}) => {
+  const { printerPort, serialPort } = options;
+  
+  logToFile('INFO', 'Opening till - sending ESC/POS drawer command', { printerPort, serialPort, platform: process.platform });
+  
+  // ESC/POS command to open cash drawer: ESC p m t1 t2
+  // ESC = 0x1B (27), p = 0x70 (112), m = 0x00 (drawer pin 0), t1 = 0x19 (25ms), t2 = 0x78 (120ms)
+  const drawerCommand = Buffer.from([0x1B, 0x70, 0x00, 0x19, 0x78]);
+  
+  // Alternative command for drawer pin 1: ESC p 1 25 250
+  const drawerCommandPin1 = Buffer.from([0x1B, 0x70, 0x01, 0x19, 0xFA]);
+  
   try {
-    const companyName = options.companyName || 'ADAMS GREEN';
-    const companyAddress = options.companyAddress || '';
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Till Opened</title>
-  <style>
-    @page { size: 80mm auto; margin: 2mm; }
-    body {
-      font-family: 'Courier New', monospace;
-      font-size: 11px;
-      margin: 0;
-      padding: 4mm;
-      text-align: center;
+    // Method 1: Try serial port if specified
+    if (serialPort && SerialPort) {
+      logToFile('INFO', 'Attempting to open drawer via serial port', { port: serialPort });
+      return await openDrawerViaSerial(serialPort, drawerCommand, drawerCommandPin1);
     }
-    .header { font-weight: bold; margin-bottom: 6px; }
-    .title { font-weight: bold; font-size: 13px; margin: 8px 0; }
-    .info { margin: 2px 0; }
-  </style>
-</head>
-<body>
-  <div class="header">${companyName.toUpperCase()}</div>
-  ${companyAddress ? `<div class="info">${companyAddress}</div>` : ''}
-  <div class="title">TILL OPENED</div>
-  <div class="info">Date: ${dateStr}</div>
-  <div class="info">Time: ${timeStr}</div>
-</body>
-</html>
-    `;
-
-    // Use Electron's built-in printing (goes through print spooler, triggers drawer)
-    const printWindow = new BrowserWindow({
-      show: false,
-      webPreferences: { sandbox: true }
+    
+    // Method 2: Try Windows printer port (LPT/COM)
+    if (process.platform === 'win32') {
+      logToFile('INFO', 'Attempting to open drawer via Windows printer port');
+      return await openDrawerViaWindowsPort(printerPort, drawerCommand, drawerCommandPin1);
+    }
+    
+    // Method 3: Try to find and use default serial port
+    if (SerialPort) {
+      logToFile('INFO', 'Attempting to find and use default serial port');
+      return await openDrawerViaAutoDetect(drawerCommand, drawerCommandPin1);
+    }
+    
+    // Fallback: Return error with helpful message
+    logToFile('ERROR', 'No method available to open drawer', { 
+      hasSerialPort: !!SerialPort, 
+      platform: process.platform,
+      providedPort: !!printerPort,
+      providedSerialPort: !!serialPort
     });
-
-    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
-    printWindow.loadURL(dataUrl);
-
-    return new Promise((resolve, reject) => {
-      printWindow.webContents.on('did-finish-load', () => {
-        printWindow.webContents.print({
-          silent: true,
-          printBackground: true
-          // Don't specify deviceName - let it use the default printer
-          // deviceName can cause errors if the printer name doesn't match exactly
-        }, (success, failureReason) => {
-          console.log('📄 Till open print callback:', { success, failureReason });
-          if (!printWindow.isDestroyed()) {
-            setTimeout(() => printWindow.close(), 300);
-          }
-          if (success) {
-            resolve({ success: true, message: 'Till opened successfully' });
-          } else {
-            reject(new Error(failureReason || 'Failed to open till'));
-          }
-        });
-      });
-
-      printWindow.on('error', (err) => {
-        if (!printWindow.isDestroyed()) printWindow.close();
-        reject(err);
-      });
-    });
+    
+    return { 
+      success: false, 
+      message: 'Unable to open drawer. Please ensure printer is connected and specify the printer port in settings.' 
+    };
   } catch (error) {
-    console.error('❌ Failed to open till:', error);
-    return { success: false, message: error.message || 'Failed to open till' };
+    logToFile('ERROR', 'Failed to open till', { error: error.message, stack: error.stack });
+    return { success: false, message: error.message || 'Failed to open cash drawer' };
   }
 });
+
+/**
+ * Open drawer via serial port
+ */
+async function openDrawerViaSerial(portPath, command, commandPin1) {
+  return new Promise((resolve, reject) => {
+    let port = null;
+    const timeout = setTimeout(() => {
+      if (port) {
+        try {
+          port.close();
+        } catch (err) {
+          console.error('Error closing port on timeout:', err);
+        }
+      }
+      reject(new Error('Serial port operation timed out'));
+    }, 5000);
+    
+    try {
+      port = new SerialPort({ path: portPath, baudRate: 9600, autoOpen: false });
+      
+      port.open((err) => {
+        if (err) {
+          clearTimeout(timeout);
+          logToFile('ERROR', 'Failed to open serial port', { port: portPath, error: err.message });
+          reject(new Error(`Failed to open serial port ${portPath}: ${err.message}`));
+          return;
+        }
+        
+        logToFile('INFO', 'Serial port opened, sending drawer command', { port: portPath });
+        
+        // Send drawer open command (pin 0 - most common)
+        port.write(command, (writeErr) => {
+          clearTimeout(timeout);
+          
+          setTimeout(() => {
+            try {
+              port.close();
+            } catch (closeErr) {
+              console.error('Error closing port:', closeErr);
+            }
+          }, 100);
+          
+          if (writeErr) {
+            logToFile('ERROR', 'Failed to write to serial port', { error: writeErr.message });
+            reject(new Error(`Failed to write to serial port: ${writeErr.message}`));
+            return;
+          }
+          
+          logToFile('INFO', 'Drawer command sent via serial port', { port: portPath });
+          resolve({ success: true, message: 'Cash drawer opened successfully via serial port' });
+        });
+      });
+      
+      port.on('error', (err) => {
+        clearTimeout(timeout);
+        logToFile('ERROR', 'Serial port error', { error: err.message });
+        reject(new Error(`Serial port error: ${err.message}`));
+      });
+    } catch (error) {
+      clearTimeout(timeout);
+      logToFile('ERROR', 'Serial port exception', { error: error.message });
+      reject(error);
+    }
+  });
+}
+
+/**
+ * Open drawer via Windows printer port (LPT/COM)
+ */
+async function openDrawerViaWindowsPort(printerPort, command, commandPin1) {
+  return new Promise((resolve, reject) => {
+    // Common Windows printer ports
+    const commonPorts = printerPort 
+      ? [printerPort] 
+      : ['LPT1', 'LPT2', 'LPT3', 'COM1', 'COM2', 'COM3', 'COM4'];
+    
+    let attempts = 0;
+    const tryPort = (portIndex) => {
+      if (portIndex >= commonPorts.length) {
+        reject(new Error('Could not open drawer on any available port'));
+        return;
+      }
+      
+      const portName = commonPorts[portIndex];
+      logToFile('INFO', 'Trying Windows port', { port: portName });
+      
+      // Use fs to write directly to port (Windows allows this)
+      const portPath = `\\\\.\\${portName}`;
+      
+      fs.writeFile(portPath, command, (err) => {
+        if (err) {
+          logToFile('WARN', 'Failed to write to port, trying next', { port: portName, error: err.message });
+          // Try pin 1 command
+          fs.writeFile(portPath, commandPin1, (err2) => {
+            if (err2) {
+              // Try next port
+              tryPort(portIndex + 1);
+            } else {
+              logToFile('INFO', 'Drawer opened via Windows port (pin 1)', { port: portName });
+              resolve({ success: true, message: `Cash drawer opened successfully via ${portName}` });
+            }
+          });
+        } else {
+          logToFile('INFO', 'Drawer opened via Windows port (pin 0)', { port: portName });
+          resolve({ success: true, message: `Cash drawer opened successfully via ${portName}` });
+        }
+      });
+    };
+    
+    tryPort(0);
+  });
+}
+
+/**
+ * Auto-detect and use serial port
+ */
+async function openDrawerViaAutoDetect(command, commandPin1) {
+  try {
+    const ports = await SerialPort.list();
+    logToFile('INFO', 'Auto-detecting serial ports', { count: ports.length });
+    
+    if (ports.length === 0) {
+      throw new Error('No serial ports found');
+    }
+    
+    // Try the first available port (usually the printer)
+    const firstPort = ports[0];
+    logToFile('INFO', 'Using first available serial port', { port: firstPort.path });
+    
+    return await openDrawerViaSerial(firstPort.path, command, commandPin1);
+  } catch (error) {
+    logToFile('ERROR', 'Auto-detect failed', { error: error.message });
+    throw error;
+  }
+}
 
 
 /**

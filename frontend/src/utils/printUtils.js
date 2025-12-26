@@ -179,36 +179,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
     return `${day}/${month}/${year}`;
   };
 
-  const subtotalExcludingVat = sale.saleItems.reduce((sum, item) => 
-    sum + parseFloat(item.priceExcludingVat || 0), 0
-  );
-  const totalVat = sale.saleItems.reduce((sum, item) => 
-    sum + parseFloat(item.vatAmount || 0), 0
-  );
-  
-  // Calculate weighted average VAT rate from all items (each item can have different VAT rates)
-  let weightedVatSum = 0;
-  let totalGrossForAvg = 0;
-  let selectedVatRate = 0;
-  
-  if (sale.saleItems && sale.saleItems.length > 0) {
-    sale.saleItems.forEach(item => {
-      const gross = parseFloat(item.totalPrice || 0);
-      const vatRate = parseFloat(item.vatRate || 0);
-      if (gross > 0 && vatRate > 0) {
-        weightedVatSum += vatRate * gross;
-        totalGrossForAvg += gross;
-      }
-    });
-    
-    // Calculate weighted average VAT percentage
-    if (totalGrossForAvg > 0) {
-      selectedVatRate = weightedVatSum / totalGrossForAvg;
-    } else if (subtotalExcludingVat > 0) {
-      // Fallback: calculate from totals if no individual VAT rates available
-      selectedVatRate = (totalVat / subtotalExcludingVat) * 100;
-    }
-  }
+  // No need to calculate average VAT - each item shows its own VAT %
 
   return `
     <!DOCTYPE html>
@@ -287,18 +258,18 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         <div style="margin: 5px 0; font-weight: 700; font-size: 11px; white-space: pre-wrap; word-wrap: break-word; font-family: 'Arial', 'Helvetica', sans-serif;">${sale.notes}</div>
       ` : ''}
       
-      ${sale.saleItems.map(item => `
+      ${sale.saleItems.map(item => {
+        const vatRate = parseFloat(item.vatRate || 0);
+        const vatDisplay = vatRate > 0 ? ` (${vatRate.toFixed(1)}% VAT)` : '';
+        return `
         <div class="item">
-          <span>${item.itemName} ${item.quantity}x</span>
+          <span>${item.itemName}${vatDisplay} ${item.quantity}x</span>
           <span>€${parseFloat(item.totalPrice).toFixed(2)}</span>
         </div>
-      `).join('')}
+      `;
+      }).join('')}
       
-      <div class="item" style="margin-top: 8px;">
-        <span>VAT (${selectedVatRate.toFixed(1)}%):</span>
-        <span>€${totalVat.toFixed(2)}</span>
-      </div>
-      <div class="total">
+      <div class="total" style="margin-top: 8px;">
         <div class="item">
           <span style="font-weight: 700; font-size: 12px;">TOTAL:</span>
           <span style="font-weight: 700; font-size: 12px;">€${parseFloat(sale.totalAmount).toFixed(2)}</span>

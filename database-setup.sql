@@ -165,7 +165,7 @@ CREATE TABLE sale_items (
 );
 
 -- Create attendances table
--- Note: Allows one record per user per day (first time-in, last time-out)
+-- Note: No unique constraint - allows multiple attendance records per user per day
 CREATE TABLE attendances (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

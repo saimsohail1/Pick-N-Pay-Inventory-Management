@@ -301,7 +301,10 @@ const SalesPage = () => {
             currentCompanySettings.address,
             null, // printerName
             null, // cashierName
-            currentCompanySettings.vatNumber
+            currentCompanySettings.vatNumber,
+            currentCompanySettings.phone, // phone
+            currentCompanySettings.website, // website
+            currentCompanySettings.eircode // eircode
           );
           setSuccess('Receipt printed successfully!');
           setTimeout(() => setSuccess(null), 3000);

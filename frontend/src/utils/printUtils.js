@@ -220,7 +220,11 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         .header .company-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; font-family: 'Arial', 'Helvetica', sans-serif; }
         .header .company-address { font-size: 11px; font-weight: 500; margin-bottom: 2px; font-family: 'Arial', 'Helvetica', sans-serif; }
         .header .company-info { font-size: 10px; font-weight: 500; margin-bottom: 2px; font-family: 'Arial', 'Helvetica', sans-serif; }
-        .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; font-weight: 500; font-family: 'Arial', 'Helvetica', sans-serif; }
+        .item { margin: 2px 0; font-size: 11px; font-weight: 500; font-family: 'Arial', 'Helvetica', sans-serif; }
+        .item-row { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 1px; }
+        .item-name { flex: 1; max-width: 60%; overflow: hidden; text-overflow: ellipsis; }
+        .item-price { flex: 0 0 auto; white-space: nowrap; }
+        .item-vat { font-size: 10px; margin-left: 5px; color: #666; }
         .total { padding-top: 5px; margin-top: 10px; font-weight: 700; }
         .vat-info { margin: 5px 0; font-size: 10px; font-weight: 500; font-family: 'Arial', 'Helvetica', sans-serif; }
         .footer { text-align: center; margin-top: 15px; font-size: 10px; font-weight: 500; font-family: 'Arial', 'Helvetica', sans-serif; }
@@ -260,11 +264,16 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       
       ${sale.saleItems.map(item => {
         const vatRate = parseFloat(item.vatRate || 0);
-        const vatDisplay = vatRate > 0 ? ` (${vatRate.toFixed(1)}% VAT)` : '';
+        const totalPrice = parseFloat(item.totalPrice || 0);
+        const priceExcludingVat = parseFloat(item.priceExcludingVat || 0);
+        const vatAmount = parseFloat(item.vatAmount || 0);
         return `
         <div class="item">
-          <span>${item.itemName}${vatDisplay} ${item.quantity}x</span>
-          <span>€${parseFloat(item.totalPrice).toFixed(2)}</span>
+          <div class="item-row">
+            <span class="item-name">${item.itemName} ${item.quantity}x</span>
+            <span class="item-price">€${totalPrice.toFixed(2)}</span>
+          </div>
+          ${vatRate > 0 ? `<div class="item-vat">VAT ${vatRate.toFixed(1)}%: €${vatAmount.toFixed(2)}</div>` : ''}
         </div>
       `;
       }).join('')}

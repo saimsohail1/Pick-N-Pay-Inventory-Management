@@ -12,11 +12,11 @@
  * @param {string} cashierName - Optional cashier name (overrides sale.user?.username)
  * @param {string} vatNumber - Optional VAT number
  */
-export const printReceiptRaw = async (sale, companyName = "ADAMS GREEN", companyAddress = '', printerName = null, cashierName = null, vatNumber = null) => {
+export const printReceiptRaw = async (sale, companyName = "ADAMS GREEN", companyAddress = '', printerName = null, cashierName = null, vatNumber = null, phone = null, website = null, eircode = null) => {
   // Always use directPrint (browser's window.print) - this is what worked in the original version
   // The IPC handler is just a passthrough, so we use the browser's native printing
   console.log('🖨️ Printing receipt using browser print (window.print)');
-  const receiptContent = createReceiptHTML(sale, companyName, companyAddress, cashierName, vatNumber);
+  const receiptContent = createReceiptHTML(sale, companyName, companyAddress, cashierName, vatNumber, phone, website, eircode);
   return directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
 };
 
@@ -167,7 +167,7 @@ export const printWithElectron = (content, title = 'Print Document') => {
  * @param {string} vatNumber - Optional VAT number
  * @returns {string} HTML content
  */
-export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddress = '', cashierName = null, vatNumber = null) => {
+export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddress = '', cashierName = null, vatNumber = null, phone = null, website = null, eircode = null) => {
   // Helper function to format date as DD/MM/YYYY
   const formatReceiptDate = (dateStr) => {
     if (!dateStr) return '';
@@ -224,35 +224,35 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
           body { 
             margin: 0; 
             padding: 5mm; 
-            font-family: 'Courier New', monospace; 
-            font-size: 12px; 
-            line-height: 1.2;
+            font-family: 'Arial', 'Helvetica', sans-serif; 
+            font-size: 11px; 
+            line-height: 1.3;
             width: 70mm;
-            font-weight: 600;
+            font-weight: 500;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
         }
         body { 
-          font-family: 'Courier New', monospace; 
-          font-size: 12px; 
-          line-height: 1.2; 
+          font-family: 'Arial', 'Helvetica', sans-serif; 
+          font-size: 11px; 
+          line-height: 1.3; 
           margin: 0; 
           padding: 5mm; 
           width: 70mm;
-          font-weight: 600;
+          font-weight: 500;
           color: #000;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
-        .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
-        .header .company-name { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
-        .header .company-address { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
-        .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; font-weight: 600; }
-        .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: 700; }
-        .vat-info { margin: 5px 0; font-size: 10px; font-weight: 600; }
-        .footer { text-align: center; margin-top: 15px; font-size: 10px; font-weight: 600; }
-        .divider { border-top: 1px dashed #000; margin: 5px 0; }
+        .header { text-align: center; padding-bottom: 5px; margin-bottom: 10px; }
+        .header .company-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; font-family: 'Arial', 'Helvetica', sans-serif; }
+        .header .company-address { font-size: 11px; font-weight: 500; margin-bottom: 2px; font-family: 'Arial', 'Helvetica', sans-serif; }
+        .header .company-info { font-size: 10px; font-weight: 500; margin-bottom: 2px; font-family: 'Arial', 'Helvetica', sans-serif; }
+        .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; font-weight: 500; font-family: 'Arial', 'Helvetica', sans-serif; }
+        .total { padding-top: 5px; margin-top: 10px; font-weight: 700; }
+        .vat-info { margin: 5px 0; font-size: 10px; font-weight: 500; font-family: 'Arial', 'Helvetica', sans-serif; }
+        .footer { text-align: center; margin-top: 15px; font-size: 10px; font-weight: 500; font-family: 'Arial', 'Helvetica', sans-serif; }
         .center { text-align: center; }
         .right { text-align: right; }
         .notes-box { 
@@ -273,17 +273,18 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       <div class="header">
         <div class="center company-name">${companyName.toUpperCase()}</div>
         ${companyAddress ? `<div class="center company-address">${companyAddress}</div>` : ''}
-        ${vatNumber ? `<div class="center" style="font-size: 11px; font-weight: 600;">VAT No: ${vatNumber}</div>` : ''}
-        <div class="center">SALE RECEIPT</div>
-        <div class="center">Date: ${formatReceiptDate(sale.saleDate)}</div>
-        <div class="center">Time: ${new Date(sale.saleDate).toLocaleTimeString()}</div>
-        <div class="center">Cashier: ${cashierName || sale.user?.username || 'Unknown'}</div>
+        ${eircode ? `<div class="center company-info">Eircode: ${eircode}</div>` : ''}
+        ${vatNumber ? `<div class="center company-info">VAT No: ${vatNumber}</div>` : ''}
+        ${phone ? `<div class="center company-info">Tel: ${phone}</div>` : ''}
+        ${website ? `<div class="center company-info">Website: ${website}</div>` : ''}
+        <div class="center" style="margin-top: 8px; font-size: 12px; font-weight: 600;">SALE RECEIPT</div>
+        <div class="center" style="font-size: 10px; font-weight: 500;">Date: ${formatReceiptDate(sale.saleDate)}</div>
+        <div class="center" style="font-size: 10px; font-weight: 500;">Time: ${new Date(sale.saleDate).toLocaleTimeString()}</div>
+        <div class="center" style="font-size: 10px; font-weight: 500;">Cashier: ${cashierName || sale.user?.username || 'Unknown'}</div>
       </div>
       
-      <div class="divider"></div>
-      
       ${sale.notes ? `
-        <div style="margin: 5px 0; font-weight: 700; font-size: 11px; white-space: pre-wrap; word-wrap: break-word;">${sale.notes}</div>
+        <div style="margin: 5px 0; font-weight: 700; font-size: 11px; white-space: pre-wrap; word-wrap: break-word; font-family: 'Arial', 'Helvetica', sans-serif;">${sale.notes}</div>
       ` : ''}
       
       ${sale.saleItems.map(item => `
@@ -293,33 +294,27 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         </div>
       `).join('')}
       
-      <div class="divider"></div>
-      
-      <div class="item">
+      <div class="item" style="margin-top: 8px;">
         <span>VAT (${selectedVatRate.toFixed(1)}%):</span>
         <span>€${totalVat.toFixed(2)}</span>
       </div>
       <div class="total">
         <div class="item">
-          <span><strong>TOTAL:</strong></span>
-          <span><strong>€${parseFloat(sale.totalAmount).toFixed(2)}</strong></span>
+          <span style="font-weight: 700; font-size: 12px;">TOTAL:</span>
+          <span style="font-weight: 700; font-size: 12px;">€${parseFloat(sale.totalAmount).toFixed(2)}</span>
         </div>
       </div>
       
-      <div class="divider"></div>
-      
-      <div style="margin-top: 10px; padding: 8px; border: 1px dashed #000; font-size: 11px; font-weight: 700; line-height: 1.3;">
-        <div style="text-align: center; font-weight: 700; margin-bottom: 5px; font-size: 12px;">SHOP POLICY:</div>
-        <div style="margin-bottom: 3px; font-weight: 700;">BRAND NEW DEVICES ONLY COVER MANUFACTURE WARRANTY.</div>
-        <div style="margin-bottom: 3px; font-weight: 700;">${companyName.toUpperCase()} DOES NOT COVER ANY WARRANTY FOR BRAND NEW DEVICES.</div>
-        <div style="margin-bottom: 3px; font-weight: 700;">New Devices Can be returned within 7 days if unopened and unused.</div>
-        <div style="margin-bottom: 3px; font-weight: 700;">Accessory warranty vary depending on the manufacturer</div>
-        <div style="margin-bottom: 3px; font-weight: 700;">If faulty within 7 days a repair will be authorised.</div>
-        <div style="margin-bottom: 3px; font-weight: 700;">No Return & no Refund For Used Phones if faulty product we fix or exchange depending on the product condition.</div>
-        <div style="margin-bottom: 3px; font-weight: 700;">USED PHONES WARRANTY COVER ONLY ${companyName.toUpperCase()} but depending on the product conditions.</div>
+      <div style="margin-top: 10px; padding: 8px; border: 1px dashed #000; font-size: 10px; font-weight: 600; line-height: 1.3; font-family: 'Arial', 'Helvetica', sans-serif;">
+        <div style="text-align: center; font-weight: 700; margin-bottom: 5px; font-size: 11px;">SHOP POLICY:</div>
+        <div style="margin-bottom: 3px; font-weight: 600;">BRAND NEW DEVICES ONLY COVER MANUFACTURE WARRANTY.</div>
+        <div style="margin-bottom: 3px; font-weight: 600;">${companyName.toUpperCase()} DOES NOT COVER ANY WARRANTY FOR BRAND NEW DEVICES.</div>
+        <div style="margin-bottom: 3px; font-weight: 600;">New Devices Can be returned within 7 days if unopened and unused.</div>
+        <div style="margin-bottom: 3px; font-weight: 600;">Accessory warranty vary depending on the manufacturer</div>
+        <div style="margin-bottom: 3px; font-weight: 600;">If faulty within 7 days a repair will be authorised.</div>
+        <div style="margin-bottom: 3px; font-weight: 600;">No Return & no Refund For Used Phones if faulty product we fix or exchange depending on the product condition.</div>
+        <div style="margin-bottom: 3px; font-weight: 600;">USED PHONES WARRANTY COVER ONLY ${companyName.toUpperCase()} but depending on the product conditions.</div>
       </div>
-      
-      <div class="divider"></div>
       
       <div class="footer">
         <div>Thank you for your purchase!</div>

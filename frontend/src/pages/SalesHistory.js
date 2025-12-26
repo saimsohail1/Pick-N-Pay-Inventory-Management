@@ -261,7 +261,10 @@ const SalesHistory = () => {
             currentCompanySettings.address,
             null, // printerName
             cashierName, // cashierName - overrides sale.user?.username
-            currentCompanySettings.vatNumber
+            currentCompanySettings.vatNumber,
+            currentCompanySettings.phone, // phone
+            currentCompanySettings.website, // website
+            currentCompanySettings.eircode // eircode
           );
           return;
         } catch (rawPrintError) {

@@ -1145,7 +1145,7 @@ const SalesPage = () => {
           @media print {
             @page { 
               size: 2in 4in;
-              margin: 0.01in;
+              margin: 0;
             }
             body {
               margin: 0;
@@ -1155,12 +1155,8 @@ const SalesPage = () => {
           
           body {
             font-family: 'Arial', sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 4in;
-            padding: 0.01in;
+            margin: 0;
+            padding: 2px;
             font-weight: bold;
           }
           
@@ -1173,13 +1169,21 @@ const SalesPage = () => {
           .item-name {
             font-size: 22px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 3px;
             word-wrap: break-word;
             line-height: 1.2;
           }
           
+          .barcode-price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 2px 0;
+            gap: 5px;
+          }
+          
           .barcode-container {
-            margin: 8px 0;
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -1188,13 +1192,14 @@ const SalesPage = () => {
           .barcode-image {
             max-width: 100%;
             height: auto;
+            max-height: 35px;
           }
           
           .item-price {
             font-size: 24px;
             font-weight: bold;
             color: #000;
-            margin-top: 5px;
+            white-space: nowrap;
           }
           
           .price-symbol {
@@ -1206,13 +1211,15 @@ const SalesPage = () => {
       <body>
         <div class="label-container">
           <div class="item-name">${itemToPrint.name}</div>
-          ${barcodeDataURL ? `
-            <div class="barcode-container">
-              <img src="${barcodeDataURL}" alt="Barcode" class="barcode-image" />
+          <div class="barcode-price-row">
+            ${barcodeDataURL ? `
+              <div class="barcode-container">
+                <img src="${barcodeDataURL}" alt="Barcode" class="barcode-image" />
+              </div>
+            ` : '<div></div>'}
+            <div class="item-price">
+              <span class="price-symbol">€</span>${itemToPrint.price.toFixed(2)}
             </div>
-          ` : ''}
-          <div class="item-price">
-            <span class="price-symbol">€</span>${itemToPrint.price.toFixed(2)}
           </div>
         </div>
       </body>

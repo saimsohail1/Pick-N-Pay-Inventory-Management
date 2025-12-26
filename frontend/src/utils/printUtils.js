@@ -279,7 +279,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       }).join('')}
       
       <div class="total" style="margin-top: 8px;">
-        <div class="item">
+        <div class="item-row">
           <span style="font-weight: 700; font-size: 12px;">TOTAL:</span>
           <span style="font-weight: 700; font-size: 12px;">€${parseFloat(sale.totalAmount).toFixed(2)}</span>
         </div>

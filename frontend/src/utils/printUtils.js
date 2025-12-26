@@ -192,25 +192,29 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
             size: 80mm auto; 
             margin: 0; 
           }
-          body { 
-            margin: 0; 
-            padding: 5mm; 
-            font-family: 'Arial', 'Helvetica', sans-serif; 
-            font-size: 11px; 
-            line-height: 1.3;
-            width: 70mm;
-            font-weight: 500;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
+        body { 
+          margin: 0; 
+          padding: 4mm 3mm; 
+          font-family: 'Arial', 'Helvetica', sans-serif; 
+          font-size: 11px; 
+          line-height: 1.3;
+          width: 70mm;
+          max-width: 70mm;
+          box-sizing: border-box;
+          font-weight: 500;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
         }
         body { 
           font-family: 'Arial', 'Helvetica', sans-serif; 
           font-size: 11px; 
           line-height: 1.3; 
           margin: 0; 
-          padding: 5mm; 
+          padding: 4mm 3mm; 
           width: 70mm;
+          max-width: 70mm;
+          box-sizing: border-box;
           font-weight: 500;
           color: #000;
           -webkit-print-color-adjust: exact;

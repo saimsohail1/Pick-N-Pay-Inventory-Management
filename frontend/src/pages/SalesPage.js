@@ -283,7 +283,10 @@ const SalesPage = () => {
           currentCompanySettings = {
             companyName: settingsData.companyName || "ADAMS GREEN",
             address: settingsData.address || '',
-            vatNumber: settingsData.vatNumber || ''
+            vatNumber: settingsData.vatNumber || '',
+            phone: settingsData.phone || '',
+            website: settingsData.website || '',
+            eircode: settingsData.eircode || ''
           };
         }
       } catch (err) {

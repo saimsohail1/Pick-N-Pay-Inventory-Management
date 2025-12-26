@@ -216,10 +216,11 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
-        .header { text-align: center; padding-bottom: 5px; margin-bottom: 10px; }
-        .header .company-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; font-family: 'Arial', 'Helvetica', sans-serif; }
-        .header .company-address { font-size: 11px; font-weight: 500; margin-bottom: 2px; font-family: 'Arial', 'Helvetica', sans-serif; }
-        .header .company-info { font-size: 10px; font-weight: 500; margin-bottom: 2px; font-family: 'Arial', 'Helvetica', sans-serif; }
+        .header { text-align: center; padding-bottom: 5px; margin-bottom: 10px; width: 100%; margin-left: auto; margin-right: auto; }
+        .header > div { text-align: center; margin-left: auto; margin-right: auto; width: 100%; }
+        .header .company-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; font-family: 'Arial', 'Helvetica', sans-serif; text-align: center; }
+        .header .company-address { font-size: 11px; font-weight: 500; margin-bottom: 2px; font-family: 'Arial', 'Helvetica', sans-serif; text-align: center; }
+        .header .company-info { font-size: 10px; font-weight: 500; margin-bottom: 2px; font-family: 'Arial', 'Helvetica', sans-serif; text-align: center; }
         .item { margin: 2px 0; font-size: 11px; font-weight: 500; font-family: 'Arial', 'Helvetica', sans-serif; }
         .item-row { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 1px; }
         .item-name { flex: 1; max-width: 60%; overflow: hidden; text-overflow: ellipsis; }

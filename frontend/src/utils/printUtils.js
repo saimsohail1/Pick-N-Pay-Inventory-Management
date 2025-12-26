@@ -440,8 +440,8 @@ export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", start
         }
         
         .header .company-name {
-          font-size: 16px;
-          font-weight: 700;
+          font-size: 22px;
+          font-weight: 800;
           margin-bottom: 4px;
           text-align: center;
         }

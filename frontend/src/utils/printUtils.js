@@ -222,9 +222,9 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         .header .company-address { font-size: 11px; font-weight: 500; margin-bottom: 2px; font-family: 'Arial', 'Helvetica', sans-serif; text-align: center; }
         .header .company-info { font-size: 10px; font-weight: 500; margin-bottom: 2px; font-family: 'Arial', 'Helvetica', sans-serif; text-align: center; }
         .item { margin: 2px 0; font-size: 11px; font-weight: 500; font-family: 'Arial', 'Helvetica', sans-serif; }
-        .item-row { display: flex; justify-content: space-between; gap: 2px; margin-bottom: 1px; }
-        .item-name { flex: 1; max-width: 55%; overflow: hidden; text-overflow: ellipsis; padding-right: 3px; }
-        .item-price { flex: 0 0 auto; white-space: nowrap; }
+        .item-row { display: flex; justify-content: flex-start; gap: 4px; margin-bottom: 1px; }
+        .item-name { flex: 0 1 auto; max-width: 50%; overflow: hidden; text-overflow: ellipsis; }
+        .item-price { flex: 0 0 auto; white-space: nowrap; margin-left: auto; }
         .item-vat { font-size: 10px; margin-left: 5px; color: #666; }
         .total { padding-top: 5px; margin-top: 10px; font-weight: 700; }
         .vat-info { margin: 5px 0; font-size: 10px; font-weight: 500; font-family: 'Arial', 'Helvetica', sans-serif; }

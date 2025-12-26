@@ -5,14 +5,26 @@
 -- This script creates the complete database schema
 -- for the PickNPay Inventory Management System
 -- 
+-- ✅ ALL MIGRATIONS INCLUDED - No need to run migrations separately
+-- This setup script includes all features from migration files:
+-- - hourly_pay_rate column in users table
+-- - vat_rate column in categories table
+-- - vat_rate column in items table
+-- - notes column in sales table
+-- - selected_vat_rate column in sales table
+-- - website column in company_settings table
+-- - eircode column in company_settings table
+-- - vat_number column in company_settings table
+-- - attendances table with all indexes (no unique constraints)
+-- 
 -- Includes all features:
 -- - User management with hourly pay rates
--- - Company settings
+-- - Company settings (with website, eircode, vat_number)
 -- - Categories with VAT rates
 -- - Items with VAT rates (inherited from categories)
 -- - Batch tracking
--- - Sales with payment methods
--- - Attendance tracking
+-- - Sales with payment methods, notes, and selected VAT rates
+-- - Attendance tracking (multiple entries per user per day allowed)
 -- ============================================
 
 -- ============================================

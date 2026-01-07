@@ -55,6 +55,9 @@ const SalesPage = () => {
   const [pendingPaymentMethod, setPendingPaymentMethod] = useState(null); // Store payment method while showing notes/VAT dialog
   const [cashConfirmDialogOpen, setCashConfirmDialogOpen] = useState(false);
   const [changeDue, setChangeDue] = useState(0);
+  const [splitPaymentDialogOpen, setSplitPaymentDialogOpen] = useState(false);
+  const [splitCashAmount, setSplitCashAmount] = useState('');
+  const [splitCardAmount, setSplitCardAmount] = useState('');
   const [itemNotFoundDialogOpen, setItemNotFoundDialogOpen] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [registerItemDialogOpen, setRegisterItemDialogOpen] = useState(false);
@@ -119,7 +122,7 @@ const SalesPage = () => {
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
         !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !notesVatDialogOpen &&
-        !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
+        !splitPaymentDialogOpen && !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
       // Small delay to ensure modal is fully closed
       const timer = setTimeout(() => {
         if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current) {
@@ -129,14 +132,14 @@ const SalesPage = () => {
       return () => clearTimeout(timer);
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
-      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, 
-      outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
+      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, notesVatDialogOpen,
+      splitPaymentDialogOpen, outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
   // Keep barcode input focused continuously (when no modals are open)
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
         !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !notesVatDialogOpen &&
-        !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
+        !splitPaymentDialogOpen && !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
       const handleFocusLoss = () => {
         // Only refocus if user clicked outside an input/button or on the document
         setTimeout(() => {
@@ -160,8 +163,8 @@ const SalesPage = () => {
       };
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
-      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, 
-      outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
+      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, notesVatDialogOpen,
+      splitPaymentDialogOpen, outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
   useEffect(() => {
     // Focus on barcode input when component mounts
@@ -353,29 +356,39 @@ const SalesPage = () => {
 
   // Helper function for quick sale items and manual sales (special case)
   const addOrUpdateQuickSaleItem = (price, label = 'Quick Sale') => {
+    const validPrice = parseFloat(price) || 0;
+    if (isNaN(validPrice) || validPrice <= 0) {
+      console.error('Invalid price for quick sale item:', price);
+      return;
+    }
+    
     setCart(currentCart => {
       const existingItemIndex = currentCart.findIndex(
-        item => item.itemId === null && item.unitPrice === price && item.itemName.startsWith(label)
+        item => item.itemId === null && item.unitPrice === validPrice && item.itemName?.startsWith(label)
       );
 
       if (existingItemIndex >= 0) {
         // Update quantity of existing sale item
         const updatedCart = [...currentCart];
-        updatedCart[existingItemIndex].quantity += 1;
-        updatedCart[existingItemIndex].totalPrice = 
-          updatedCart[existingItemIndex].unitPrice * updatedCart[existingItemIndex].quantity;
+        const existingItem = updatedCart[existingItemIndex];
+        const currentQuantity = existingItem?.quantity || 0;
+        const currentUnitPrice = existingItem?.unitPrice || 0;
+        updatedCart[existingItemIndex].quantity = currentQuantity + 1;
+        updatedCart[existingItemIndex].totalPrice = currentUnitPrice * (currentQuantity + 1);
         return updatedCart;
       } else {
         // Add new sale item at the beginning (latest first)
+        // Default VAT: 0% for Manual Sale, 23% for Quick Sale
+        const defaultVatRate = label === 'Manual Sale' ? 0.00 : 23.00;
         const saleItem = {
           id: Date.now() + Math.random(),
           itemId: null,
-          itemName: `${label} (€${price.toFixed(2)})`,
+          itemName: `${label} (€${validPrice.toFixed(2)})`,
           itemBarcode: 'N/A',
           quantity: 1,
-          unitPrice: price,
-          totalPrice: price,
-          vatRate: 23.00 // Default VAT for quick sale items
+          unitPrice: validPrice,
+          totalPrice: validPrice,
+          vatRate: defaultVatRate
         };
         return [saleItem, ...currentCart];
       }
@@ -496,28 +509,41 @@ const SalesPage = () => {
   };
 
   const calculateSubtotal = () => {
-    return cart.reduce((sum, item) => sum + item.totalPrice, 0);
+    if (!cart || cart.length === 0) return 0;
+    return cart.reduce((sum, item) => {
+      const price = item?.totalPrice ?? 0;
+      return sum + (isNaN(price) ? 0 : price);
+    }, 0);
   };
 
   const calculateTotalItems = () => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
+    if (!cart || cart.length === 0) return 0;
+    return cart.reduce((sum, item) => {
+      const quantity = item?.quantity ?? 0;
+      return sum + (isNaN(quantity) ? 0 : quantity);
+    }, 0);
   };
 
   const calculateDiscountAmount = () => {
     if (!appliedDiscount) return 0;
     
-    const subtotal = calculateSubtotal();
+    const subtotal = calculateSubtotal() || 0;
+    if (subtotal <= 0) return 0;
+    
     if (appliedDiscount.type === 'percentage') {
-      return (subtotal * appliedDiscount.value) / 100;
+      const discount = (subtotal * (appliedDiscount.value || 0)) / 100;
+      return isNaN(discount) ? 0 : discount;
     } else {
-      return Math.min(appliedDiscount.value, subtotal); // Don't discount more than the total
+      const discount = Math.min(appliedDiscount.value || 0, subtotal);
+      return isNaN(discount) ? 0 : discount;
     }
   };
 
   const calculateTotal = () => {
-    const subtotal = calculateSubtotal();
-    const discountAmount = calculateDiscountAmount();
-    return Math.max(0, subtotal - discountAmount);
+    const subtotal = calculateSubtotal() || 0;
+    const discountAmount = calculateDiscountAmount() || 0;
+    const total = subtotal - discountAmount;
+    return isNaN(total) ? 0 : Math.max(0, total);
   };
 
   const handleDiscountSelect = (discount) => {
@@ -540,13 +566,20 @@ const SalesPage = () => {
   };
 
   const calculateDiscountedItemPrice = (item) => {
-    if (!appliedDiscount) return item.totalPrice;
+    if (!item) return 0;
+    const itemPrice = item?.totalPrice ?? 0;
+    if (isNaN(itemPrice) || itemPrice <= 0) return 0;
+    
+    if (!appliedDiscount) return itemPrice;
     
     const subtotal = calculateSubtotal();
+    if (!subtotal || subtotal <= 0) return itemPrice;
+    
     const discountAmount = calculateDiscountAmount();
     const discountRatio = discountAmount / subtotal;
     
-    return item.totalPrice * (1 - discountRatio);
+    const discountedPrice = itemPrice * (1 - discountRatio);
+    return isNaN(discountedPrice) ? itemPrice : Math.max(0, discountedPrice);
   };
 
   const handleCheckout = () => {
@@ -592,13 +625,17 @@ const SalesPage = () => {
   };
 
   const calculateChange = () => {
-    const total = calculateTotal();
-    const paid = parseFloat(cashAmount || 0);
+    const total = calculateTotal() || 0;
+    const paid = parseFloat(cashAmount || 0) || 0;
+    if (isNaN(paid) || isNaN(total)) {
+      return 0;
+    }
     // If no cash amount entered, assume exact payment (no change)
     if (paid === 0) {
       return 0;
     }
-    return Math.max(0, paid - total);
+    const change = paid - total;
+    return isNaN(change) ? 0 : Math.max(0, change);
   };
 
   const calculateChangeNotes = (changeAmount) => {
@@ -650,6 +687,9 @@ const SalesPage = () => {
                   setPendingPaymentMethod('CASH');
                   setNotesVatDialogOpen(true);
                 }
+              } else if (selectedPaymentMethod === 'SPLIT') {
+                // Split payment - show split payment dialog
+                setSplitPaymentDialogOpen(true);
               } else {
                 // Card payment - show notes/VAT dialog
                 setPendingPaymentMethod('CARD');
@@ -824,6 +864,135 @@ const SalesPage = () => {
     }
   };
 
+  const processSplitPayment = async () => {
+    // Prevent duplicate payment processing
+    if (paymentInProgressRef.current) {
+      return;
+    }
+    
+    paymentInProgressRef.current = true;
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    setCheckoutDialogOpen(false);
+    setSplitPaymentDialogOpen(false);
+    setNotesVatDialogOpen(false);
+
+    try {
+      const totalAmount = calculateTotal() || 0;
+      if (isNaN(totalAmount) || totalAmount <= 0) {
+        throw new Error('Invalid total amount. Please ensure cart has valid items.');
+      }
+      
+      const cashAmountValue = parseFloat(splitCashAmount || 0) || 0;
+      const cardAmountValue = parseFloat(splitCardAmount || 0) || 0;
+      
+      if (isNaN(cashAmountValue) || isNaN(cardAmountValue)) {
+        throw new Error('Invalid payment amounts. Please enter valid numbers.');
+      }
+      
+      const splitTotal = cashAmountValue + cardAmountValue;
+
+      // Validate split amounts
+      if (cashAmountValue < 0 || cardAmountValue < 0) {
+        throw new Error('Payment amounts cannot be negative');
+      }
+
+      if (Math.abs(splitTotal - totalAmount) > 0.01) {
+        throw new Error(`Split payment amounts (€${splitTotal.toFixed(2)}) must equal total amount (€${totalAmount.toFixed(2)})`);
+      }
+
+      if (cashAmountValue === 0 && cardAmountValue === 0) {
+        throw new Error('At least one payment method must have an amount greater than 0');
+      }
+
+      // Calculate total amount from original prices (actual price customer pays - including VAT)
+      let calculatedTotalAmount = 0;
+      const saleItems = cart.map((item) => {
+        // Get the actual price the customer pays (with discounts, including original VAT)
+        const actualItemPrice = calculateDiscountedItemPrice(item);
+        
+        // Add to total - this is the actual price paid
+        calculatedTotalAmount += actualItemPrice;
+        
+        // For sale items, store the actual price paid and the individual item VAT rate
+        // The backend will calculate VAT breakdown based on individual item VAT rate
+        return {
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: actualItemPrice, // Store actual price paid (including original VAT)
+          vatRate: item.vatRate != null ? item.vatRate : 23.00 // Use individual item VAT rate (0 is valid)
+        };
+      });
+
+      // Build payment splits array
+      const paymentSplits = [];
+      if (cashAmountValue > 0) {
+        paymentSplits.push({
+          paymentMethod: 'CASH',
+          amount: cashAmountValue
+        });
+      }
+      if (cardAmountValue > 0) {
+        paymentSplits.push({
+          paymentMethod: 'CARD',
+          amount: cardAmountValue
+        });
+      }
+
+      const saleData = {
+        totalAmount: calculatedTotalAmount, // Total is actual price paid (including VAT)
+        subtotalAmount: calculateSubtotal(),
+        discountAmount: calculateDiscountAmount(),
+        discountType: appliedDiscount?.type || null,
+        discountValue: appliedDiscount?.value || null,
+        paymentMethod: 'SPLIT',
+        paymentSplits: paymentSplits,
+        saleItems: saleItems,
+        userId: user?.id || null,
+        notes: saleNotes || null, // Include notes in sale data
+        selectedVatRate: null, // No longer using selectedVatRate - each item has its own VAT
+      };
+
+      const response = await salesAPI.create(saleData);
+      
+      // Store the last sale for printing
+      setLastSale(response.data);
+      
+      setCart([]);
+      setSplitCashAmount('');
+      setSplitCardAmount('');
+      setSelectedNotes({});
+      setSaleNotes(''); // Clear sale notes after sale
+      setAppliedDiscount(null); // Clear discount after sale
+      setSelectedCartItem(null); // Clear selected item after sale
+      setCustomDiscountAmount('');
+      setSuccess('Split payment completed successfully!');
+      addTimeout(() => setSuccess(null), 3000);
+      // Refocus barcode input after payment
+      setTimeout(() => {
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.focus();
+        }
+      }, 200);
+    } catch (err) {
+      console.error('Error creating sale:', err);
+      console.error('Error response:', err.response?.data);
+      setError(`Failed to complete sale: ${err.response?.data || err.message}`);
+      setTimeout(() => setError(null), 5000);
+      // Refocus barcode input even on error
+      setTimeout(() => {
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.focus();
+        }
+      }, 200);
+    } finally {
+      setLoading(false);
+      paymentInProgressRef.current = false;
+    }
+  };
+
   const handleQuickPriceSale = (price, e) => {
     // Use the same logic as plus button
     if (e) {
@@ -970,6 +1139,21 @@ const SalesPage = () => {
       return;
     }
     
+    // Check if this is a manual sale (no itemId) - these don't exist in the database
+    if (selectedCartItem.itemId === null) {
+      // For manual sales, use cart item data directly
+      const itemToEditData = {
+        ...selectedCartItem,
+        stockQuantity: selectedCartItem.quantity, // Use cart quantity as stock (not editable for manual sales)
+        cartQuantity: selectedCartItem.quantity, // Cart quantity
+        isManualSale: true // Flag to indicate this is a manual sale
+      };
+      
+      setItemToEdit(itemToEditData);
+      setEditItemDialogOpen(true);
+      return;
+    }
+    
     // Fetch the full item data from database to get actual stock quantity and category
     try {
       setLoading(true);
@@ -987,7 +1171,8 @@ const SalesPage = () => {
         generalExpiryDate: fullItemData.generalExpiryDate,
         batchId: fullItemData.batchId,
         description: fullItemData.description,
-        vatRate: fullItemData.vatRate
+        vatRate: fullItemData.vatRate,
+        isManualSale: false
       };
       
       setItemToEdit(itemToEditData);
@@ -1040,11 +1225,62 @@ const SalesPage = () => {
     );
   };
 
+  const handleManualSalePriceChange = (itemId, newPrice) => {
+    const priceValue = parseFloat(newPrice) || 0;
+    if (isNaN(priceValue) || priceValue < 0) {
+      return; // Invalid price, don't update
+    }
+    
+    setCart(prevCart => 
+      prevCart.map(item => {
+        if (item.id === itemId && item.itemId === null) { // Only for manual sales
+          const updatedItem = {
+            ...item,
+            unitPrice: priceValue,
+            totalPrice: priceValue * item.quantity
+          };
+          return updatedItem;
+        }
+        return item;
+      })
+    );
+  };
+
   const handleSaveEditedItem = async (formData) => {
     if (!itemToEdit) return;
 
     setLoading(true);
     try {
+      // Check if this is a manual sale (no database item)
+      if (itemToEdit.isManualSale || itemToEdit.itemId === null) {
+        // For manual sales, just update the cart item - no database update needed
+        const updatedCart = cart.map(item => {
+          if (item.id === itemToEdit.id) {
+            const originalCartQuantity = item.quantity;
+            const updatedItem = {
+              ...item,
+              itemName: formData.name || item.itemName,
+              unitPrice: parseFloat(formData.price),
+              quantity: originalCartQuantity, // Keep cart quantity unchanged
+              totalPrice: parseFloat(formData.price) * originalCartQuantity,
+              itemBarcode: formData.barcode || item.itemBarcode || 'N/A',
+              vatRate: parseFloat(formData.vatRate) || item.vatRate || 0.00
+            };
+            return updatedItem;
+          }
+          return item;
+        });
+
+        setCart(updatedCart);
+        setEditItemDialogOpen(false);
+        setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart.`);
+        addTimeout(() => setSuccess(null), 3000);
+        setItemToEdit(null);
+        setLoading(false);
+        return;
+      }
+
+      // For regular items, update the database
       // Prepare item data for database update
       // IMPORTANT: Update stockQuantity in database (this is the DB stock, not cart quantity)
       const itemData = {
@@ -1841,7 +2077,27 @@ const SalesPage = () => {
                             </div>
                           </td>
                             <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
-                              {item.discountApplied ? (
+                              {item.itemId === null ? (
+                                // Manual sale - make price editable inline
+                                <Form.Control
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={item.unitPrice || 0}
+                                  onChange={(e) => handleManualSalePriceChange(item.id, e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onFocus={(e) => e.target.select()}
+                                  style={{ 
+                                    width: '80px', 
+                                    fontSize: '0.9rem', 
+                                    backgroundColor: '#3a3a3a', 
+                                    border: '1px solid #ffc107', 
+                                    color: '#ffffff',
+                                    textAlign: 'right',
+                                    display: 'inline-block'
+                                  }}
+                                />
+                              ) : item.discountApplied ? (
                                 <div>
                                   <div className="text-decoration-line-through" style={{ fontSize: '0.9rem', color: '#aaaaaa' }}>
                                     €{item.originalPrice.toFixed(2)}
@@ -1916,10 +2172,18 @@ const SalesPage = () => {
                               <Button
                     size="lg"
                     onClick={handleEditSelectedItem}
-                    disabled={!selectedCartItem}
+                    disabled={!selectedCartItem || (selectedCartItem && selectedCartItem.itemId === null)}
                     className="flex-fill btn-3d"
-                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px', backgroundColor: selectedCartItem ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}
-                    title="Edit item"
+                    style={{ 
+                      fontSize: '1.4rem', 
+                      padding: '0.8rem', 
+                      width: '100%', 
+                      minHeight: '80px', 
+                      backgroundColor: (selectedCartItem && selectedCartItem.itemId !== null) ? '#3a3a3a' : '#2a2a2a', 
+                      color: '#ffffff',
+                      opacity: (selectedCartItem && selectedCartItem.itemId === null) ? 0.5 : 1
+                    }}
+                    title={selectedCartItem && selectedCartItem.itemId === null ? "Manual sales can be edited directly in the cart" : "Edit item"}
                   >
                     <i className="bi bi-pencil"></i>
                               </Button>
@@ -2751,20 +3015,117 @@ const SalesPage = () => {
                   <Button
                     className="w-100 py-3 rounded-0 btn-3d"
                     onClick={() => {
-                      setCashAmount('');
-                      setSelectedNotes({});
-                      setSaleNotes('');
-                      setSelectedVatRate(null);
+                      handleConfirmCheckout('SPLIT');
                     }}
+                    disabled={loading || paymentInProgressRef.current}
                     style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
-                    CLEAR PAYMENTS
+                    SPLIT PAYMENT
                   </Button>
                 </div>
               </div>
             </div>
           </div>
         </Modal.Body>
+      </Modal>
+
+      {/* Split Payment Dialog */}
+      <Modal show={splitPaymentDialogOpen} onHide={() => setSplitPaymentDialogOpen(false)} centered size="lg">
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', color: '#ffffff', borderBottom: '1px solid #333' }}>
+          <Modal.Title>Split Payment</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          <div className="mb-4">
+            <h5 className="text-center mb-3">Total Amount: €{calculateTotal().toFixed(2)}</h5>
+            <div className="mb-3">
+              <label className="form-label">Cash Amount (€)</label>
+              <input
+                type="number"
+                className="form-control"
+                value={splitCashAmount}
+                onChange={(e) => {
+                  const cashValue = e.target.value;
+                  setSplitCashAmount(cashValue);
+                  // Auto-calculate card amount
+                  const total = calculateTotal() || 0;
+                  const cash = parseFloat(cashValue || 0) || 0;
+                  if (isNaN(cash)) {
+                    setSplitCardAmount('');
+                    return;
+                  }
+                  const card = total - cash;
+                  setSplitCardAmount(card >= 0 && !isNaN(card) ? card.toFixed(2) : '');
+                }}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                style={{ backgroundColor: '#2a2a2a', color: '#ffffff', border: '1px solid #444' }}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Card Amount (€)</label>
+              <input
+                type="number"
+                className="form-control"
+                value={splitCardAmount}
+                onChange={(e) => {
+                  const cardValue = e.target.value;
+                  setSplitCardAmount(cardValue);
+                  // Auto-calculate cash amount
+                  const total = calculateTotal() || 0;
+                  const card = parseFloat(cardValue || 0) || 0;
+                  if (isNaN(card)) {
+                    setSplitCashAmount('');
+                    return;
+                  }
+                  const cash = total - card;
+                  setSplitCashAmount(cash >= 0 && !isNaN(cash) ? cash.toFixed(2) : '');
+                }}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                style={{ backgroundColor: '#2a2a2a', color: '#ffffff', border: '1px solid #444' }}
+              />
+            </div>
+            <div className="alert alert-info" style={{ backgroundColor: '#2a2a2a', border: '1px solid #444', color: '#ffffff' }}>
+              <small>
+                Cash: €{(parseFloat(splitCashAmount || 0) || 0).toFixed(2)} + 
+                Card: €{(parseFloat(splitCardAmount || 0) || 0).toFixed(2)} = 
+                €{((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)).toFixed(2)}
+                {Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (calculateTotal() || 0)) > 0.01 && (
+                  <span className="text-warning"> (Total: €{(calculateTotal() || 0).toFixed(2)})</span>
+                )}
+              </small>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #333' }}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setSplitPaymentDialogOpen(false);
+              setSplitCashAmount('');
+              setSplitCardAmount('');
+            }}
+            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              // Show notes/VAT dialog first, then process split payment
+              setPendingPaymentMethod('SPLIT');
+              setNotesVatDialogOpen(true);
+              setSplitPaymentDialogOpen(false);
+            }}
+            disabled={loading || paymentInProgressRef.current || 
+              Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (calculateTotal() || 0)) > 0.01}
+            style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#000000', fontWeight: 'bold' }}
+          >
+            Continue
+          </Button>
+        </Modal.Footer>
       </Modal>
 
       {/* Item Not Found Dialog */}
@@ -3096,6 +3457,8 @@ const SalesPage = () => {
                 processCashPayment();
               } else if (pendingPaymentMethod === 'CARD') {
                 processCardPayment();
+              } else if (pendingPaymentMethod === 'SPLIT') {
+                processSplitPayment();
               }
             }}
             style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#000000', fontWeight: 'bold' }}

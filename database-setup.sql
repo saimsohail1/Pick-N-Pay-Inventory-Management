@@ -43,6 +43,7 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'picknpay_inventory')\
 -- ============================================
 
 -- Drop tables in reverse dependency order to avoid foreign key constraints
+DROP TABLE IF EXISTS sale_payments CASCADE;
 DROP TABLE IF EXISTS sale_items CASCADE;
 DROP TABLE IF EXISTS sales CASCADE;
 DROP TABLE IF EXISTS attendances CASCADE;
@@ -138,8 +139,8 @@ CREATE TABLE sales (
     discount_type VARCHAR(20), -- Can be NULL
     discount_value DECIMAL(10,2), -- Can be NULL
     sale_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD')),
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, -- Sales MUST have a user
+    payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD', 'SPLIT')),
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL, -- User can be null if user is deleted
     notes VARCHAR(1000), -- Optional notes for the sale transaction
     selected_vat_rate DECIMAL(5,2), -- VAT rate selected on the sales page (applies to all items in the sale)
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -160,6 +161,16 @@ CREATE TABLE sale_items (
     vat_rate DECIMAL(5,2) NOT NULL DEFAULT 23.00, -- VAT rate is always calculated
     vat_amount DECIMAL(10,2) NOT NULL DEFAULT 0, -- VAT amount is always calculated
     price_excluding_vat DECIMAL(10,2) NOT NULL DEFAULT 0, -- Price excluding VAT is always calculated
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create sale_payments table for split payment support
+CREATE TABLE sale_payments (
+    id BIGSERIAL PRIMARY KEY,
+    sale_id BIGINT NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+    payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD')),
+    amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -205,6 +216,10 @@ CREATE INDEX idx_sales_payment_method ON sales(payment_method);
 -- Sale items indexes
 CREATE INDEX idx_sale_items_sale_id ON sale_items(sale_id);
 CREATE INDEX idx_sale_items_item_id ON sale_items(item_id);
+
+-- Sale payments indexes
+CREATE INDEX idx_sale_payments_sale_id ON sale_payments(sale_id);
+CREATE INDEX idx_sale_payments_payment_method ON sale_payments(payment_method);
 
 -- Attendances indexes
 CREATE INDEX idx_attendances_user_id ON attendances(user_id);
@@ -252,6 +267,7 @@ CREATE TRIGGER update_items_updated_at BEFORE UPDATE ON items FOR EACH ROW EXECU
 CREATE TRIGGER update_batches_updated_at BEFORE UPDATE ON batches FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_sales_updated_at BEFORE UPDATE ON sales FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_sale_items_updated_at BEFORE UPDATE ON sale_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_sale_payments_updated_at BEFORE UPDATE ON sale_payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_attendances_updated_at BEFORE UPDATE ON attendances FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================

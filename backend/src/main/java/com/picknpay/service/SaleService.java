@@ -2,12 +2,14 @@ package com.picknpay.service;
 
 import com.picknpay.dto.SaleDTO;
 import com.picknpay.dto.SaleItemDTO;
+import com.picknpay.dto.SalePaymentDTO;
 import com.picknpay.dto.DailyReportDTO;
 import com.picknpay.dto.CategorySummaryDTO;
 import com.picknpay.dto.VatSummaryDTO;
 import com.picknpay.entity.Item;
 import com.picknpay.entity.Sale;
 import com.picknpay.entity.SaleItem;
+import com.picknpay.entity.SalePayment;
 import com.picknpay.entity.PaymentMethod;
 import com.picknpay.entity.User;
 import com.picknpay.repository.ItemRepository;
@@ -178,6 +180,24 @@ public class SaleService {
         
         sale.setTotalAmount(totalAmount);
         sale.setNotes(saleDTO.getNotes()); // Set notes from DTO
+        
+        // Handle split payments if payment method is SPLIT
+        if (saleDTO.getPaymentMethod() == PaymentMethod.SPLIT && saleDTO.getPaymentSplits() != null && !saleDTO.getPaymentSplits().isEmpty()) {
+            BigDecimal splitTotal = BigDecimal.ZERO;
+            for (SalePaymentDTO paymentSplitDTO : saleDTO.getPaymentSplits()) {
+                SalePayment salePayment = new SalePayment();
+                salePayment.setSale(sale);
+                salePayment.setPaymentMethod(paymentSplitDTO.getPaymentMethod());
+                salePayment.setAmount(paymentSplitDTO.getAmount());
+                sale.getSalePayments().add(salePayment);
+                splitTotal = splitTotal.add(paymentSplitDTO.getAmount());
+            }
+            // Validate that split payments sum equals total amount
+            if (splitTotal.compareTo(totalAmount) != 0) {
+                throw new RuntimeException("Split payment amounts (" + splitTotal + ") must equal total amount (" + totalAmount + ")");
+            }
+        }
+        
         Sale savedSale = saleRepository.save(sale);
         return convertToDTO(savedSale);
     }
@@ -201,6 +221,14 @@ public class SaleService {
                 .map(this::convertSaleItemToDTO)
                 .collect(Collectors.toList());
         dto.setSaleItems(saleItemDTOs);
+        
+        // Include payment splits if available
+        if (sale.getSalePayments() != null && !sale.getSalePayments().isEmpty()) {
+            List<SalePaymentDTO> paymentSplitDTOs = sale.getSalePayments().stream()
+                    .map(this::convertSalePaymentToDTO)
+                    .collect(Collectors.toList());
+            dto.setPaymentSplits(paymentSplitDTOs);
+        }
         
         return dto;
     }
@@ -229,6 +257,14 @@ public class SaleService {
             dto.setItemBarcode(saleItem.getItemBarcode()); // Use stored barcode
         }
         
+        return dto;
+    }
+    
+    private SalePaymentDTO convertSalePaymentToDTO(SalePayment salePayment) {
+        SalePaymentDTO dto = new SalePaymentDTO();
+        dto.setId(salePayment.getId());
+        dto.setPaymentMethod(salePayment.getPaymentMethod());
+        dto.setAmount(salePayment.getAmount());
         return dto;
     }
 

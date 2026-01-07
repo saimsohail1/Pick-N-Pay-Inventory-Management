@@ -120,13 +120,16 @@ public class UserService {
             return false;
         }
         
-        // Check if user has any sales - cannot delete user with sales history
-        if (saleRepository.existsByUserId(id)) {
-            throw new RuntimeException("Cannot delete user: User has sales records. Please deactivate the user instead.");
+        // Set user_id to NULL for all sales associated with this user
+        // This preserves sales history while allowing user deletion
+        List<com.picknpay.entity.Sale> userSales = saleRepository.findSalesByUserId(id);
+        for (com.picknpay.entity.Sale sale : userSales) {
+            sale.setUser(null);
+            saleRepository.save(sale);
         }
         
-            userRepository.deleteById(id);
-            return true;
+        userRepository.deleteById(id);
+        return true;
     }
 
     public Optional<UserDTO> toggleUserStatus(Long id) {

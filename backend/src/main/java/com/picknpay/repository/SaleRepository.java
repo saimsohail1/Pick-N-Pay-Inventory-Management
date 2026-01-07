@@ -20,11 +20,11 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     @Query("SELECT s FROM Sale s WHERE s.saleDate BETWEEN :startDate AND :endDate ORDER BY s.saleDate DESC")
     List<Sale> findSalesByDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
     
-    // Get sales by user ID and date range
-    @Query("SELECT s FROM Sale s WHERE s.user.id = :userId AND s.saleDate BETWEEN :startDate AND :endDate ORDER BY s.saleDate DESC")
+    // Get sales by user ID and date range (handles null users)
+    @Query("SELECT s FROM Sale s WHERE (s.user.id = :userId OR (s.user IS NULL AND :userId IS NULL)) AND s.saleDate BETWEEN :startDate AND :endDate ORDER BY s.saleDate DESC")
     List<Sale> findSalesByUserIdAndDateRange(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
     
-    // Get sales by user ID
+    // Get sales by user ID (handles null users)
     @Query("SELECT s FROM Sale s WHERE s.user.id = :userId ORDER BY s.saleDate DESC")
     List<Sale> findSalesByUserId(@Param("userId") Long userId);
     
@@ -48,11 +48,11 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     @Query("SELECT COUNT(s) FROM Sale s WHERE s.saleDate BETWEEN :startDate AND :endDate AND s.paymentMethod = :paymentMethod")
     Long getSalesCountByDateRangeAndPaymentMethod(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, @Param("paymentMethod") PaymentMethod paymentMethod);
     
-    // Get sales by user ID and date range with payment method filter
+    // Get sales by user ID and date range with payment method filter (handles null users)
     @Query("SELECT s FROM Sale s WHERE s.user.id = :userId AND s.saleDate BETWEEN :startDate AND :endDate AND s.paymentMethod = :paymentMethod ORDER BY s.saleDate DESC")
     List<Sale> findSalesByUserIdAndDateRangeAndPaymentMethod(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, @Param("paymentMethod") PaymentMethod paymentMethod);
     
-    // Check if user has any sales
+    // Check if user has any sales (handles null users)
     @Query("SELECT COUNT(s) > 0 FROM Sale s WHERE s.user.id = :userId")
     boolean existsByUserId(@Param("userId") Long userId);
 }

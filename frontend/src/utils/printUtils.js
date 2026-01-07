@@ -260,7 +260,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         <div class="center" style="margin-top: 8px; font-size: 12px; font-weight: 600;">SALE RECEIPT</div>
         <div class="center" style="font-size: 10px; font-weight: 500;">Date: ${formatReceiptDate(sale.saleDate)}</div>
         <div class="center" style="font-size: 10px; font-weight: 500;">Time: ${new Date(sale.saleDate).toLocaleTimeString()}</div>
-        <div class="center" style="font-size: 10px; font-weight: 500;">Cashier: ${cashierName || sale.user?.username || 'Unknown'}</div>
+        <div class="center" style="font-size: 10px; font-weight: 500;">Cashier: ${cashierName || (sale.user?.username) || (sale.userId ? 'User #' + sale.userId : 'Unknown') || 'Unknown'}</div>
       </div>
       
       ${sale.notes ? `

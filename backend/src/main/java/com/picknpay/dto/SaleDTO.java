@@ -31,6 +31,8 @@ public class SaleDTO {
     
     private BigDecimal selectedVatRate;
     
+    private List<SalePaymentDTO> paymentSplits; // For split payments
+    
     // Constructors
     public SaleDTO() {}
     
@@ -103,5 +105,13 @@ public class SaleDTO {
     
     public void setSelectedVatRate(BigDecimal selectedVatRate) {
         this.selectedVatRate = selectedVatRate;
+    }
+    
+    public List<SalePaymentDTO> getPaymentSplits() {
+        return paymentSplits;
+    }
+    
+    public void setPaymentSplits(List<SalePaymentDTO> paymentSplits) {
+        this.paymentSplits = paymentSplits;
     }
 }

@@ -107,10 +107,17 @@ const EditItemDialog = ({
                       {...field}
                       type="text"
                       placeholder="Enter barcode"
-                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                      disabled={itemToEdit?.isManualSale}
+                      style={{ backgroundColor: itemToEdit?.isManualSale ? '#1a1a1a' : '#2a2a2a', border: '1px solid #333333', color: itemToEdit?.isManualSale ? '#aaaaaa' : '#ffffff' }}
                     />
                   )}
                 />
+                {itemToEdit?.isManualSale && (
+                  <Form.Text className="text-muted" style={{ color: '#aaaaaa', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                    <i className="bi bi-info-circle me-1"></i>
+                    Not applicable for manual sales
+                  </Form.Text>
+                )}
               </Form.Group>
             </Col>
             <Col md={6}>
@@ -123,7 +130,11 @@ const EditItemDialog = ({
                   name="categoryId"
                   control={control}
                   render={({ field }) => (
-                    <Form.Select {...field} style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}>
+                    <Form.Select 
+                      {...field} 
+                      disabled={itemToEdit?.isManualSale}
+                      style={{ backgroundColor: itemToEdit?.isManualSale ? '#1a1a1a' : '#2a2a2a', border: '1px solid #333333', color: itemToEdit?.isManualSale ? '#aaaaaa' : '#ffffff' }}
+                    >
                       <option value="">Select Category</option>
                       {categories.map((category) => (
                         <option key={category.id} value={category.id}>
@@ -133,6 +144,12 @@ const EditItemDialog = ({
                     </Form.Select>
                   )}
                 />
+                {itemToEdit?.isManualSale && (
+                  <Form.Text className="text-muted" style={{ color: '#aaaaaa', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                    <i className="bi bi-info-circle me-1"></i>
+                    Not applicable for manual sales
+                  </Form.Text>
+                )}
               </Form.Group>
             </Col>
           </Row>
@@ -224,7 +241,7 @@ const EditItemDialog = ({
               <Form.Group>
                 <Form.Label className="fw-semibold" style={{ color: '#ffffff' }}>
                   <i className="bi bi-box-seam me-1"></i>
-                  Database Stock Quantity *
+                  {itemToEdit?.isManualSale ? 'Quantity' : 'Database Stock Quantity'} *
                 </Form.Label>
                 <Controller
                   name="stockQuantity"
@@ -239,15 +256,21 @@ const EditItemDialog = ({
                       type="number"
                       min="0"
                       placeholder="0"
+                      disabled={itemToEdit?.isManualSale} // Disable for manual sales
                       className={errors.stockQuantity ? 'is-invalid' : ''}
-                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                      style={{ backgroundColor: itemToEdit?.isManualSale ? '#1a1a1a' : '#2a2a2a', border: '1px solid #333333', color: '#aaaaaa' }}
                     />
                   )}
                 />
                 {errors.stockQuantity && (
                   <div className="invalid-feedback" style={{ color: '#ff6b6b' }}>{errors.stockQuantity.message}</div>
                 )}
-                {itemToEdit?.cartQuantity !== undefined && (
+                {itemToEdit?.isManualSale ? (
+                  <Form.Text className="text-muted" style={{ color: '#aaaaaa', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                    <i className="bi bi-info-circle me-1"></i>
+                    Manual Sale - Quantity cannot be edited (use +/- buttons in cart)
+                  </Form.Text>
+                ) : itemToEdit?.cartQuantity !== undefined && (
                   <Form.Text className="text-muted" style={{ color: '#aaaaaa', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
                     <i className="bi bi-info-circle me-1"></i>
                     Cart Quantity: {itemToEdit.cartQuantity} (for reference only - not changed by this edit)
@@ -312,10 +335,17 @@ const EditItemDialog = ({
                       {...field}
                       type="text"
                       placeholder="Enter batch ID (optional)"
-                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                      disabled={itemToEdit?.isManualSale}
+                      style={{ backgroundColor: itemToEdit?.isManualSale ? '#1a1a1a' : '#2a2a2a', border: '1px solid #333333', color: itemToEdit?.isManualSale ? '#aaaaaa' : '#ffffff' }}
                     />
                   )}
                 />
+                {itemToEdit?.isManualSale && (
+                  <Form.Text className="text-muted" style={{ color: '#aaaaaa', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                    <i className="bi bi-info-circle me-1"></i>
+                    Not applicable for manual sales
+                  </Form.Text>
+                )}
               </Form.Group>
             </Col>
             <Col md={6}>
@@ -332,10 +362,17 @@ const EditItemDialog = ({
                       {...field}
                       type="date"
                       placeholder="Select expiry date"
-                      style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                      disabled={itemToEdit?.isManualSale}
+                      style={{ backgroundColor: itemToEdit?.isManualSale ? '#1a1a1a' : '#2a2a2a', border: '1px solid #333333', color: itemToEdit?.isManualSale ? '#aaaaaa' : '#ffffff' }}
                     />
                   )}
                 />
+                {itemToEdit?.isManualSale && (
+                  <Form.Text className="text-muted" style={{ color: '#aaaaaa', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                    <i className="bi bi-info-circle me-1"></i>
+                    Not applicable for manual sales
+                  </Form.Text>
+                )}
               </Form.Group>
             </Col>
           </Row>

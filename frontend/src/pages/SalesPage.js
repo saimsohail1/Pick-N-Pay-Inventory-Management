@@ -1244,13 +1244,13 @@ const SalesPage = () => {
   return (
     <div 
       className="sales-page-container" 
-      style={{ backgroundColor: '#000000', margin: 0, padding: '0.2rem', width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}
+      style={{ backgroundColor: '#000000', margin: 0, padding: '0.2rem', width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}
     >
       <style>{`
         .sales-page-container {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          overflow-x: auto;
-          overflow-y: auto;
+          overflow-x: hidden;
+          overflow-y: hidden;
           width: 100vw;
           height: 100vh;
           position: relative;
@@ -1552,11 +1552,13 @@ const SalesPage = () => {
         </Alert>
       )}
 
-      {/* Main Content - Two Column Layout */}
-      <div className="d-flex" style={{ margin: 0, padding: '0.3rem', gap: '0.4rem', minWidth: 'fit-content', minHeight: 'fit-content' }}>
-          {/* Left Panel - Items Grid (70%) */}
-        <div className="d-flex flex-column" style={{ width: '70%', padding: 0, backgroundColor: '#2a2a2a', borderRadius: '8px', overflow: 'hidden', color: '#ffffff', border: '1px solid #333333' }}>
-          {showHeldTransactions ? (
+      {/* Main Content - Redesigned Layout for Landscape */}
+      <div className="d-flex flex-column" style={{ margin: 0, padding: '0.3rem', gap: '0.4rem', minWidth: 'fit-content', minHeight: 'fit-content', height: 'calc(100vh - 60px)' }}>
+        {/* Top Section: Cart and Checkout Controls */}
+        <div className="d-flex" style={{ gap: '0.4rem', flex: '0 0 auto' }}>
+          {/* Left: Cart Section */}
+          <div className="d-flex flex-column" style={{ width: '65%', padding: 0, backgroundColor: '#2a2a2a', borderRadius: '8px', overflow: 'hidden', color: '#ffffff', border: '1px solid #333333' }}>
+            {showHeldTransactions ? (
             /* Held Transactions View */
             <div className="bg-dark" style={{ height: '100%', overflowY: 'auto', padding: '1rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
@@ -1636,16 +1638,16 @@ const SalesPage = () => {
             /* Normal Sales View */
             <>
             {/* Sales Cart Table with Control Buttons */}
-            <div className="d-flex">
-              {/* Cart Table */}
-              <div className="bg-dark flex-grow-1" style={{ height: '350px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333', borderRadius: '8px', color: '#ffffff' }}>
+            <div className="d-flex" style={{ height: '280px', flexShrink: 0 }}>
+              {/* Cart Table - Scrollable */}
+              <div className="bg-dark flex-grow-1" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', padding: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333', borderRadius: '8px 0 0 8px', color: '#ffffff' }}>
               {cart.length === 0 ? (
                   <div className="text-center py-2">
                     <i className="bi bi-cart fs-3" style={{ color: '#aaaaaa' }}></i>
                     <p className="mt-1 mb-0" style={{ fontSize: '0.7rem', color: '#aaaaaa' }}>Cart is empty</p>
                 </div>
               ) : (
-                <div className="table-responsive">
+                <div className="table-responsive" style={{ height: '100%' }}>
                   <Table striped hover className="mb-0" size="sm">
                       <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                         <tr>
@@ -1718,10 +1720,10 @@ const SalesPage = () => {
                 )}
               </div>
               
-              {/* Fixed Control Buttons */}
-              <div className="bg-dark d-flex flex-column" style={{ width: '90px', padding: '0.3rem', borderLeft: '1px solid #333333', backgroundColor: '#2a2a2a', borderRadius: '0 8px 8px 0', color: '#ffffff' }}>
+              {/* Fixed Control Buttons - Stay in place */}
+              <div className="bg-dark d-flex flex-column" style={{ width: '90px', padding: '0.3rem', borderLeft: '1px solid #333333', backgroundColor: '#2a2a2a', borderRadius: '0 8px 8px 0', color: '#ffffff', flexShrink: 0 }}>
                 <div className="d-flex flex-column h-100">
-                              <Button
+                  <Button
                     size="lg"
                     onClick={handleIncrementSelectedItem}
                     disabled={!selectedCartItem}
@@ -1738,70 +1740,74 @@ const SalesPage = () => {
                     className="flex-fill btn-3d"
                     style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px', backgroundColor: selectedCartItem ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}
                     title="Decrease quantity"
-                              >
-                                <i className="bi bi-dash"></i>
-                              </Button>
-                              <Button
+                  >
+                    <i className="bi bi-dash"></i>
+                  </Button>
+                  <Button
                     size="lg"
                     onClick={handleEditSelectedItem}
-                    disabled={!selectedCartItem}
+                    disabled={!selectedCartItem || selectedCartItem.itemId === null}
                     className="flex-fill btn-3d"
-                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px', backgroundColor: selectedCartItem ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}
-                    title="Edit item"
+                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px', backgroundColor: (!selectedCartItem || selectedCartItem.itemId === null) ? '#2a2a2a' : '#3a3a3a', color: '#ffffff' }}
+                    title={selectedCartItem?.itemId === null ? "Manual sales can be edited directly in the cart" : "Edit item"}
                   >
                     <i className="bi bi-pencil"></i>
-                              </Button>
-                            </div>
+                  </Button>
                 </div>
+              </div>
             </div>
 
             {/* Action Buttons Row */}
-            <div className="bg-dark" style={{ padding: '0.4rem', border: '1px solid #333333', borderRadius: '8px', marginTop: '0.5rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+            <div className="bg-dark" style={{ padding: '0.4rem', border: '1px solid #333333', borderRadius: '8px', marginTop: '0.5rem', backgroundColor: '#2a2a2a', color: '#ffffff', flex: '0 0 auto' }}>
               <div className="d-flex gap-2 justify-content-between">
-              <div className="d-flex gap-2">
+                <div className="d-flex gap-2">
                   <Button 
                     size="lg" 
                     className="btn-3d"
                     onClick={() => navigate('/inventory')}
-                    style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                    style={{ fontSize: '1rem', padding: '0.5rem 1rem', minHeight: '40px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     <i className="bi bi-eye me-2"></i>
-                  STOCK
-                </Button>
-                  <Button size="lg" className="btn-3d" onClick={() => {
-                    setCart([]); 
-                    setAppliedDiscount(null); 
-                    setCustomDiscountAmount(''); 
-                    setSelectedCartItem(null);
-                    // Refocus barcode input after clearing cart
-                    setTimeout(() => {
-                      if (barcodeInputRef.current) {
-                        barcodeInputRef.current.focus();
-                      }
-                    }, 100);
-                  }} style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px', backgroundColor: '#3a3a3a', color: '#ffffff' }}>
-                    <i className="bi bi-cart-x me-2"></i>
-                  CLEAR CART
-                </Button>
-                {lastSale && (
+                    STOCK
+                  </Button>
                   <Button 
                     size="lg" 
-                    className="btn-3d"
-                    onClick={handlePrintLastSale}
-                    title={`Print last sale #${lastSale.id}`}
-                    style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                    className="btn-3d" 
+                    onClick={() => {
+                      setCart([]); 
+                      setAppliedDiscount(null); 
+                      setCustomDiscountAmount(''); 
+                      setSelectedCartItem(null);
+                      setTimeout(() => {
+                        if (barcodeInputRef.current) {
+                          barcodeInputRef.current.focus();
+                        }
+                      }, 100);
+                    }} 
+                    style={{ fontSize: '1rem', padding: '0.5rem 1rem', minHeight: '40px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
-                    <i className="bi bi-printer me-2"></i>
-                    PRINT LAST SALE
+                    <i className="bi bi-cart-x me-2"></i>
+                    CLEAR CART
                   </Button>
-                )}
+                  {lastSale && (
+                    <Button 
+                      size="lg" 
+                      className="btn-3d"
+                      onClick={handlePrintLastSale}
+                      title={`Print last sale #${lastSale.id}`}
+                      style={{ fontSize: '1rem', padding: '0.5rem 1rem', minHeight: '40px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                    >
+                      <i className="bi bi-printer me-2"></i>
+                      PRINT LAST SALE
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
 
 
             {/* Sales Summary */}
-            <div className="bg-dark text-white" style={{ padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333' }}>
+            <div className="bg-dark text-white" style={{ padding: '0.5rem', borderRadius: '8px', marginTop: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333', flex: '0 0 auto' }}>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <div className="d-block" style={{ fontSize: '0.9rem' }}>Total Items: {calculateTotalItems()}</div>
@@ -1820,182 +1826,18 @@ const SalesPage = () => {
               </div>
             </div>
 
-            {/* Bottom Control Panel */}
-            <div className="bg-dark text-white" style={{ padding: '0.8rem', borderRadius: '8px', marginTop: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333' }}>
-              <div className="d-flex align-items-center justify-content-between gap-3">
-                  {/* Discount and Exit Buttons - Moved up and made more prominent */}
-                  <div className="d-flex flex-column gap-3" style={{ width: '25%' }}>
-                    <Button 
-                      size="lg" 
-                      className="fw-bold btn-3d" 
-                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', marginTop: '-1rem', backgroundColor: '#3a3a3a', color: '#ffffff' }}
-                      onClick={() => setDiscountDialogOpen(true)}
-                    >
-                      <i className="bi bi-percent me-2"></i>
-                      Discount
-                        {appliedDiscount && (
-                          <Badge className="ms-2" style={{ fontSize: '0.8rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
-                            {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
-                          </Badge>
-                        )}
-                    </Button>
-                  <Button 
-                    size="lg" 
-                    className="fw-bold btn-3d" 
-                      style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
-                    onClick={() => {
-                      // Check if running in Electron
-                      if (window && window.require) {
-                        try {
-                          const { ipcRenderer } = window.require('electron');
-                          ipcRenderer.send('app-closing');
-                        } catch (error) {
-                          console.error('Error closing app:', error);
-                        }
-                      } else {
-                        // If not in Electron, just logout
-                        logout();
-                        navigate('/login');
-                      }
-                    }}
-                  >
-                      <i className="bi bi-power me-2"></i>
-                      Exit
-                    </Button>
-                  </div>
-                  
-                  {/* Numeric Keypad - Centered and optimized */}
-                  <div className="d-grid gap-2 numeric-keypad" style={{ gridTemplateColumns: 'repeat(3, 1fr)', width: '35%', maxWidth: '300px' }}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                      <Button key={num} size="lg" className="fw-bold btn-3d" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={() => setBarcodeInput(prev => prev + num.toString())}>
-                        {num}
-                      </Button>
-                    ))}
-                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={() => setBarcodeInput('')}>C</Button>
-                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={() => setBarcodeInput(prev => prev + '0')}>0</Button>
-                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1rem', fontSize: '1.3rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={() => setBarcodeInput(prev => prev.slice(0, -1))}>
-                      <i className="bi bi-backspace"></i>
-                    </Button>
-                  </div>
-                  
-                  {/* Action Buttons - Right side, optimized */}
-                  <div className="d-flex flex-column gap-2" style={{ width: '40%' }}>
-                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={handleCheckout} disabled={loading}>
-                      {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
-                      Checkout
-                    </Button>
-                    <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={handleHoldTransaction}>
-                      <i className="bi bi-pause-circle me-2"></i>
-                      On Hold
-                    </Button>
-                    <Button 
-                      size="lg" 
-                      className="fw-bold btn-3d" 
-                      style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
-                      onClick={async () => {
-                        try {
-                          setLoading(true);
-                          setError(null);
-                          setSuccess(null);
-                          
-                          console.log('💰 Open Till button clicked');
-                          console.log('💰 Checking window.electron:', !!window.electron);
-                          console.log('💰 Checking window.electron.ipcRenderer:', !!window.electron?.ipcRenderer);
-                          
-                          if (!window.electron) {
-                            const errorMsg = 'Electron IPC not available. window.electron is undefined. Are you running in Electron?';
-                            setError(errorMsg);
-                            addTimeout(() => setError(null), 8000);
-                            console.error('❌', errorMsg);
-                            setLoading(false);
-                            return;
-                          }
-                          
-                          if (!window.electron.ipcRenderer) {
-                            const errorMsg = 'Electron IPC renderer not available. window.electron.ipcRenderer is undefined.';
-                            setError(errorMsg);
-                            addTimeout(() => setError(null), 8000);
-                            console.error('❌', errorMsg);
-                            setLoading(false);
-                            return;
-                          }
-                          
-                          console.log('💰 Sending open-till IPC request...');
-                          console.log('💰 IPC invoke function exists:', typeof window.electron.ipcRenderer.invoke === 'function');
-                          
-                          try {
-                            // Pass company info for the "Till Opened" receipt
-                            const result = await window.electron.ipcRenderer.invoke('open-till', {
-                              companyName: companyName,
-                              companyAddress: companyAddress
-                            });
-                            
-                            console.log('💰 Open Till IPC result received:', result);
-                            console.log('💰 Result type:', typeof result);
-                            console.log('💰 Result keys:', result ? Object.keys(result) : 'null');
-                            
-                            if (result && result.success) {
-                              const successMsg = `Cash drawer opened successfully! ${result.printer ? `(Printer: ${result.printer})` : ''}`;
-                              setSuccess(successMsg);
-                              addTimeout(() => setSuccess(null), 3000);
-                              console.log('✅', successMsg);
-                            } else {
-                              const errorMsg = result?.message || result?.error || 'Failed to open cash drawer. Please check printer connection and drawer cable.';
-                              setError(errorMsg);
-                              addTimeout(() => setError(null), 8000);
-                              console.error('❌ Open Till failed:', result);
-                            }
-                          } catch (invokeError) {
-                            console.error('❌ IPC invoke error:', invokeError);
-                            console.error('❌ Error name:', invokeError.name);
-                            console.error('❌ Error message:', invokeError.message);
-                            console.error('❌ Error stack:', invokeError.stack);
-                            const errorMsg = `IPC invoke failed: ${invokeError.message || invokeError.toString()}`;
-                            setError(errorMsg);
-                            addTimeout(() => setError(null), 8000);
-                          }
-                        } catch (err) {
-                          console.error('❌ Unexpected error opening cash drawer:', err);
-                          console.error('❌ Error name:', err.name);
-                          console.error('❌ Error message:', err.message);
-                          console.error('❌ Error stack:', err.stack);
-                          const errorMsg = `Failed to open cash drawer: ${err.message || err.toString() || 'Unknown error. Please check the printer connection and console logs.'}`;
-                          setError(errorMsg);
-                          addTimeout(() => setError(null), 8000);
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                      disabled={loading}
-                      title="Open cash drawer (ESC/POS command sent directly to printer port)"
-                    >
-                      <i className="bi bi-cash-stack me-2"></i>
-                      Open Till
-                    </Button>
-                  </div>
-            </div>
-            </div>
             </>
           )}
         </div>
 
-          {/* Right Sidebar */}
-        <div className="d-flex flex-column" style={{ width: '35%', padding: 0, borderRadius: '8px', border: '1px solid #333333', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
-            {/* Selected Item Display */}
-            {selectedCartItem && (
-              <div className="mb-1 p-1 bg-dark rounded border" style={{ backgroundColor: '#2a2a2a', borderColor: '#333333', color: '#ffffff' }}>
-                <h6 className="mb-1 fw-bold small" style={{ color: '#ffffff' }}>Selected Item:</h6>
-                <p className="mb-1 small">{selectedCartItem.itemName}</p>
-                <p className="mb-0 small" style={{ color: '#aaaaaa' }}>Qty: {selectedCartItem.quantity} × €{selectedCartItem.unitPrice.toFixed(2)}</p>
-              </div>
-            )}
-
+          {/* Right: Checkout Controls */}
+          <div className="d-flex flex-column" style={{ width: '35%', padding: 0, borderRadius: '8px', border: '1px solid #333333', backgroundColor: '#2a2a2a', color: '#ffffff', gap: '0.4rem' }}>
             {/* Barcode Input */}
-            <div className="mb-2" style={{ padding: '0.5rem' }}>
-              <h5 className="fw-bold mb-2 text-center" style={{ color: '#ffffff' }}>Barcode Read</h5>
+            <div style={{ padding: '0.5rem', backgroundColor: '#2a2a2a', borderRadius: '8px', border: '1px solid #333333' }}>
+              <h6 className="fw-bold mb-2 text-center" style={{ color: '#ffffff', fontSize: '0.9rem' }}>Barcode Scanner</h6>
               <InputGroup size="lg">
-                <InputGroup.Text style={{ backgroundColor: '#2a2a2a', borderColor: '#333333', color: '#ffffff' }}>
-                  <i className="bi bi-upc-scan fs-5" style={{ color: '#ffffff' }}></i>
+                <InputGroup.Text style={{ backgroundColor: '#3a3a3a', borderColor: '#333333', color: '#ffffff' }}>
+                  <i className="bi bi-upc-scan" style={{ color: '#ffffff' }}></i>
                 </InputGroup.Text>
                 <Form.Control
                   ref={barcodeInputRef}
@@ -2007,7 +1849,6 @@ const SalesPage = () => {
                     if (e.key === 'Enter') {
                       processBarcode(barcodeInput);
                       setBarcodeInput('');
-                      // Refocus after processing
                       setTimeout(() => {
                         if (barcodeInputRef.current) {
                           barcodeInputRef.current.focus();
@@ -2016,149 +1857,255 @@ const SalesPage = () => {
                     }
                   }}
                   autoFocus
-                  style={{ fontSize: '1rem', borderColor: '#333333', backgroundColor: '#2a2a2a', color: '#ffffff' }}
+                  style={{ fontSize: '1rem', borderColor: '#333333', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                 />
               </InputGroup>
             </div>
 
-            {/* Categories / Category Items Navigation */}
-            <div className="mb-1 flex-grow-1 d-flex flex-column" style={{ padding: '0.5rem', overflow: 'hidden' }}>
-              {currentView === 'categories' ? (
-                <>
-                  {/* Categories Header with Blue Background */}
-                  <div className="text-center py-2 mb-3 rounded" style={{ fontSize: '1.1rem', fontWeight: 'bold', backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
-                    Categories
-                  </div>
-                  {/* Scrollable Categories Container */}
-                  <div 
-                    style={{ 
-                      flex: '1',
-                      overflowY: 'auto',
-                      paddingRight: '8px'
-                    }}
-                    className="scrollable-categories"
-                  >
-                  <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                {categories.map((category) => (
-                  <Button 
-                    key={category.id} 
-                    size="lg"
-                    className="fw-bold category-btn btn-3d"
-                        onClick={() => handleCategoryClick(category)}
-                          style={{ 
-                            padding: '1rem', 
-                            fontSize: '1.1rem', 
-                            minHeight: '60px',
-                            backgroundColor: category.name === 'Quick Sale' ? '#1a1a1a' : '#3a3a3a',
-                            color: '#ffffff'
-                          }}
-                  >
-                    {category.name}
-                  </Button>
-                ))}
-                    </div>
-              </div>
-                </>
-              ) : currentView === 'quickSale' ? (
-                <>
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <h5 className="fw-bold mb-0">Quick Sale</h5>
-                    <Button 
-                      size="lg" 
-                      onClick={handleBackToCategories}
-                      title="Back to Categories"
-                    style={{ fontSize: '0.9rem', padding: '0.4rem', backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
-                    >
-                      <i className="bi bi-x-circle me-2"></i>
-                      Back
-                    </Button>
+            {/* Checkout, Discount, Hold, and Open Till Buttons */}
+            <div className="d-flex flex-column gap-2" style={{ flex: '1', padding: '0.5rem' }}>
+              <Button 
+                size="lg" 
+                className="fw-bold btn-3d" 
+                style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }} 
+                onClick={handleCheckout} 
+                disabled={loading}
+              >
+                {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
+                CHECKOUT
+              </Button>
+              
+              <Button 
+                size="lg" 
+                className="fw-bold btn-3d" 
+                style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                onClick={() => setDiscountDialogOpen(true)}
+              >
+                <i className="bi bi-percent me-2"></i>
+                DISCOUNT
+                {appliedDiscount && (
+                  <Badge className="ms-2" style={{ fontSize: '0.8rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+                    {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
+                  </Badge>
+                )}
+              </Button>
+              
+              <Button 
+                size="lg" 
+                className="fw-bold btn-3d" 
+                style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }} 
+                onClick={handleHoldTransaction}
+              >
+                <i className="bi bi-pause-circle me-2"></i>
+                HOLD
+              </Button>
+              
+              <Button 
+                size="lg" 
+                className="fw-bold btn-3d" 
+                style={{ padding: '1rem', fontSize: '1.2rem', minHeight: '60px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    setError(null);
+                    setSuccess(null);
+                    
+                    if (!window.electron) {
+                      const errorMsg = 'Electron IPC not available. window.electron is undefined. Are you running in Electron?';
+                      setError(errorMsg);
+                      addTimeout(() => setError(null), 8000);
+                      console.error('❌', errorMsg);
+                      setLoading(false);
+                      return;
+                    }
+                    
+                    if (!window.electron.ipcRenderer) {
+                      const errorMsg = 'Electron IPC renderer not available. window.electron.ipcRenderer is undefined.';
+                      setError(errorMsg);
+                      addTimeout(() => setError(null), 8000);
+                      console.error('❌', errorMsg);
+                      setLoading(false);
+                      return;
+                    }
+                    
+                    try {
+                      const result = await window.electron.ipcRenderer.invoke('open-till', {
+                        companyName: companyName,
+                        companyAddress: companyAddress
+                      });
+                      
+                      if (result && result.success) {
+                        const successMsg = `Cash drawer opened successfully! ${result.printer ? `(Printer: ${result.printer})` : ''}`;
+                        setSuccess(successMsg);
+                        addTimeout(() => setSuccess(null), 3000);
+                        console.log('✅', successMsg);
+                      } else {
+                        const errorMsg = result?.message || result?.error || 'Failed to open cash drawer. Please check printer connection and drawer cable.';
+                        setError(errorMsg);
+                        addTimeout(() => setError(null), 8000);
+                        console.error('❌ Open Till failed:', result);
+                      }
+                    } catch (invokeError) {
+                      console.error('❌ IPC invoke error:', invokeError);
+                      const errorMsg = `IPC invoke failed: ${invokeError.message || invokeError.toString()}`;
+                      setError(errorMsg);
+                      addTimeout(() => setError(null), 8000);
+                    }
+                  } catch (err) {
+                    console.error('❌ Unexpected error opening cash drawer:', err);
+                    const errorMsg = `Failed to open cash drawer: ${err.message || err.toString() || 'Unknown error. Please check the printer connection and console logs.'}`;
+                    setError(errorMsg);
+                    addTimeout(() => setError(null), 8000);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+                title="Open cash drawer (ESC/POS command sent directly to printer port)"
+              >
+                <i className="bi bi-cash-stack me-2"></i>
+                OPEN TILL
+              </Button>
             </div>
-                  {/* Scrollable Quick Sale Container */}
-                  <div 
-                    style={{ 
-                      flex: '1',
-                      overflowY: 'auto',
-                      paddingRight: '8px'
-                    }}
-                    className="scrollable-quick-sale"
-                  >
-              <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                {quickSalePrices.map((price, index) => (
-                  <Button
-                    key={`quick-sale-${price}`}
-                    onClick={(e) => handleQuickPriceSale(price, e)}
-                        className="fw-bold quick-sale-btn btn-3d"
-                    size="lg"
-                          style={{ 
-                            padding: '1rem', 
-                            fontSize: '1.2rem', 
-                            minHeight: '65px',
-                            backgroundColor: '#3a3a3a',
-                            color: '#ffffff'
-                          }}
-                  >
-                    €{price.toFixed(2)}
-                  </Button>
-                ))}
-                    </div>
+          </div>
+        </div>
+
+        {/* Bottom Section: Categories */}
+        <div className="d-flex flex-column" style={{ flex: '1', padding: 0, borderRadius: '8px', border: '1px solid #333333', backgroundColor: '#2a2a2a', color: '#ffffff', overflow: 'hidden', minHeight: 0 }}>
+          {currentView === 'categories' ? (
+            <>
+              <div className="text-center py-2 mb-2 rounded" style={{ fontSize: '1.1rem', fontWeight: 'bold', backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
+                Categories
               </div>
-                </>
-              ) : (
-                <>
-                  <div className="d-flex align-items-center justify-content-between mb-1">
-                    <h6 className="fw-bold small mb-0" style={{ color: '#ffffff' }}>{selectedCategory?.name}</h6>
+              <div 
+                style={{ 
+                  flex: '1',
+                  overflowY: 'auto',
+                  padding: '0.5rem',
+                  paddingRight: '8px'
+                }}
+                className="scrollable-categories"
+              >
+                <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+                  {categories.map((category) => (
                     <Button 
-                      size="sm" 
-                      className="py-1 px-2"
-                      onClick={handleBackToCategories}
-                      title="Back to Categories"
-                    style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
-                    >
-                      <i className="bi bi-x-circle me-1"></i>
-                      Back
-                    </Button>
-            </div>
-                  {loading ? (
-                    <div className="text-center py-3">
-                      <Spinner animation="border" size="sm" />
-                      <span className="ms-2 small">Loading items...</span>
-                    </div>
-                  ) : (
-                    /* Scrollable Category Items Container */
-                    <div 
+                      key={category.id} 
+                      size="lg"
+                      className="fw-bold category-btn btn-3d"
+                      onClick={() => handleCategoryClick(category)}
                       style={{ 
-                        flex: '1',
-                        overflowY: 'auto',
-                        paddingRight: '8px'
+                        padding: '1rem', 
+                        fontSize: '1.1rem', 
+                        minHeight: '60px',
+                        backgroundColor: category.name === 'Quick Sale' ? '#1a1a1a' : '#3a3a3a',
+                        color: '#ffffff'
                       }}
-                      className="scrollable-category-items"
                     >
-                    <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-                      {categoryItems.map((item) => (
-                        <Button
-                          key={item.id}
-                          onClick={() => handleCategoryItemClick(item)}
-                          className="py-2 fw-bold category-item-btn btn-3d"
-                          size="lg"
-                            style={{ 
-                              minHeight: '70px', 
-                              fontSize: '1.1rem',
-                              backgroundColor: '#3a3a3a',
-                              color: '#ffffff'
-                            }}
-                        >
-                          <div className="text-start">
-                            <div className="fw-bold">{item.name}</div>
-                            <div className="small" style={{ color: '#aaaaaa' }}>€{parseFloat(item.price).toFixed(2)}</div>
-                          </div>
-                        </Button>
-                      ))}
-                      </div>
-                    </div>
-                  )}
-                </>
+                      {category.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : currentView === 'quickSale' ? (
+            <>
+              <div className="d-flex align-items-center justify-content-between mb-2 px-3 pt-2">
+                <h5 className="fw-bold mb-0" style={{ color: '#ffffff' }}>Quick Sale</h5>
+                <Button 
+                  size="lg" 
+                  onClick={handleBackToCategories}
+                  title="Back to Categories"
+                  style={{ fontSize: '0.9rem', padding: '0.4rem', backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+                >
+                  <i className="bi bi-x-circle me-2"></i>
+                  Back
+                </Button>
+              </div>
+              <div 
+                style={{ 
+                  flex: '1',
+                  overflowY: 'auto',
+                  padding: '0.5rem',
+                  paddingRight: '8px'
+                }}
+                className="scrollable-quick-sale"
+              >
+                <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
+                  {quickSalePrices.map((price, index) => (
+                    <Button
+                      key={`quick-sale-${price}`}
+                      onClick={(e) => handleQuickPriceSale(price, e)}
+                      className="fw-bold quick-sale-btn btn-3d"
+                      size="lg"
+                      style={{ 
+                        padding: '1rem', 
+                        fontSize: '1.2rem', 
+                        minHeight: '65px',
+                        backgroundColor: '#3a3a3a',
+                        color: '#ffffff'
+                      }}
+                    >
+                      €{price.toFixed(2)}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="d-flex align-items-center justify-content-between mb-1 px-3 pt-2">
+                <h6 className="fw-bold small mb-0" style={{ color: '#ffffff' }}>{selectedCategory?.name}</h6>
+                <Button 
+                  size="sm" 
+                  className="py-1 px-2"
+                  onClick={handleBackToCategories}
+                  title="Back to Categories"
+                  style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+                >
+                  <i className="bi bi-x-circle me-1"></i>
+                  Back
+                </Button>
+              </div>
+              {loading ? (
+                <div className="text-center py-3">
+                  <Spinner animation="border" size="sm" />
+                  <span className="ms-2 small" style={{ color: '#ffffff' }}>Loading items...</span>
+                </div>
+              ) : (
+                <div 
+                  style={{ 
+                    flex: '1',
+                    overflowY: 'auto',
+                    padding: '0.5rem',
+                    paddingRight: '8px'
+                  }}
+                  className="scrollable-category-items"
+                >
+                  <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
+                    {categoryItems.map((item) => (
+                      <Button
+                        key={item.id}
+                        onClick={() => handleCategoryItemClick(item)}
+                        className="py-2 fw-bold category-item-btn btn-3d"
+                        size="lg"
+                        style={{ 
+                          minHeight: '70px', 
+                          fontSize: '1.1rem',
+                          backgroundColor: '#3a3a3a',
+                          color: '#ffffff'
+                        }}
+                      >
+                        <div className="text-start">
+                          <div className="fw-bold">{item.name}</div>
+                          <div className="small" style={{ color: '#aaaaaa' }}>€{parseFloat(item.price).toFixed(2)}</div>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               )}
-            </div>
+            </>
+          )}
         </div>
       </div>
 

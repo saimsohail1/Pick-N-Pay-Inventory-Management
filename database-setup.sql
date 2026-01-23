@@ -125,7 +125,7 @@ CREATE TABLE sales (
     discount_value DECIMAL(10,2), -- Can be NULL
     sale_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD', 'SPLIT')),
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, -- Sales MUST have a user
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL, -- Can be NULL to preserve sales history when user is deleted
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

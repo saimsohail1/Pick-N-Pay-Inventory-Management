@@ -69,9 +69,10 @@ const SalesPage = () => {
   const [selectedCartItem, setSelectedCartItem] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [currentView, setCurrentView] = useState('categories'); // 'categories' or 'categoryItems'
+  const [currentView, setCurrentView] = useState('categories'); // 'categories', 'categoryItems', 'quickSale', or 'manualSale'
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryItems, setCategoryItems] = useState([]);
+  const [manualSaleAmount, setManualSaleAmount] = useState('');
   const [heldTransactions, setHeldTransactions] = useState([]);
   const [showHeldTransactions, setShowHeldTransactions] = useState(false);
   const [selectedHeldTransaction, setSelectedHeldTransaction] = useState(null);
@@ -361,31 +362,42 @@ const SalesPage = () => {
   };
 
   // Helper function for quick sale items (special case)
-  const addOrUpdateQuickSaleItem = (price) => {
+  const addOrUpdateQuickSaleItem = (price, label = 'Quick Sale') => {
+    const validPrice = parseFloat(price);
+    if (isNaN(validPrice) || validPrice <= 0) {
+      console.error('Invalid price for sale item:', price);
+      return;
+    }
+
     setCart(currentCart => {
       const existingItemIndex = currentCart.findIndex(
-        item => item.itemId === null && item.unitPrice === price
+        item => item.itemId === null && item.unitPrice === validPrice && item.itemName?.startsWith(label)
       );
 
       if (existingItemIndex >= 0) {
-        // Update quantity of existing quick sale item
+        // Update quantity of existing sale item
         const updatedCart = [...currentCart];
-        updatedCart[existingItemIndex].quantity += 1;
-        updatedCart[existingItemIndex].totalPrice = 
-          updatedCart[existingItemIndex].unitPrice * updatedCart[existingItemIndex].quantity;
+        const existingItem = updatedCart[existingItemIndex];
+        const currentQuantity = existingItem?.quantity || 0;
+        const currentUnitPrice = existingItem?.unitPrice || 0;
+        updatedCart[existingItemIndex].quantity = currentQuantity + 1;
+        updatedCart[existingItemIndex].totalPrice = currentUnitPrice * (currentQuantity + 1);
         return updatedCart;
       } else {
-        // Add new quick sale item at the beginning (latest first)
-        const quickSaleItem = {
+        // Add new sale item at the beginning (latest first)
+        // Default VAT: 0% for Manual Sale, 23% for Quick Sale
+        const defaultVatRate = label === 'Manual Sale' ? 0.00 : 23.00;
+        const saleItem = {
           id: Date.now() + Math.random(),
           itemId: null,
-          itemName: `Quick Sale (€${price.toFixed(2)})`,
+          itemName: `${label} (€${validPrice.toFixed(2)})`,
           itemBarcode: 'N/A',
           quantity: 1,
-          unitPrice: price,
-          totalPrice: price
+          unitPrice: validPrice,
+          totalPrice: validPrice,
+          vatRate: defaultVatRate
         };
-        return [quickSaleItem, ...currentCart];
+        return [saleItem, ...currentCart];
       }
     });
   };
@@ -928,6 +940,20 @@ const SalesPage = () => {
     setTimeout(() => setSuccess(null), 2000);
   };
 
+  const handleManualSale = () => {
+    const amount = parseFloat(manualSaleAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Please enter a valid amount greater than 0.');
+      addTimeout(() => setError(null), 3000);
+      return;
+    }
+    
+    addOrUpdateQuickSaleItem(amount, 'Manual Sale');
+    setSuccess(`Manual sale of €${amount.toFixed(2)} added to cart.`);
+    setTimeout(() => setSuccess(null), 2000);
+    setManualSaleAmount('');
+  };
+
   const handleCustomQuickPrice = () => {
     const price = parseFloat(quickPrice);
     if (!isNaN(price) && price > 0) {
@@ -1045,6 +1071,21 @@ const SalesPage = () => {
       return;
     }
     
+    // Check if this is a manual sale (no itemId) - these don't exist in the database
+    if (selectedCartItem.itemId === null) {
+      // For manual sales, use cart item data directly
+      const itemToEditData = {
+        ...selectedCartItem,
+        stockQuantity: selectedCartItem.quantity, // Use cart quantity as stock (not editable for manual sales)
+        cartQuantity: selectedCartItem.quantity, // Cart quantity
+        isManualSale: true // Flag to indicate this is a manual sale
+      };
+      
+      setItemToEdit(itemToEditData);
+      setEditItemDialogOpen(true);
+      return;
+    }
+    
     // Fetch the full item data from database to get actual stock quantity and category
     try {
       setLoading(true);
@@ -1062,7 +1103,8 @@ const SalesPage = () => {
         generalExpiryDate: fullItemData.generalExpiryDate,
         batchId: fullItemData.batchId,
         description: fullItemData.description,
-        vatRate: fullItemData.vatRate
+        vatRate: fullItemData.vatRate,
+        isManualSale: false
       };
       
       setItemToEdit(itemToEditData);
@@ -1106,6 +1148,33 @@ const SalesPage = () => {
 
     setLoading(true);
     try {
+      // Check if this is a manual sale (no database item)
+      if (itemToEdit.isManualSale || itemToEdit.itemId === null) {
+        // For manual sales, just update the cart item - no database update needed
+        const updatedCart = cart.map(item => {
+          if (item.id === itemToEdit.id) {
+            const originalCartQuantity = item.quantity;
+            const updatedItem = {
+              ...item,
+              itemName: formData.name || item.itemName,
+              unitPrice: parseFloat(formData.price) || item.unitPrice,
+              quantity: originalCartQuantity,
+              totalPrice: (parseFloat(formData.price) || item.unitPrice) * originalCartQuantity,
+              itemBarcode: formData.barcode || item.itemBarcode,
+              vatRate: parseFloat(formData.vatRate) || item.vatRate
+            };
+            return updatedItem;
+          }
+          return item;
+        });
+        setCart(updatedCart);
+        setEditItemDialogOpen(false);
+        setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart.`);
+        addTimeout(() => setSuccess(null), 3000);
+        setLoading(false);
+        return;
+      }
+
       // Prepare item data for database update
       // IMPORTANT: Update stockQuantity in database (this is the DB stock, not cart quantity)
       const itemData = {
@@ -1702,6 +1771,21 @@ const SalesPage = () => {
                   className="scrollable-categories"
                 >
                   <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+                    {/* Manual Sales Button */}
+                    <Button 
+                      size="lg"
+                      className="fw-bold category-btn btn-3d"
+                      onClick={() => setCurrentView('manualSale')}
+                      style={{ 
+                        padding: '1rem', 
+                        fontSize: '1.1rem', 
+                        minHeight: '60px',
+                        backgroundColor: '#1a1a1a',
+                        color: '#ffffff'
+                      }}
+                    >
+                      Manual Sales
+                    </Button>
                     {categories.map((category) => (
                       <Button 
                         key={category.id} 
@@ -1765,6 +1849,79 @@ const SalesPage = () => {
                       </Button>
                     ))}
                   </div>
+                </div>
+              </>
+            ) : currentView === 'manualSale' ? (
+              <>
+                <div className="d-flex align-items-center justify-content-between mb-2 px-3 pt-2" style={{ flexShrink: 0 }}>
+                  <h5 className="fw-bold mb-0" style={{ color: '#ffffff' }}>Manual Sales</h5>
+                  <Button 
+                    size="lg" 
+                    onClick={handleBackToCategories}
+                    title="Back to Categories"
+                    style={{ fontSize: '0.9rem', padding: '0.4rem', backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+                  >
+                    <i className="bi bi-x-circle me-2"></i>
+                    Back
+                  </Button>
+                </div>
+                {/* Manual Sale Input Container */}
+                <div 
+                  style={{ 
+                    flex: '1',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    padding: '2rem',
+                    gap: '1.5rem'
+                  }}
+                >
+                  <div>
+                    <label className="form-label fw-bold" style={{ color: '#ffffff', fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                      Enter Amount (€)
+                    </label>
+                    <InputGroup size="lg">
+                      <InputGroup.Text style={{ backgroundColor: '#3a3a3a', color: '#ffffff', border: '1px solid #555' }}>
+                        €
+                      </InputGroup.Text>
+                      <Form.Control
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="0.00"
+                        value={manualSaleAmount}
+                        onChange={(e) => setManualSaleAmount(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleManualSale();
+                          }
+                        }}
+                        style={{ 
+          backgroundColor: '#2a2a2a', 
+          color: '#ffffff', 
+                          border: '1px solid #555',
+                          fontSize: '1.5rem',
+                          textAlign: 'center'
+                        }}
+                        autoFocus
+                      />
+                    </InputGroup>
+                  </div>
+                  <Button
+                    onClick={handleManualSale}
+                    size="lg"
+                    className="fw-bold btn-3d"
+                    style={{ 
+                      padding: '1.5rem', 
+                      fontSize: '1.3rem', 
+                      backgroundColor: '#3a3a3a',
+                      color: '#ffffff',
+                      border: '2px solid #ffffff'
+                    }}
+                  >
+                    <i className="bi bi-check-circle me-2"></i>
+                    Add to Cart
+                  </Button>
                 </div>
               </>
             ) : (
@@ -2837,7 +2994,7 @@ const SalesPage = () => {
           </div>
         </Modal.Body>
         <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #333' }}>
-          <Button
+          <Button 
             variant="secondary"
             onClick={() => {
               setSplitPaymentDialogOpen(false);
@@ -2848,7 +3005,7 @@ const SalesPage = () => {
           >
             Cancel
           </Button>
-          <Button
+          <Button 
             variant="primary"
             onClick={() => {
               processSplitPayment();
@@ -2857,7 +3014,7 @@ const SalesPage = () => {
               Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (calculateTotal() || 0)) > 0.01}
             style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#ffffff', fontWeight: 'bold' }}
           >
-            Complete Sale
+                Complete Sale
           </Button>
         </Modal.Footer>
       </Modal>

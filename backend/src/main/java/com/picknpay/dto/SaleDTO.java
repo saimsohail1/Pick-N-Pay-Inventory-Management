@@ -27,6 +27,8 @@ public class SaleDTO {
     
     private Long userId;
     
+    private List<SalePaymentDTO> paymentSplits; // For split payments
+    
     // Constructors
     public SaleDTO() {}
     
@@ -83,5 +85,13 @@ public class SaleDTO {
     
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+    
+    public List<SalePaymentDTO> getPaymentSplits() {
+        return paymentSplits;
+    }
+    
+    public void setPaymentSplits(List<SalePaymentDTO> paymentSplits) {
+        this.paymentSplits = paymentSplits;
     }
 }

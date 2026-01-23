@@ -43,6 +43,9 @@ public class Sale {
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<SaleItem> saleItems;
     
+    @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<SalePayment> salePayments;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -51,6 +54,7 @@ public class Sale {
     public Sale() {
         this.saleDate = LocalDateTime.now();
         this.saleItems = new ArrayList<>();
+        this.salePayments = new ArrayList<>();
     }
     
     public Sale(BigDecimal totalAmount, PaymentMethod paymentMethod) {
@@ -138,5 +142,13 @@ public class Sale {
     
     public void setUser(User user) {
         this.user = user;
+    }
+    
+    public List<SalePayment> getSalePayments() {
+        return salePayments;
+    }
+    
+    public void setSalePayments(List<SalePayment> salePayments) {
+        this.salePayments = salePayments;
     }
 }

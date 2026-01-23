@@ -3414,7 +3414,7 @@ const SalesPage = () => {
         </Modal.Header>
         <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           <div className="mb-4">
-            <label className="form-label fw-bold mb-3" style={{ color: '#ffffff', fontSize: '1.1rem' }}>
+            <label className="form-label fw-bold mb-3" style={{ color: '#e0e0e0', fontSize: '1.1rem' }}>
               <i className="bi bi-sticky me-2"></i>
               Sale Notes (Optional)
             </label>
@@ -3461,7 +3461,7 @@ const SalesPage = () => {
                 processSplitPayment();
               }
             }}
-            style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#000000', fontWeight: 'bold' }}
+            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff', fontWeight: 'bold' }}
             disabled={loading || paymentInProgressRef.current}
           >
             {loading ? (

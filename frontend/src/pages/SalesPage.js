@@ -51,6 +51,9 @@ const SalesPage = () => {
   const [selectedNotes, setSelectedNotes] = useState({});
   const [cashConfirmDialogOpen, setCashConfirmDialogOpen] = useState(false);
   const [changeDue, setChangeDue] = useState(0);
+  const [splitPaymentDialogOpen, setSplitPaymentDialogOpen] = useState(false);
+  const [splitCashAmount, setSplitCashAmount] = useState('');
+  const [splitCardAmount, setSplitCardAmount] = useState('');
   const [itemNotFoundDialogOpen, setItemNotFoundDialogOpen] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [registerItemDialogOpen, setRegisterItemDialogOpen] = useState(false);
@@ -66,9 +69,10 @@ const SalesPage = () => {
   const [selectedCartItem, setSelectedCartItem] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [currentView, setCurrentView] = useState('categories'); // 'categories' or 'categoryItems'
+  const [currentView, setCurrentView] = useState('categories'); // 'categories', 'categoryItems', 'quickSale', or 'manualSale'
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryItems, setCategoryItems] = useState([]);
+  const [manualSaleAmount, setManualSaleAmount] = useState('');
   const [heldTransactions, setHeldTransactions] = useState([]);
   const [showHeldTransactions, setShowHeldTransactions] = useState(false);
   const [selectedHeldTransaction, setSelectedHeldTransaction] = useState(null);
@@ -134,7 +138,7 @@ const SalesPage = () => {
   // Refocus barcode input after modals close, cart operations, etc.
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
-        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && 
+        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !splitPaymentDialogOpen &&
         !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
       // Small delay to ensure modal is fully closed
       const timer = setTimeout(() => {
@@ -145,13 +149,13 @@ const SalesPage = () => {
       return () => clearTimeout(timer);
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
-      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, 
+      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, splitPaymentDialogOpen,
       outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
   // Keep barcode input focused continuously (when no modals are open)
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
-        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && 
+        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !splitPaymentDialogOpen &&
         !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
       const handleFocusLoss = () => {
         // Only refocus if user clicked outside an input/button or on the document
@@ -176,7 +180,7 @@ const SalesPage = () => {
       };
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
-      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, 
+      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, splitPaymentDialogOpen,
       outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
   useEffect(() => {
@@ -358,31 +362,42 @@ const SalesPage = () => {
   };
 
   // Helper function for quick sale items (special case)
-  const addOrUpdateQuickSaleItem = (price) => {
+  const addOrUpdateQuickSaleItem = (price, label = 'Quick Sale') => {
+    const validPrice = parseFloat(price);
+    if (isNaN(validPrice) || validPrice <= 0) {
+      console.error('Invalid price for sale item:', price);
+      return;
+    }
+
     setCart(currentCart => {
       const existingItemIndex = currentCart.findIndex(
-        item => item.itemId === null && item.unitPrice === price
+        item => item.itemId === null && item.unitPrice === validPrice && item.itemName?.startsWith(label)
       );
 
       if (existingItemIndex >= 0) {
-        // Update quantity of existing quick sale item
+        // Update quantity of existing sale item
         const updatedCart = [...currentCart];
-        updatedCart[existingItemIndex].quantity += 1;
-        updatedCart[existingItemIndex].totalPrice = 
-          updatedCart[existingItemIndex].unitPrice * updatedCart[existingItemIndex].quantity;
+        const existingItem = updatedCart[existingItemIndex];
+        const currentQuantity = existingItem?.quantity || 0;
+        const currentUnitPrice = existingItem?.unitPrice || 0;
+        updatedCart[existingItemIndex].quantity = currentQuantity + 1;
+        updatedCart[existingItemIndex].totalPrice = currentUnitPrice * (currentQuantity + 1);
         return updatedCart;
       } else {
-        // Add new quick sale item at the beginning (latest first)
-        const quickSaleItem = {
+        // Add new sale item at the beginning (latest first)
+        // Default VAT: 0% for Manual Sale, 23% for Quick Sale
+        const defaultVatRate = label === 'Manual Sale' ? 0.00 : 23.00;
+        const saleItem = {
           id: Date.now() + Math.random(),
           itemId: null,
-          itemName: `Quick Sale (€${price.toFixed(2)})`,
+          itemName: `${label} (€${validPrice.toFixed(2)})`,
           itemBarcode: 'N/A',
           quantity: 1,
-          unitPrice: price,
-          totalPrice: price
+          unitPrice: validPrice,
+          totalPrice: validPrice,
+          vatRate: defaultVatRate
         };
-        return [quickSaleItem, ...currentCart];
+        return [saleItem, ...currentCart];
       }
     });
   };
@@ -650,6 +665,9 @@ const SalesPage = () => {
                   // No change due, proceed directly
                   processCashPayment();
                 }
+              } else if (selectedPaymentMethod === 'SPLIT') {
+                // Split payment - show split payment dialog
+                setSplitPaymentDialogOpen(true);
               } else {
                 processCardPayment();
               }
@@ -788,6 +806,129 @@ const SalesPage = () => {
     }
   };
 
+  const processSplitPayment = async () => {
+    // Prevent duplicate payment processing
+    if (paymentInProgressRef.current) {
+      return;
+    }
+    
+    paymentInProgressRef.current = true;
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    setCheckoutDialogOpen(false);
+    setSplitPaymentDialogOpen(false);
+
+    try {
+      const totalAmount = calculateTotal() || 0;
+      if (isNaN(totalAmount) || totalAmount <= 0) {
+        throw new Error('Invalid total amount. Please ensure cart has valid items.');
+      }
+      
+      const cashAmountValue = parseFloat(splitCashAmount || 0) || 0;
+      const cardAmountValue = parseFloat(splitCardAmount || 0) || 0;
+      
+      if (isNaN(cashAmountValue) || isNaN(cardAmountValue)) {
+        throw new Error('Invalid payment amounts. Please enter valid numbers.');
+      }
+      
+      const splitTotal = cashAmountValue + cardAmountValue;
+
+      // Validate split amounts
+      if (cashAmountValue < 0 || cardAmountValue < 0) {
+        throw new Error('Payment amounts cannot be negative');
+      }
+
+      if (Math.abs(splitTotal - totalAmount) > 0.01) {
+        throw new Error(`Split payment amounts (€${splitTotal.toFixed(2)}) must equal total amount (€${totalAmount.toFixed(2)})`);
+      }
+
+      if (cashAmountValue === 0 && cardAmountValue === 0) {
+        throw new Error('At least one payment method must have an amount greater than 0');
+      }
+
+      // Calculate total amount from original prices (actual price customer pays - including VAT)
+      let calculatedTotalAmount = 0;
+      const saleItems = cart.map((item) => {
+        // Get the actual price the customer pays (with discounts, including original VAT)
+        const actualItemPrice = calculateDiscountedItemPrice(item);
+        
+        // Add to total - this is the actual price paid
+        calculatedTotalAmount += actualItemPrice;
+        
+        // For sale items, store the actual price paid and the individual item VAT rate
+        return {
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: actualItemPrice,
+          vatRate: item.vatRate != null ? item.vatRate : 23.00
+        };
+      });
+
+      // Build payment splits array
+      const paymentSplits = [];
+      if (cashAmountValue > 0) {
+        paymentSplits.push({
+          paymentMethod: 'CASH',
+          amount: cashAmountValue
+        });
+      }
+      if (cardAmountValue > 0) {
+        paymentSplits.push({
+          paymentMethod: 'CARD',
+          amount: cardAmountValue
+        });
+      }
+
+      const saleData = {
+        totalAmount: calculatedTotalAmount,
+        subtotalAmount: calculateSubtotal(),
+        discountAmount: calculateDiscountAmount(),
+        discountType: appliedDiscount?.type || null,
+        discountValue: appliedDiscount?.value || null,
+        paymentMethod: 'SPLIT',
+        paymentSplits: paymentSplits,
+        saleItems: saleItems,
+        userId: user?.id || null,
+      };
+
+      const response = await salesAPI.create(saleData);
+      
+      // Store the last sale for printing
+      setLastSale(response.data);
+      
+      setCart([]);
+      setSplitCashAmount('');
+      setSplitCardAmount('');
+      setAppliedDiscount(null);
+      setSelectedCartItem(null);
+      setCustomDiscountAmount('');
+      setSuccess('Split payment completed successfully!');
+      addTimeout(() => setSuccess(null), 3000);
+      // Refocus barcode input after payment
+      setTimeout(() => {
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.focus();
+        }
+      }, 200);
+    } catch (err) {
+      console.error('Error creating sale:', err);
+      console.error('Error response:', err.response?.data);
+      setError(`Failed to complete sale: ${err.response?.data || err.message}`);
+      setTimeout(() => setError(null), 5000);
+      // Refocus barcode input even on error
+      setTimeout(() => {
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.focus();
+        }
+      }, 200);
+    } finally {
+      paymentInProgressRef.current = false;
+      setLoading(false);
+    }
+  };
+
   const handleQuickPriceSale = (price, e) => {
     // Use the same logic as plus button
     if (e) {
@@ -798,6 +939,20 @@ const SalesPage = () => {
     addOrUpdateQuickSaleItem(price);
     setSuccess(`Quick sale of €${price.toFixed(2)} added to cart.`);
     setTimeout(() => setSuccess(null), 2000);
+  };
+
+  const handleManualSale = () => {
+    const amount = parseFloat(manualSaleAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Please enter a valid amount greater than 0.');
+      addTimeout(() => setError(null), 3000);
+      return;
+    }
+    
+    addOrUpdateQuickSaleItem(amount, 'Manual Sale');
+    setSuccess(`Manual sale of €${amount.toFixed(2)} added to cart.`);
+    setTimeout(() => setSuccess(null), 2000);
+    setManualSaleAmount('');
   };
 
   const handleCustomQuickPrice = () => {
@@ -917,6 +1072,21 @@ const SalesPage = () => {
       return;
     }
     
+    // Check if this is a manual sale (no itemId) - these don't exist in the database
+    if (selectedCartItem.itemId === null) {
+      // For manual sales, use cart item data directly
+      const itemToEditData = {
+        ...selectedCartItem,
+        stockQuantity: selectedCartItem.quantity, // Use cart quantity as stock (not editable for manual sales)
+        cartQuantity: selectedCartItem.quantity, // Cart quantity
+        isManualSale: true // Flag to indicate this is a manual sale
+      };
+      
+      setItemToEdit(itemToEditData);
+      setEditItemDialogOpen(true);
+      return;
+    }
+    
     // Fetch the full item data from database to get actual stock quantity and category
     try {
       setLoading(true);
@@ -934,7 +1104,8 @@ const SalesPage = () => {
         generalExpiryDate: fullItemData.generalExpiryDate,
         batchId: fullItemData.batchId,
         description: fullItemData.description,
-        vatRate: fullItemData.vatRate
+        vatRate: fullItemData.vatRate,
+        isManualSale: false
       };
       
       setItemToEdit(itemToEditData);
@@ -978,6 +1149,33 @@ const SalesPage = () => {
 
     setLoading(true);
     try {
+      // Check if this is a manual sale (no database item)
+      if (itemToEdit.isManualSale || itemToEdit.itemId === null) {
+        // For manual sales, just update the cart item - no database update needed
+        const updatedCart = cart.map(item => {
+          if (item.id === itemToEdit.id) {
+            const originalCartQuantity = item.quantity;
+            const updatedItem = {
+              ...item,
+              itemName: formData.name || item.itemName,
+              unitPrice: parseFloat(formData.price) || item.unitPrice,
+              quantity: originalCartQuantity,
+              totalPrice: (parseFloat(formData.price) || item.unitPrice) * originalCartQuantity,
+              itemBarcode: formData.barcode || item.itemBarcode,
+              vatRate: parseFloat(formData.vatRate) || item.vatRate
+            };
+            return updatedItem;
+          }
+          return item;
+        });
+        setCart(updatedCart);
+        setEditItemDialogOpen(false);
+        setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart.`);
+        addTimeout(() => setSuccess(null), 3000);
+        setLoading(false);
+        return;
+      }
+
       // Prepare item data for database update
       // IMPORTANT: Update stockQuantity in database (this is the DB stock, not cart quantity)
       const itemData = {
@@ -1039,6 +1237,27 @@ const SalesPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleManualSalePriceChange = (itemId, newPrice) => {
+    const priceValue = parseFloat(newPrice) || 0;
+    if (isNaN(priceValue) || priceValue < 0) {
+      return; // Invalid price, don't update
+    }
+    
+    setCart(prevCart => 
+      prevCart.map(item => {
+        if (item.id === itemId && item.itemId === null) { // Only for manual sales
+          const updatedItem = {
+            ...item,
+            unitPrice: priceValue,
+            totalPrice: priceValue * item.quantity
+          };
+          return updatedItem;
+        }
+        return item;
+      })
+    );
   };
 
   const handlePrintItemLabel = async () => {
@@ -2039,6 +2258,21 @@ const SalesPage = () => {
                     className="scrollable-categories"
                   >
                   <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                    {/* Manual Sales Button */}
+                    <Button 
+                      size="lg"
+                      className="fw-bold category-btn btn-3d"
+                      onClick={() => setCurrentView('manualSale')}
+                      style={{ 
+                        padding: '1rem', 
+                        fontSize: '1.1rem', 
+                        minHeight: '60px',
+                        backgroundColor: '#1a1a1a',
+                        color: '#ffffff'
+                      }}
+                    >
+                      Manual Sales
+                    </Button>
                 {categories.map((category) => (
                   <Button 
                     key={category.id} 
@@ -2102,6 +2336,79 @@ const SalesPage = () => {
                 ))}
                     </div>
               </div>
+                </>
+              ) : currentView === 'manualSale' ? (
+                <>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <h5 className="fw-bold mb-0">Manual Sales</h5>
+                    <Button 
+                      size="lg" 
+                      onClick={handleBackToCategories}
+                      title="Back to Categories"
+                    style={{ fontSize: '0.9rem', padding: '0.4rem', backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+                    >
+                      <i className="bi bi-x-circle me-2"></i>
+                      Back
+                    </Button>
+            </div>
+                  {/* Manual Sale Input Container */}
+                  <div 
+                    style={{ 
+                      flex: '1',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      padding: '2rem',
+                      gap: '1.5rem'
+                    }}
+                  >
+                    <div>
+                      <label className="form-label fw-bold" style={{ color: '#ffffff', fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                        Enter Amount (€)
+                      </label>
+                      <InputGroup size="lg">
+                        <InputGroup.Text style={{ backgroundColor: '#3a3a3a', color: '#ffffff', border: '1px solid #555' }}>
+                          €
+                        </InputGroup.Text>
+                        <Form.Control
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          placeholder="0.00"
+                          value={manualSaleAmount}
+                          onChange={(e) => setManualSaleAmount(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleManualSale();
+                            }
+                          }}
+                          style={{ 
+                            backgroundColor: '#2a2a2a', 
+                            color: '#ffffff', 
+                            border: '1px solid #555',
+                            fontSize: '1.5rem',
+                            textAlign: 'center'
+                          }}
+                          autoFocus
+                        />
+                      </InputGroup>
+                    </div>
+                    <Button
+                      onClick={handleManualSale}
+                      size="lg"
+                      className="fw-bold btn-3d"
+                      style={{ 
+                        padding: '1.5rem', 
+                        fontSize: '1.3rem', 
+                        backgroundColor: '#3a3a3a',
+                        color: '#ffffff',
+                        border: '2px solid #ffffff'
+                      }}
+                    >
+                      <i className="bi bi-check-circle me-2"></i>
+                      Add to Cart
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -2443,18 +2750,104 @@ const SalesPage = () => {
                   <Button
                     className="w-100 py-3 rounded-0 btn-3d"
                     onClick={() => {
-                      setCashAmount('');
-                      setSelectedNotes({});
+                      handleConfirmCheckout('SPLIT');
                     }}
+                    disabled={loading || paymentInProgressRef.current}
                     style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
-                    CLEAR PAYMENTS
+                    SPLIT PAYMENT
                   </Button>
                 </div>
               </div>
             </div>
           </div>
         </Modal.Body>
+      </Modal>
+
+      {/* Split Payment Dialog */}
+      <Modal show={splitPaymentDialogOpen} onHide={() => setSplitPaymentDialogOpen(false)} centered size="lg">
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', color: '#ffffff', borderBottom: '1px solid #333' }}>
+          <Modal.Title>Split Payment</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          <div className="mb-4">
+            <h5 className="text-center mb-3" style={{ color: '#e0e0e0', fontWeight: 'bold' }}>Total Amount: €{calculateTotal().toFixed(2)}</h5>
+            <div className="mb-3">
+              <label className="form-label" style={{ color: '#e8e8e8', fontWeight: '500' }}>Cash Amount (€)</label>
+              <input
+                type="number"
+                className="form-control"
+                value={splitCashAmount}
+                onChange={(e) => {
+                  const cashValue = e.target.value;
+                  setSplitCashAmount(cashValue);
+                  // Auto-calculate card amount
+                  const total = calculateTotal() || 0;
+                  const cash = parseFloat(cashValue || 0) || 0;
+                  if (isNaN(cash)) {
+                    setSplitCardAmount('');
+                    return;
+                  }
+                  const card = total - cash;
+                  setSplitCardAmount(card >= 0 && !isNaN(card) ? card.toFixed(2) : '');
+                }}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                style={{ backgroundColor: '#2a2a2a', color: '#ffffff', border: '1px solid #444' }}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label" style={{ color: '#e8e8e8', fontWeight: '500' }}>Card Amount (€)</label>
+              <input
+                type="number"
+                className="form-control"
+                value={splitCardAmount}
+                onChange={(e) => {
+                  const cardValue = e.target.value;
+                  setSplitCardAmount(cardValue);
+                  // Auto-calculate cash amount
+                  const total = calculateTotal() || 0;
+                  const card = parseFloat(cardValue || 0) || 0;
+                  if (isNaN(card)) {
+                    setSplitCashAmount('');
+                    return;
+                  }
+                  const cash = total - card;
+                  setSplitCashAmount(cash >= 0 && !isNaN(cash) ? cash.toFixed(2) : '');
+                }}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                style={{ backgroundColor: '#2a2a2a', color: '#ffffff', border: '1px solid #444' }}
+              />
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #333' }}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setSplitPaymentDialogOpen(false);
+              setSplitCashAmount('');
+              setSplitCardAmount('');
+            }}
+            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              processSplitPayment();
+            }}
+            disabled={loading || paymentInProgressRef.current || 
+              Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (calculateTotal() || 0)) > 0.01}
+            style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#ffffff', fontWeight: 'bold' }}
+          >
+            Complete Sale
+          </Button>
+        </Modal.Footer>
       </Modal>
 
       {/* Item Not Found Dialog */}

@@ -2,7 +2,8 @@ package com.picknpay.entity;
 
 public enum PaymentMethod {
     CASH("Cash"),
-    CARD("Card");
+    CARD("Card"),
+    SPLIT("Split Payment");
     
     private final String displayName;
     

@@ -675,9 +675,9 @@ const SalesPage = () => {
 
     try {
       const saleItems = cart.map((item) => ({
-        itemId: item.itemId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
         totalPrice: calculateDiscountedItemPrice(item)
       }));
 
@@ -738,9 +738,9 @@ const SalesPage = () => {
 
     try {
       const saleItems = cart.map((item) => ({
-        itemId: item.itemId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
         totalPrice: calculateDiscountedItemPrice(item)
       }));
 
@@ -1699,7 +1699,7 @@ const SalesPage = () => {
 
           {/* Right: Cart Section */}
           <div className="d-flex flex-column" style={{ width: '45%', padding: 0, borderRadius: '8px', border: '1px solid #333333', backgroundColor: '#2a2a2a', color: '#ffffff', gap: '0.4rem', minHeight: 0 }}>
-            {showHeldTransactions ? (
+          {showHeldTransactions ? (
             /* Held Transactions View */
             <div className="bg-dark" style={{ height: '100%', overflowY: 'auto', padding: '1rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
               <div className="d-flex justify-content-between align-items-center mb-3">
@@ -1779,7 +1779,7 @@ const SalesPage = () => {
             /* Normal Sales View */
             <>
             {/* Sales Cart Table with Control Buttons */}
-            <div className="d-flex" style={{ height: '340px', flexShrink: 0 }}>
+            <div className="d-flex" style={{ height: '300px', flexShrink: 0 }}>
               {/* Cart Table - Scrollable */}
               <div className="bg-dark flex-grow-1" style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', padding: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333', borderRadius: '8px 0 0 8px', color: '#ffffff' }}>
               {cart.length === 0 ? (
@@ -1792,12 +1792,12 @@ const SalesPage = () => {
                   <Table striped hover className="mb-0" size="sm">
                       <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                         <tr>
-                          <th style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>ID</th>
-                          <th style={{ width: '40%', fontSize: '1rem', padding: '0.6rem' }}>Item</th>
-                          <th className="text-end" style={{ width: '12%', fontSize: '1rem', padding: '0.6rem' }}>Price</th>
-                          <th className="text-center" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Quantity</th>
-                          <th className="text-end" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Discount</th>
-                          <th className="text-end" style={{ width: '20%', fontSize: '1rem', padding: '0.6rem' }}>Total</th>
+                          <th style={{ width: '8%', fontSize: '0.85rem', padding: '0.4rem' }}>ID</th>
+                          <th style={{ width: '40%', fontSize: '0.85rem', padding: '0.4rem' }}>Item</th>
+                          <th className="text-end" style={{ width: '12%', fontSize: '0.85rem', padding: '0.4rem' }}>Price</th>
+                          <th className="text-center" style={{ width: '10%', fontSize: '0.85rem', padding: '0.4rem' }}>Quantity</th>
+                          <th className="text-end" style={{ width: '10%', fontSize: '0.85rem', padding: '0.4rem' }}>Discount</th>
+                          <th className="text-end" style={{ width: '20%', fontSize: '0.85rem', padding: '0.4rem' }}>Total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1808,29 +1808,29 @@ const SalesPage = () => {
                           className={`cart-item-row ${selectedCartItem && selectedCartItem.id === item.id ? 'cart-item-selected' : ''}`}
                           style={{ cursor: 'pointer', backgroundColor: '#2a2a2a', color: '#ffffff' }}
                         >
-                            <td style={{ fontSize: '1rem', padding: '0.6rem' }}>{index + 1}</td>
-                            <td style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            <td style={{ fontSize: '0.85rem', padding: '0.4rem' }}>{index + 1}</td>
+                            <td style={{ fontSize: '0.85rem', padding: '0.4rem' }}>
                             <div>
-                                <strong style={{ fontSize: '1.1rem' }}>{item.itemName}</strong>
+                                <strong style={{ fontSize: '0.9rem' }}>{item.itemName}</strong>
                                 {item.itemBarcode && item.itemBarcode !== 'N/A' && (
-                                  <small className="d-block" style={{ fontSize: '0.8rem', color: '#aaaaaa' }}>
-                                    <i className="bi bi-upc" style={{ fontSize: '0.7rem' }}></i> {item.itemBarcode}
+                                  <small className="d-block" style={{ fontSize: '0.7rem', color: '#aaaaaa' }}>
+                                    <i className="bi bi-upc" style={{ fontSize: '0.6rem' }}></i> {item.itemBarcode}
                                 </small>
                               )}
                                 {item.discountApplied && (
-                                  <small className="d-block" style={{ fontSize: '0.8rem', color: '#ffffff' }}>
-                                    <i className="bi bi-percent" style={{ fontSize: '0.7rem' }}></i> Discount Applied
+                                  <small className="d-block" style={{ fontSize: '0.7rem', color: '#ffffff' }}>
+                                    <i className="bi bi-percent" style={{ fontSize: '0.6rem' }}></i> Discount Applied
                                 </small>
                               )}
                             </div>
                           </td>
-                            <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            <td className="text-end" style={{ fontSize: '0.85rem', padding: '0.4rem' }}>
                               {item.discountApplied ? (
                                 <div>
-                                  <div className="text-decoration-line-through" style={{ fontSize: '0.9rem', color: '#aaaaaa' }}>
+                                  <div className="text-decoration-line-through" style={{ fontSize: '0.75rem', color: '#aaaaaa' }}>
                                     €{item.originalPrice.toFixed(2)}
                                   </div>
-                                  <div className="fw-bold" style={{ color: '#ffffff' }}>
+                                  <div className="fw-bold" style={{ color: '#ffffff', fontSize: '0.85rem' }}>
                                     €{item.unitPrice.toFixed(2)}
                                   </div>
                                 </div>
@@ -1838,10 +1838,10 @@ const SalesPage = () => {
                                 <span>€{item.unitPrice.toFixed(2)}</span>
                               )}
                             </td>
-                            <td className="text-center" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            <td className="text-center" style={{ fontSize: '0.85rem', padding: '0.4rem' }}>
                               <span className="fw-bold">{item.quantity}</span>
                             </td>
-                            <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            <td className="text-end" style={{ fontSize: '0.85rem', padding: '0.4rem' }}>
                               <Form.Control
                                 type="text"
                                 size="sm"
@@ -1849,10 +1849,10 @@ const SalesPage = () => {
                                 value={item.discountAmount || ''}
                                 onChange={(e) => handleItemDiscountChange(item.id, e.target.value)}
                                 onClick={(e) => e.stopPropagation()}
-                                style={{ width: '60px', fontSize: '0.9rem', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
+                                style={{ width: '60px', fontSize: '0.8rem', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                               />
                             </td>
-                            <td className="text-end fw-bold" style={{ fontSize: '1rem', padding: '0.6rem' }}>€{item.totalPrice.toFixed(2)}</td>
+                            <td className="text-end fw-bold" style={{ fontSize: '0.85rem', padding: '0.4rem' }}>€{item.totalPrice.toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1862,46 +1862,46 @@ const SalesPage = () => {
               </div>
               
               {/* Fixed Control Buttons - Stay in place */}
-              <div className="bg-dark d-flex flex-column" style={{ width: '90px', padding: '0.3rem', borderLeft: '1px solid #333333', backgroundColor: '#2a2a2a', borderRadius: '0 8px 8px 0', color: '#ffffff', flexShrink: 0 }}>
+              <div className="bg-dark d-flex flex-column" style={{ width: '70px', padding: '0.2rem', borderLeft: '1px solid #333333', backgroundColor: '#2a2a2a', borderRadius: '0 8px 8px 0', color: '#ffffff', flexShrink: 0 }}>
                 <div className="d-flex flex-column h-100">
-                  <Button
-                    size="lg"
+                              <Button
+                    size="sm"
                     onClick={handleIncrementSelectedItem}
                     disabled={!selectedCartItem}
                     className="flex-fill btn-3d"
-                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px', backgroundColor: selectedCartItem ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}
+                    style={{ fontSize: '1.1rem', padding: '0.5rem', width: '100%', minHeight: '60px', backgroundColor: selectedCartItem ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}
                     title="Increase quantity"
                   >
-                    <i className="bi bi-plus"></i>
+                    <i className="bi bi-plus" style={{ fontSize: '2rem' }}></i>
                   </Button>
                   <Button
-                    size="lg"
+                    size="sm"
                     onClick={handleDecrementSelectedItem}
                     disabled={!selectedCartItem}
                     className="flex-fill btn-3d"
-                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px', backgroundColor: selectedCartItem ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}
+                    style={{ fontSize: '1.1rem', padding: '0.5rem', width: '100%', minHeight: '60px', backgroundColor: selectedCartItem ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}
                     title="Decrease quantity"
-                  >
-                    <i className="bi bi-dash"></i>
-                  </Button>
-                  <Button
-                    size="lg"
+                              >
+                                <i className="bi bi-dash" style={{ fontSize: '2rem' }}></i>
+                              </Button>
+                              <Button
+                    size="sm"
                     onClick={handleEditSelectedItem}
                     disabled={!selectedCartItem || selectedCartItem.itemId === null}
                     className="flex-fill btn-3d"
-                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px', backgroundColor: (!selectedCartItem || selectedCartItem.itemId === null) ? '#2a2a2a' : '#3a3a3a', color: '#ffffff' }}
+                    style={{ fontSize: '1.1rem', padding: '0.5rem', width: '100%', minHeight: '60px', backgroundColor: (!selectedCartItem || selectedCartItem.itemId === null) ? '#2a2a2a' : '#3a3a3a', color: '#ffffff' }}
                     title={selectedCartItem?.itemId === null ? "Manual sales can be edited directly in the cart" : "Edit item"}
                   >
-                    <i className="bi bi-pencil"></i>
-                  </Button>
+                    <i className="bi bi-pencil" style={{ fontSize: '2rem' }}></i>
+                              </Button>
+                            </div>
                 </div>
-              </div>
             </div>
 
             {/* Action Buttons Row */}
             <div className="bg-dark" style={{ padding: '0.4rem', border: '1px solid #333333', borderRadius: '8px', marginTop: '0.5rem', backgroundColor: '#2a2a2a', color: '#ffffff', flex: '0 0 auto' }}>
               <div className="d-flex gap-2 justify-content-between">
-                <div className="d-flex gap-2">
+              <div className="d-flex gap-2">
                   <Button 
                     size="lg" 
                     className="btn-3d"
@@ -1909,39 +1909,39 @@ const SalesPage = () => {
                     style={{ fontSize: '1rem', padding: '0.5rem 1rem', minHeight: '40px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     <i className="bi bi-eye me-2"></i>
-                    STOCK
-                  </Button>
+                  STOCK
+                </Button>
                   <Button 
                     size="lg" 
                     className="btn-3d" 
                     onClick={() => {
-                      setCart([]); 
-                      setAppliedDiscount(null); 
-                      setCustomDiscountAmount(''); 
-                      setSelectedCartItem(null);
-                      setTimeout(() => {
-                        if (barcodeInputRef.current) {
-                          barcodeInputRef.current.focus();
-                        }
-                      }, 100);
+                    setCart([]); 
+                    setAppliedDiscount(null); 
+                    setCustomDiscountAmount(''); 
+                    setSelectedCartItem(null);
+                    setTimeout(() => {
+                      if (barcodeInputRef.current) {
+                        barcodeInputRef.current.focus();
+                      }
+                    }, 100);
                     }} 
                     style={{ fontSize: '1rem', padding: '0.5rem 1rem', minHeight: '40px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     <i className="bi bi-cart-x me-2"></i>
-                    CLEAR CART
-                  </Button>
-                  {lastSale && (
-                    <Button 
-                      size="lg" 
-                      className="btn-3d"
-                      onClick={handlePrintLastSale}
-                      title={`Print last sale #${lastSale.id}`}
+                  CLEAR CART
+                </Button>
+                {lastSale && (
+                  <Button 
+                    size="lg" 
+                    className="btn-3d"
+                    onClick={handlePrintLastSale}
+                    title={`Print last sale #${lastSale.id}`}
                       style={{ fontSize: '1rem', padding: '0.5rem 1rem', minHeight: '40px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
-                    >
-                      <i className="bi bi-printer me-2"></i>
-                      PRINT LAST SALE
-                    </Button>
-                  )}
+                  >
+                    <i className="bi bi-printer me-2"></i>
+                    PRINT LAST SALE
+                  </Button>
+                )}
                 </div>
               </div>
             </div>
@@ -1969,9 +1969,9 @@ const SalesPage = () => {
 
             {/* Checkout, Discount, Hold, and Open Till Buttons */}
             <div className="d-flex flex-column gap-2" style={{ flexShrink: 0, padding: '0.5rem', marginTop: '0.5rem' }}>
-              <Button 
-                size="lg" 
-                className="fw-bold btn-3d" 
+                    <Button 
+                      size="lg" 
+                      className="fw-bold btn-3d" 
                 style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }} 
                 onClick={handleCheckout} 
                 disabled={loading}
@@ -1984,98 +1984,98 @@ const SalesPage = () => {
                 size="lg" 
                 className="fw-bold btn-3d" 
                 style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
-                onClick={() => setDiscountDialogOpen(true)}
-              >
-                <i className="bi bi-percent me-2"></i>
+                      onClick={() => setDiscountDialogOpen(true)}
+                    >
+                      <i className="bi bi-percent me-2"></i>
                 DISCOUNT
-                {appliedDiscount && (
-                  <Badge className="ms-2" style={{ fontSize: '0.8rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
-                    {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
-                  </Badge>
-                )}
-              </Button>
+                        {appliedDiscount && (
+                          <Badge className="ms-2" style={{ fontSize: '0.8rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+                            {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
+                          </Badge>
+                        )}
+                    </Button>
               
-              <Button 
-                size="lg" 
-                className="fw-bold btn-3d" 
+                  <Button 
+                    size="lg" 
+                    className="fw-bold btn-3d" 
                 style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }} 
                 onClick={handleHoldTransaction}
               >
-                <i className="bi bi-pause-circle me-2"></i>
+                      <i className="bi bi-pause-circle me-2"></i>
                 HOLD
-              </Button>
+                    </Button>
               
-              <Button 
-                size="lg" 
-                className="fw-bold btn-3d" 
+                    <Button 
+                      size="lg" 
+                      className="fw-bold btn-3d" 
                 style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
-                onClick={async () => {
-                  try {
-                    setLoading(true);
-                    setError(null);
-                    setSuccess(null);
-                    
-                    if (!window.electron) {
-                      const errorMsg = 'Electron IPC not available. window.electron is undefined. Are you running in Electron?';
-                      setError(errorMsg);
-                      addTimeout(() => setError(null), 8000);
-                      console.error('❌', errorMsg);
-                      setLoading(false);
-                      return;
-                    }
-                    
-                    if (!window.electron.ipcRenderer) {
-                      const errorMsg = 'Electron IPC renderer not available. window.electron.ipcRenderer is undefined.';
-                      setError(errorMsg);
-                      addTimeout(() => setError(null), 8000);
-                      console.error('❌', errorMsg);
-                      setLoading(false);
-                      return;
-                    }
-                    
-                    try {
-                      const result = await window.electron.ipcRenderer.invoke('open-till', {
-                        companyName: companyName,
-                        companyAddress: companyAddress
-                      });
-                      
-                      if (result && result.success) {
-                        const successMsg = `Cash drawer opened successfully! ${result.printer ? `(Printer: ${result.printer})` : ''}`;
-                        setSuccess(successMsg);
-                        addTimeout(() => setSuccess(null), 3000);
-                        console.log('✅', successMsg);
-                      } else {
-                        const errorMsg = result?.message || result?.error || 'Failed to open cash drawer. Please check printer connection and drawer cable.';
-                        setError(errorMsg);
-                        addTimeout(() => setError(null), 8000);
-                        console.error('❌ Open Till failed:', result);
-                      }
-                    } catch (invokeError) {
-                      console.error('❌ IPC invoke error:', invokeError);
-                      const errorMsg = `IPC invoke failed: ${invokeError.message || invokeError.toString()}`;
-                      setError(errorMsg);
-                      addTimeout(() => setError(null), 8000);
-                    }
-                  } catch (err) {
-                    console.error('❌ Unexpected error opening cash drawer:', err);
-                    const errorMsg = `Failed to open cash drawer: ${err.message || err.toString() || 'Unknown error. Please check the printer connection and console logs.'}`;
-                    setError(errorMsg);
-                    addTimeout(() => setError(null), 8000);
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-                title="Open cash drawer (ESC/POS command sent directly to printer port)"
-              >
-                <i className="bi bi-cash-stack me-2"></i>
+                      onClick={async () => {
+                        try {
+                          setLoading(true);
+                          setError(null);
+                          setSuccess(null);
+                          
+                          if (!window.electron) {
+                            const errorMsg = 'Electron IPC not available. window.electron is undefined. Are you running in Electron?';
+                            setError(errorMsg);
+                            addTimeout(() => setError(null), 8000);
+                            console.error('❌', errorMsg);
+                            setLoading(false);
+                            return;
+                          }
+                          
+                          if (!window.electron.ipcRenderer) {
+                            const errorMsg = 'Electron IPC renderer not available. window.electron.ipcRenderer is undefined.';
+                            setError(errorMsg);
+                            addTimeout(() => setError(null), 8000);
+                            console.error('❌', errorMsg);
+                            setLoading(false);
+                            return;
+                          }
+                          
+                          try {
+                            const result = await window.electron.ipcRenderer.invoke('open-till', {
+                              companyName: companyName,
+                              companyAddress: companyAddress
+                            });
+                            
+                            if (result && result.success) {
+                              const successMsg = `Cash drawer opened successfully! ${result.printer ? `(Printer: ${result.printer})` : ''}`;
+                              setSuccess(successMsg);
+                              addTimeout(() => setSuccess(null), 3000);
+                              console.log('✅', successMsg);
+                            } else {
+                              const errorMsg = result?.message || result?.error || 'Failed to open cash drawer. Please check printer connection and drawer cable.';
+                              setError(errorMsg);
+                              addTimeout(() => setError(null), 8000);
+                              console.error('❌ Open Till failed:', result);
+                            }
+                          } catch (invokeError) {
+                            console.error('❌ IPC invoke error:', invokeError);
+                            const errorMsg = `IPC invoke failed: ${invokeError.message || invokeError.toString()}`;
+                            setError(errorMsg);
+                            addTimeout(() => setError(null), 8000);
+                          }
+                        } catch (err) {
+                          console.error('❌ Unexpected error opening cash drawer:', err);
+                          const errorMsg = `Failed to open cash drawer: ${err.message || err.toString() || 'Unknown error. Please check the printer connection and console logs.'}`;
+                          setError(errorMsg);
+                          addTimeout(() => setError(null), 8000);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                      title="Open cash drawer (ESC/POS command sent directly to printer port)"
+                    >
+                      <i className="bi bi-cash-stack me-2"></i>
                 OPEN TILL
-              </Button>
-            </div>
+                    </Button>
+        </div>
 
-            </>
-          )}
-          </div>
+                </>
+              )}
+            </div>
         </div>
       </div>
 

@@ -171,24 +171,20 @@ public class SaleService {
         
         sale.setTotalAmount(totalAmount);
         
-        // Handle split payments
+        // Handle split payments if payment method is SPLIT
         if (saleDTO.getPaymentMethod() == PaymentMethod.SPLIT && saleDTO.getPaymentSplits() != null && !saleDTO.getPaymentSplits().isEmpty()) {
-            // Validate split amounts sum to total
-            BigDecimal splitTotal = saleDTO.getPaymentSplits().stream()
-                    .map(SalePaymentDTO::getAmount)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            
-            if (splitTotal.compareTo(totalAmount) != 0) {
-                throw new RuntimeException("Split payment amounts must equal total amount. Total: " + totalAmount + ", Split total: " + splitTotal);
-            }
-            
-            // Create SalePayment entities
-            for (SalePaymentDTO paymentDTO : saleDTO.getPaymentSplits()) {
+            BigDecimal splitTotal = BigDecimal.ZERO;
+            for (SalePaymentDTO paymentSplitDTO : saleDTO.getPaymentSplits()) {
                 SalePayment salePayment = new SalePayment();
                 salePayment.setSale(sale);
-                salePayment.setPaymentMethod(paymentDTO.getPaymentMethod());
-                salePayment.setAmount(paymentDTO.getAmount());
+                salePayment.setPaymentMethod(paymentSplitDTO.getPaymentMethod());
+                salePayment.setAmount(paymentSplitDTO.getAmount());
                 sale.getSalePayments().add(salePayment);
+                splitTotal = splitTotal.add(paymentSplitDTO.getAmount());
+            }
+            // Validate that split payments sum equals total amount
+            if (splitTotal.compareTo(totalAmount) != 0) {
+                throw new RuntimeException("Split payment amounts (" + splitTotal + ") must equal total amount (" + totalAmount + ")");
             }
         }
         
@@ -237,14 +233,6 @@ public class SaleService {
         return dto;
     }
     
-    private SalePaymentDTO convertSalePaymentToDTO(SalePayment salePayment) {
-        SalePaymentDTO dto = new SalePaymentDTO();
-        dto.setId(salePayment.getId());
-        dto.setPaymentMethod(salePayment.getPaymentMethod());
-        dto.setAmount(salePayment.getAmount());
-        return dto;
-    }
-    
     private SaleItemDTO convertSaleItemToDTO(SaleItem saleItem) {
         SaleItemDTO dto = new SaleItemDTO();
         dto.setId(saleItem.getId());
@@ -269,6 +257,14 @@ public class SaleService {
             dto.setItemBarcode(saleItem.getItemBarcode()); // Use stored barcode
         }
         
+        return dto;
+    }
+    
+    private SalePaymentDTO convertSalePaymentToDTO(SalePayment salePayment) {
+        SalePaymentDTO dto = new SalePaymentDTO();
+        dto.setId(salePayment.getId());
+        dto.setPaymentMethod(salePayment.getPaymentMethod());
+        dto.setAmount(salePayment.getAmount());
         return dto;
     }
 

@@ -103,7 +103,3 @@ public class SalePayment {
         this.updatedAt = updatedAt;
     }
 }
-
-
-
-

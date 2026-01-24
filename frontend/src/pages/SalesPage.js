@@ -3030,9 +3030,9 @@ const SalesPage = () => {
         </Modal.Header>
         <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           <div className="mb-4">
-            <h5 className="text-center mb-3">Total Amount: €{calculateTotal().toFixed(2)}</h5>
+            <h5 className="text-center mb-3 fw-bold" style={{ color: '#e8e8e8' }}>Total Amount: €{calculateTotal().toFixed(2)}</h5>
             <div className="mb-3">
-              <label className="form-label">Cash Amount (€)</label>
+              <label className="form-label" style={{ color: '#e8e8e8', fontWeight: '500' }}>Cash Amount (€)</label>
               <input
                 type="number"
                 className="form-control"
@@ -3057,7 +3057,7 @@ const SalesPage = () => {
               />
             </div>
             <div className="mb-3">
-              <label className="form-label">Card Amount (€)</label>
+              <label className="form-label" style={{ color: '#e8e8e8', fontWeight: '500' }}>Card Amount (€)</label>
               <input
                 type="number"
                 className="form-control"
@@ -3081,16 +3081,6 @@ const SalesPage = () => {
                 style={{ backgroundColor: '#2a2a2a', color: '#ffffff', border: '1px solid #444' }}
               />
             </div>
-            <div className="alert alert-info" style={{ backgroundColor: '#2a2a2a', border: '1px solid #444', color: '#ffffff' }}>
-              <small>
-                Cash: €{(parseFloat(splitCashAmount || 0) || 0).toFixed(2)} + 
-                Card: €{(parseFloat(splitCardAmount || 0) || 0).toFixed(2)} = 
-                €{((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)).toFixed(2)}
-                {Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (calculateTotal() || 0)) > 0.01 && (
-                  <span className="text-warning"> (Total: €{(calculateTotal() || 0).toFixed(2)})</span>
-                )}
-              </small>
-            </div>
           </div>
         </Modal.Body>
         <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #333' }}>
@@ -3108,16 +3098,13 @@ const SalesPage = () => {
           <Button
             variant="primary"
             onClick={() => {
-              // Show notes/VAT dialog first, then process split payment
-              setPendingPaymentMethod('SPLIT');
-              setNotesVatDialogOpen(true);
-              setSplitPaymentDialogOpen(false);
+              processSplitPayment();
             }}
             disabled={loading || paymentInProgressRef.current || 
               Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (calculateTotal() || 0)) > 0.01}
-            style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#000000', fontWeight: 'bold' }}
+            style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#ffffff', fontWeight: 'bold' }}
           >
-            Continue
+            Complete Sale
           </Button>
         </Modal.Footer>
       </Modal>

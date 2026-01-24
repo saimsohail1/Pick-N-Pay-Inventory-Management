@@ -185,34 +185,35 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
   
   if (sale.saleItems && sale.saleItems.length > 0) {
     // Calculate total VAT amount and prepare for average calculation
-    let totalGross = 0;
-    let weightedVatSum = 0;
+    let vatRateSum = 0;
+    let itemCount = 0;
     
     sale.saleItems.forEach(item => {
-      const totalPrice = parseFloat(item.totalPrice || 0);
       const vatRate = parseFloat(item.vatRate || 0);
       
-      // Calculate VAT amount if not provided
-      let vatAmount = parseFloat(item.vatAmount || 0);
-      if (vatAmount === 0 && vatRate > 0 && totalPrice > 0) {
-        // Calculate VAT: totalPrice includes VAT, so VAT = totalPrice * (vatRate / (100 + vatRate))
-        vatAmount = totalPrice * (vatRate / (100 + vatRate));
+      // Always use stored vatAmount from database (even if 0) - it's the source of truth
+      let vatAmount = 0;
+      if (item.vatAmount !== null && item.vatAmount !== undefined) {
+        vatAmount = parseFloat(item.vatAmount || 0);
+      } else {
+        // Only calculate if vatAmount is not stored (shouldn't happen, but fallback)
+        const totalPrice = parseFloat(item.totalPrice || 0);
+        if (vatRate > 0 && totalPrice > 0) {
+          // Calculate VAT: totalPrice includes VAT, so VAT = totalPrice * (vatRate / (100 + vatRate))
+          vatAmount = totalPrice * (vatRate / (100 + vatRate));
+        }
       }
       
       totalVatAmount += vatAmount;
-      totalGross += totalPrice;
-      weightedVatSum += (totalPrice * vatRate);
+      
+      // Calculate simple average of VAT rates (include all items, even with 0% VAT)
+      vatRateSum += vatRate;
+      itemCount++;
     });
     
-    // Calculate average VAT rate
-    if (sale.saleItems.length === 1) {
-      // Single item - use its VAT rate directly
-      averageVatRate = parseFloat(sale.saleItems[0].vatRate || 0);
-    } else {
-      // Multiple items - calculate weighted average VAT rate
-      if (totalGross > 0) {
-        averageVatRate = weightedVatSum / totalGross;
-      }
+    // Calculate simple average VAT rate
+    if (itemCount > 0) {
+      averageVatRate = vatRateSum / itemCount;
     }
   }
 
@@ -306,26 +307,45 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         const vatRate = parseFloat(item.vatRate || 0);
         const totalPrice = parseFloat(item.totalPrice || 0);
         const priceExcludingVat = parseFloat(item.priceExcludingVat || 0);
-        const vatAmount = parseFloat(item.vatAmount || 0);
+        // Always use stored vatAmount from database (even if 0)
+        let vatAmount = 0;
+        if (item.vatAmount !== null && item.vatAmount !== undefined) {
+          vatAmount = parseFloat(item.vatAmount || 0);
+        }
+        
+        // Always show VAT for each item, even if 0
+        let itemVatDisplay = '';
+        if (vatAmount === 0 && vatRate === 0) {
+          itemVatDisplay = '<div class="item-vat">VAT 0</div>';
+        } else {
+          itemVatDisplay = `<div class="item-vat">VAT ${vatRate.toFixed(1)}%: €${vatAmount.toFixed(2)}</div>`;
+        }
+        
         return `
         <div class="item">
           <div class="item-row">
             <span class="item-name">${item.itemName} ${item.quantity}x</span>
             <span class="item-price">€${totalPrice.toFixed(2)}</span>
           </div>
-          ${vatRate > 0 ? `<div class="item-vat">VAT ${vatRate.toFixed(1)}%: €${vatAmount.toFixed(2)}</div>` : ''}
+          ${itemVatDisplay}
         </div>
       `;
       }).join('')}
       
-      ${totalVatAmount > 0 ? `
+      ${totalVatAmount === 0 || isNaN(totalVatAmount) || totalVatAmount === null || totalVatAmount === undefined ? `
+        <div style="margin-top: 8px; padding-top: 5px; border-top: 1px solid #000;">
+          <div class="item-row">
+            <span style="font-weight: 600; font-size: 11px;">VAT 0</span>
+          </div>
+        </div>
+      ` : `
         <div style="margin-top: 8px; padding-top: 5px; border-top: 1px solid #000;">
           <div class="item-row">
             <span style="font-weight: 600; font-size: 11px;">VAT (${averageVatRate.toFixed(1)}%):</span>
             <span style="font-weight: 600; font-size: 11px;">€${totalVatAmount.toFixed(2)}</span>
           </div>
         </div>
-      ` : ''}
+      `}
       
       <div class="total" style="margin-top: 8px;">
         <div class="item-row">

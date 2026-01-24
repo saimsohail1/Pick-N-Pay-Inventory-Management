@@ -921,24 +921,24 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
     </head>
     <body>
       <div class="header">
-        <h1>${companyName.toUpperCase()}</h1>
-        ${companyAddress ? `<div class="subtitle">${companyAddress}</div>` : ''}
-        ${eircode ? `<div class="subtitle">${eircode}</div>` : ''}
-        ${companyPhone ? `<div class="subtitle">Tel: ${companyPhone}</div>` : ''}
-        ${website ? `<div class="subtitle">Website: ${website}</div>` : ''}
-        <div class="subtitle">SALES HISTORY</div>
-        <div class="date-info">${dateRange}</div>
-        <div class="date-info">Generated: ${new Date().toLocaleString()}</div>
+        <h1 style="font-weight: 900;">${companyName.toUpperCase()}</h1>
+        ${companyAddress ? `<div class="subtitle" style="font-weight: 900;">${companyAddress}</div>` : ''}
+        ${eircode ? `<div class="subtitle" style="font-weight: 900;">${eircode}</div>` : ''}
+        ${companyPhone ? `<div class="subtitle" style="font-weight: 900;">Tel: ${companyPhone}</div>` : ''}
+        ${website ? `<div class="subtitle" style="font-weight: 900;">Website: ${website}</div>` : ''}
+        <div class="subtitle" style="font-weight: 900;">SALES HISTORY</div>
+        <div class="date-info" style="font-weight: 900;">${dateRange}</div>
+        <div class="date-info" style="font-weight: 900;">Generated: ${new Date().toLocaleString()}</div>
       </div>
       
       <table>
         <thead>
           <tr>
-            <th style="width: 5%;">#</th>
-            <th style="width: 20%;">Date/Time</th>
-            <th style="width: 15%;">Payment</th>
-            <th style="width: 45%;">Items</th>
-            <th style="width: 15%;" class="right">Total</th>
+            <th style="width: 5%; font-weight: 900;">#</th>
+            <th style="width: 20%; font-weight: 900;">Date/Time</th>
+            <th style="width: 15%; font-weight: 900;">Payment</th>
+            <th style="width: 45%; font-weight: 900;">Items</th>
+            <th style="width: 15%; font-weight: 900;" class="right">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -1002,9 +1002,9 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
             const totalAmount = parseFloat(sale.totalAmount || 0);
             const priceBeforeVat = totalAmount - totalVatAmount;
             
-            // Format VAT display - if VAT is 0, show "VAT 0", otherwise show full details
+            // Format VAT display - ALWAYS show VAT, if it's 0 or can't find value, show "VAT 0"
             let vatDisplay = '';
-            if (totalVatAmount === 0 && vatRate === 0) {
+            if (totalVatAmount === 0 || isNaN(totalVatAmount) || totalVatAmount === null || totalVatAmount === undefined) {
               vatDisplay = '<strong>VAT 0</strong>';
             } else {
               const vatRateDisplay = vatRate.toFixed(1);
@@ -1014,30 +1014,30 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
             
             return `
             <tr>
-              <td class="sale-number">${index + 1}</td>
-              <td>${new Date(sale.saleDate).toLocaleString()}</td>
-              <td class="payment-method ${sale.paymentMethod === 'CASH' ? 'payment-cash' : 'payment-card'}">${sale.paymentMethod}</td>
+              <td class="sale-number" style="font-weight: 900;">${index + 1}</td>
+              <td style="font-weight: 900;">${new Date(sale.saleDate).toLocaleString()}</td>
+              <td class="payment-method ${sale.paymentMethod === 'CASH' ? 'payment-cash' : 'payment-card'}" style="font-weight: 900;">${sale.paymentMethod}</td>
               <td>
                 ${sale.notes ? `
-                  <div class="notes-box">
-                    <strong>⚠️ NOTE:</strong> ${sale.notes}
+                  <div class="notes-box" style="font-weight: 900;">
+                    <strong style="font-weight: 900;">⚠️ NOTE:</strong> <span style="font-weight: 900;">${sale.notes}</span>
                   </div>
                 ` : ''}
                 ${(sale.saleItems || []).map(item => `
-                  <div class="sale-item">
-                    <strong>${item.itemName || 'Unknown Item'}</strong> 
-                    (${item.quantity || 0}x) 
-                    <span class="right">€${parseFloat(item.totalPrice || 0).toFixed(2)}</span>
+                  <div class="sale-item" style="font-weight: 900;">
+                    <strong style="font-weight: 900;">${item.itemName || 'Unknown Item'}</strong> 
+                    <span style="font-weight: 900;">(${item.quantity || 0}x)</span> 
+                    <span class="right" style="font-weight: 900;">€${parseFloat(item.totalPrice || 0).toFixed(2)}</span>
                   </div>
                 `).join('')}
                 <div class="vat-info" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #000; font-weight: 900; font-size: 11px;">
                   ${vatDisplay}
                   <div style="margin-top: 4px; font-weight: 900; font-size: 11px;">
-                    <strong>Before VAT: €${priceBeforeVat.toFixed(2)}</strong>
+                    <strong style="font-weight: 900;">Before VAT: €${priceBeforeVat.toFixed(2)}</strong>
                   </div>
                 </div>
               </td>
-              <td class="right total-amount">€${totalAmount.toFixed(2)}</td>
+              <td class="right total-amount" style="font-weight: 900;">€${totalAmount.toFixed(2)}</td>
             </tr>
           `;
           }).join('')}
@@ -1046,18 +1046,18 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
       
       <div class="summary-box">
         <div class="summary-row">
-          <span>Total Transactions:</span>
-          <span class="right bold">${sales.length}</span>
+          <span style="font-weight: 900;">Total Transactions:</span>
+          <span class="right bold" style="font-weight: 900;">${sales.length}</span>
         </div>
         <div class="summary-row summary-total">
-          <span>TOTAL AMOUNT:</span>
-          <span class="right bold">€${totalAmount.toFixed(2)}</span>
+          <span style="font-weight: 900;">TOTAL AMOUNT:</span>
+          <span class="right bold" style="font-weight: 900;">€${totalAmount.toFixed(2)}</span>
         </div>
       </div>
       
       <div class="footer">
-        <div class="bold">End of Sales History</div>
-        <div>${companyName} - Generated on ${new Date().toLocaleString()}</div>
+        <div class="bold" style="font-weight: 900;">End of Sales History</div>
+        <div style="font-weight: 900;">${companyName} - Generated on ${new Date().toLocaleString()}</div>
       </div>
     </body>
     </html>

@@ -94,97 +94,36 @@ public class SaleService {
     }
     
     public SaleDTO createSale(SaleDTO saleDTO) {
-        // Handle split payments - create two separate transactions
+        // Create a single sale (for split payments, payment method will be SPLIT)
+        Sale sale = createSaleEntity(saleDTO, saleDTO.getPaymentMethod());
+        
+        // Handle split payments - create SalePayment records for cash and card amounts
         if (saleDTO.getPaymentMethod() == PaymentMethod.SPLIT && saleDTO.getPaymentSplits() != null && !saleDTO.getPaymentSplits().isEmpty()) {
-            return createSplitPaymentSales(saleDTO);
+            BigDecimal splitTotal = BigDecimal.ZERO;
+            for (SalePaymentDTO paymentSplitDTO : saleDTO.getPaymentSplits()) {
+                SalePayment salePayment = new SalePayment();
+                salePayment.setSale(sale);
+                salePayment.setPaymentMethod(paymentSplitDTO.getPaymentMethod());
+                salePayment.setAmount(paymentSplitDTO.getAmount());
+                sale.getSalePayments().add(salePayment);
+                splitTotal = splitTotal.add(paymentSplitDTO.getAmount());
+            }
+            // Validate that split payments sum equals total amount
+            if (splitTotal.compareTo(sale.getTotalAmount()) != 0) {
+                throw new RuntimeException("Split payment amounts (" + splitTotal + ") must equal total amount (" + sale.getTotalAmount() + ")");
+            }
         }
         
-        // Regular single payment sale
-        Sale sale = createSaleEntity(saleDTO, saleDTO.getPaymentMethod(), null);
         Sale savedSale = saleRepository.save(sale);
         return convertToDTO(savedSale);
-    }
-    
-    /**
-     * Creates two separate Sale transactions for split payments (CASH and CARD)
-     */
-    private SaleDTO createSplitPaymentSales(SaleDTO saleDTO) {
-        BigDecimal cashAmount = BigDecimal.ZERO;
-        BigDecimal cardAmount = BigDecimal.ZERO;
-        
-        // Extract cash and card amounts from payment splits
-        for (SalePaymentDTO paymentSplitDTO : saleDTO.getPaymentSplits()) {
-            if (paymentSplitDTO.getPaymentMethod() == PaymentMethod.CASH) {
-                cashAmount = paymentSplitDTO.getAmount();
-            } else if (paymentSplitDTO.getPaymentMethod() == PaymentMethod.CARD) {
-                cardAmount = paymentSplitDTO.getAmount();
-            }
-        }
-        
-        // Validate split amounts sum to total
-        BigDecimal totalAmount = saleDTO.getSaleItems().stream()
-                .map(item -> item.getTotalPrice())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        BigDecimal splitTotal = cashAmount.add(cardAmount);
-        if (splitTotal.compareTo(totalAmount) != 0) {
-            throw new RuntimeException("Split payment amounts (" + splitTotal + ") must equal total amount (" + totalAmount + ")");
-        }
-        
-        // Update stock only once (before creating sales)
-        updateStockForSaleItems(saleDTO.getSaleItems());
-        
-        // Create cash sale
-        Sale cashSale = null;
-        if (cashAmount.compareTo(BigDecimal.ZERO) > 0) {
-            cashSale = createSaleEntity(saleDTO, PaymentMethod.CASH, cashAmount);
-            cashSale = saleRepository.save(cashSale);
-        }
-        
-        // Create card sale
-        Sale cardSale = null;
-        if (cardAmount.compareTo(BigDecimal.ZERO) > 0) {
-            cardSale = createSaleEntity(saleDTO, PaymentMethod.CARD, cardAmount);
-            cardSale = saleRepository.save(cardSale);
-        }
-        
-        // Return the cash sale as primary (or card sale if cash is zero)
-        Sale primarySale = cashSale != null ? cashSale : cardSale;
-        return convertToDTO(primarySale);
-    }
-    
-    /**
-     * Updates stock for sale items (only called once for split payments)
-     */
-    private void updateStockForSaleItems(List<SaleItemDTO> saleItemDTOs) {
-        for (SaleItemDTO saleItemDTO : saleItemDTOs) {
-            if (saleItemDTO.getItemId() != null) {
-                Optional<Item> itemOpt = itemRepository.findById(saleItemDTO.getItemId());
-                if (itemOpt.isPresent()) {
-                    Item item = itemOpt.get();
-                    
-                    // Check stock availability
-                    if (item.getStockQuantity() < saleItemDTO.getQuantity()) {
-                        throw new RuntimeException("Insufficient stock for item: " + item.getName());
-                    }
-                    
-                    // Update stock
-                    item.setStockQuantity(item.getStockQuantity() - saleItemDTO.getQuantity());
-                    itemRepository.save(item);
-                } else {
-                    throw new RuntimeException("Item not found with ID: " + saleItemDTO.getItemId());
-                }
-            }
-        }
     }
     
     /**
      * Creates a Sale entity with items from DTO
      * @param saleDTO The sale DTO containing items and metadata
      * @param paymentMethod The payment method for this sale
-     * @param totalAmountOverride If not null, use this as total amount (for split payments)
      */
-    private Sale createSaleEntity(SaleDTO saleDTO, PaymentMethod paymentMethod, BigDecimal totalAmountOverride) {
+    private Sale createSaleEntity(SaleDTO saleDTO, PaymentMethod paymentMethod) {
         Sale sale = new Sale();
         sale.setSaleDate(LocalDateTime.now());
         sale.setPaymentMethod(paymentMethod);
@@ -216,18 +155,14 @@ public class SaleService {
                 if (itemOpt.isPresent()) {
                     Item item = itemOpt.get();
                     
-                    // For split payments, stock is already updated in updateStockForSaleItems
-                    // For regular sales, update stock here
-                    if (saleDTO.getPaymentMethod() != PaymentMethod.SPLIT) {
-                        // Check stock availability for regular sales
-                        if (item.getStockQuantity() < saleItemDTO.getQuantity()) {
-                            throw new RuntimeException("Insufficient stock for item: " + item.getName());
-                        }
-                        
-                        // Update stock
-                        item.setStockQuantity(item.getStockQuantity() - saleItemDTO.getQuantity());
-                        itemRepository.save(item);
+                    // Check stock availability
+                    if (item.getStockQuantity() < saleItemDTO.getQuantity()) {
+                        throw new RuntimeException("Insufficient stock for item: " + item.getName());
                     }
+                    
+                    // Update stock
+                    item.setStockQuantity(item.getStockQuantity() - saleItemDTO.getQuantity());
+                    itemRepository.save(item);
                     
                     saleItem.setItem(item);
                     saleItem.setItemName(item.getName());
@@ -272,8 +207,7 @@ public class SaleService {
             totalAmount = totalAmount.add(saleItemDTO.getTotalPrice());
         }
         
-        // Use override amount if provided (for split payments), otherwise use calculated total
-        sale.setTotalAmount(totalAmountOverride != null ? totalAmountOverride : totalAmount);
+        sale.setTotalAmount(totalAmount);
         sale.setNotes(saleDTO.getNotes()); // Set notes from DTO
         
         return sale;
@@ -367,23 +301,36 @@ public class SaleService {
         Double totalAmountDouble = saleRepository.getTotalSalesByDateRange(startOfDay, endOfDay);
         BigDecimal totalAmount = totalAmountDouble != null ? BigDecimal.valueOf(totalAmountDouble) : BigDecimal.ZERO;
 
-        // Get cash sales count and amount
+        // Get cash sales count and amount (excluding split payments)
         Long cashSales = saleRepository.getSalesCountByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CASH);
         Double cashAmountDouble = saleRepository.getTotalSalesByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CASH);
         BigDecimal cashAmount = cashAmountDouble != null ? BigDecimal.valueOf(cashAmountDouble) : BigDecimal.ZERO;
 
-        // Get card sales count and amount
+        // Get card sales count and amount (excluding split payments)
         Long cardSales = saleRepository.getSalesCountByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CARD);
         Double cardAmountDouble = saleRepository.getTotalSalesByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CARD);
         BigDecimal cardAmount = cardAmountDouble != null ? BigDecimal.valueOf(cardAmountDouble) : BigDecimal.ZERO;
+        
+        // Get all sales for the day to handle split payments
+        List<Sale> allSales = saleRepository.findSalesByDateRange(startOfDay, endOfDay);
+        
+        // Add split payment amounts to cash and card totals
+        for (Sale sale : allSales) {
+            if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null) {
+                for (SalePayment payment : sale.getSalePayments()) {
+                    if (payment.getPaymentMethod() == PaymentMethod.CASH) {
+                        cashAmount = cashAmount.add(payment.getAmount());
+                    } else if (payment.getPaymentMethod() == PaymentMethod.CARD) {
+                        cardAmount = cardAmount.add(payment.getAmount());
+                    }
+                }
+            }
+        }
 
-        // Calculate VAT totals and breakdown by rate
+        // Calculate VAT totals and breakdown by rate (using already fetched allSales)
         BigDecimal totalVatAmount = BigDecimal.ZERO;
         BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
         Map<BigDecimal, VatSummaryDTO> vatMap = new HashMap<>();
-        
-        // Get all sales for the day to calculate VAT
-        List<Sale> allSales = saleRepository.findSalesByDateRange(startOfDay, endOfDay);
         for (Sale sale : allSales) {
             for (SaleItem item : sale.getSaleItems()) {
                 if (item.getVatAmount() != null) {

@@ -941,7 +941,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         </thead>
         <tbody>
           ${sales.map((sale, index) => {
-            // Calculate VAT rate and amount: if single item, use that item's VAT rate directly; otherwise calculate weighted average
+            // Calculate VAT rate and amount: if single item, use that item's VAT rate directly; otherwise calculate simple average
             let vatRate = 0;
             let totalVatAmount = 0;
             
@@ -962,12 +962,11 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
                   }
                 }
               } else {
-                // Multiple items - calculate weighted average VAT rate and sum VAT amounts
-                let weightedVatSum = 0;
-                let totalGrossForAvg = 0;
+                // Multiple items - calculate simple average VAT rate and sum VAT amounts
+                let vatRateSum = 0;
+                let itemCount = 0;
                 
                 sale.saleItems.forEach(item => {
-                  const gross = parseFloat(item.totalPrice || 0);
                   const itemVatRate = parseFloat(item.vatRate || 0);
                   
                   // Always use stored vatAmount from database (even if 0) - it's the source of truth
@@ -976,6 +975,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
                     itemVatAmount = parseFloat(item.vatAmount || 0);
                   } else {
                     // Only calculate if vatAmount is not stored (shouldn't happen, but fallback)
+                    const gross = parseFloat(item.totalPrice || 0);
                     if (itemVatRate > 0 && gross > 0) {
                       // Calculate VAT: totalPrice includes VAT, so VAT = totalPrice * (vatRate / (100 + vatRate))
                       itemVatAmount = gross * (itemVatRate / (100 + itemVatRate));
@@ -984,15 +984,14 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
                   
                   totalVatAmount += itemVatAmount;
                   
-                  // Include all items in calculation, even if VAT rate is 0
-                  if (gross > 0) {
-                    weightedVatSum += itemVatRate * gross;
-                    totalGrossForAvg += gross;
-                  }
+                  // Calculate simple average of VAT rates (include all items, even with 0% VAT)
+                  vatRateSum += itemVatRate;
+                  itemCount++;
                 });
                 
-                if (totalGrossForAvg > 0) {
-                  vatRate = weightedVatSum / totalGrossForAvg;
+                // Calculate simple average VAT rate
+                if (itemCount > 0) {
+                  vatRate = vatRateSum / itemCount;
                 }
               }
             }

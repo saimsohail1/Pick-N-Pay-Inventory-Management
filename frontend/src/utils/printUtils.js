@@ -800,6 +800,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         .header .date-info {
           margin: 5px 0;
           font-size: 12px;
+          font-weight: bold;
         }
         
         table { 
@@ -825,6 +826,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         
         td { 
           font-size: 11px;
+          font-weight: bold;
         }
         
         .footer { 
@@ -844,6 +846,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
           margin: 2px 0;
           padding: 2px 0;
           border-bottom: 1px dotted #ccc;
+          font-weight: bold;
         }
         
         .sale-item:last-child {
@@ -907,9 +910,10 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         }
         
         .vat-info {
-          font-size: 10px;
-          color: #555;
+          font-size: 11px;
+          color: #000;
           margin-top: 3px;
+          font-weight: bold;
         }
       </style>
     </head>
@@ -937,23 +941,37 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         </thead>
         <tbody>
           ${sales.map((sale, index) => {
-            // Calculate weighted average VAT rate from all items in the sale
-            let weightedVatSum = 0;
-            let totalGrossForAvg = 0;
+            // Calculate VAT rate: if single item, use that item's VAT rate directly; otherwise calculate weighted average
             let vatRate = 0;
+            let totalVatAmount = 0;
             
             if (sale.saleItems && sale.saleItems.length > 0) {
-              sale.saleItems.forEach(item => {
-                const gross = parseFloat(item.totalPrice || 0);
-                const itemVatRate = parseFloat(item.vatRate || 0);
-                if (gross > 0 && itemVatRate > 0) {
-                  weightedVatSum += itemVatRate * gross;
-                  totalGrossForAvg += gross;
+              if (sale.saleItems.length === 1) {
+                // Single item - use its VAT rate directly
+                const item = sale.saleItems[0];
+                vatRate = parseFloat(item.vatRate || 0);
+                totalVatAmount = parseFloat(item.vatAmount || 0);
+              } else {
+                // Multiple items - calculate weighted average VAT rate
+                let weightedVatSum = 0;
+                let totalGrossForAvg = 0;
+                
+                sale.saleItems.forEach(item => {
+                  const gross = parseFloat(item.totalPrice || 0);
+                  const itemVatRate = parseFloat(item.vatRate || 0);
+                  const itemVatAmount = parseFloat(item.vatAmount || 0);
+                  
+                  totalVatAmount += itemVatAmount;
+                  
+                  if (gross > 0 && itemVatRate > 0) {
+                    weightedVatSum += itemVatRate * gross;
+                    totalGrossForAvg += gross;
+                  }
+                });
+                
+                if (totalGrossForAvg > 0) {
+                  vatRate = weightedVatSum / totalGrossForAvg;
                 }
-              });
-              
-              if (totalGrossForAvg > 0) {
-                vatRate = weightedVatSum / totalGrossForAvg;
               }
             }
             
@@ -977,8 +995,8 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
                     <span class="right">€${parseFloat(item.totalPrice || 0).toFixed(2)}</span>
                   </div>
                 `).join('')}
-                <div class="vat-info" style="margin-top: 5px; padding-top: 5px; border-top: 1px dotted #ccc; font-weight: bold;">
-                  VAT: ${vatRateDisplay}%
+                <div class="vat-info" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #000; font-weight: bold; font-size: 11px;">
+                  <strong>VAT (${vatRateDisplay}%): €${totalVatAmount.toFixed(2)}</strong>
                 </div>
               </td>
               <td class="right total-amount">€${parseFloat(sale.totalAmount || 0).toFixed(2)}</td>

@@ -94,9 +94,100 @@ public class SaleService {
     }
     
     public SaleDTO createSale(SaleDTO saleDTO) {
+        // Handle split payments - create two separate transactions
+        if (saleDTO.getPaymentMethod() == PaymentMethod.SPLIT && saleDTO.getPaymentSplits() != null && !saleDTO.getPaymentSplits().isEmpty()) {
+            return createSplitPaymentSales(saleDTO);
+        }
+        
+        // Regular single payment sale
+        Sale sale = createSaleEntity(saleDTO, saleDTO.getPaymentMethod(), null);
+        Sale savedSale = saleRepository.save(sale);
+        return convertToDTO(savedSale);
+    }
+    
+    /**
+     * Creates two separate Sale transactions for split payments (CASH and CARD)
+     */
+    private SaleDTO createSplitPaymentSales(SaleDTO saleDTO) {
+        BigDecimal cashAmount = BigDecimal.ZERO;
+        BigDecimal cardAmount = BigDecimal.ZERO;
+        
+        // Extract cash and card amounts from payment splits
+        for (SalePaymentDTO paymentSplitDTO : saleDTO.getPaymentSplits()) {
+            if (paymentSplitDTO.getPaymentMethod() == PaymentMethod.CASH) {
+                cashAmount = paymentSplitDTO.getAmount();
+            } else if (paymentSplitDTO.getPaymentMethod() == PaymentMethod.CARD) {
+                cardAmount = paymentSplitDTO.getAmount();
+            }
+        }
+        
+        // Validate split amounts sum to total
+        BigDecimal totalAmount = saleDTO.getSaleItems().stream()
+                .map(item -> item.getTotalPrice())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal splitTotal = cashAmount.add(cardAmount);
+        if (splitTotal.compareTo(totalAmount) != 0) {
+            throw new RuntimeException("Split payment amounts (" + splitTotal + ") must equal total amount (" + totalAmount + ")");
+        }
+        
+        // Update stock only once (before creating sales)
+        updateStockForSaleItems(saleDTO.getSaleItems());
+        
+        // Create cash sale
+        Sale cashSale = null;
+        if (cashAmount.compareTo(BigDecimal.ZERO) > 0) {
+            cashSale = createSaleEntity(saleDTO, PaymentMethod.CASH, cashAmount);
+            cashSale = saleRepository.save(cashSale);
+        }
+        
+        // Create card sale
+        Sale cardSale = null;
+        if (cardAmount.compareTo(BigDecimal.ZERO) > 0) {
+            cardSale = createSaleEntity(saleDTO, PaymentMethod.CARD, cardAmount);
+            cardSale = saleRepository.save(cardSale);
+        }
+        
+        // Return the cash sale as primary (or card sale if cash is zero)
+        Sale primarySale = cashSale != null ? cashSale : cardSale;
+        return convertToDTO(primarySale);
+    }
+    
+    /**
+     * Updates stock for sale items (only called once for split payments)
+     */
+    private void updateStockForSaleItems(List<SaleItemDTO> saleItemDTOs) {
+        for (SaleItemDTO saleItemDTO : saleItemDTOs) {
+            if (saleItemDTO.getItemId() != null) {
+                Optional<Item> itemOpt = itemRepository.findById(saleItemDTO.getItemId());
+                if (itemOpt.isPresent()) {
+                    Item item = itemOpt.get();
+                    
+                    // Check stock availability
+                    if (item.getStockQuantity() < saleItemDTO.getQuantity()) {
+                        throw new RuntimeException("Insufficient stock for item: " + item.getName());
+                    }
+                    
+                    // Update stock
+                    item.setStockQuantity(item.getStockQuantity() - saleItemDTO.getQuantity());
+                    itemRepository.save(item);
+                } else {
+                    throw new RuntimeException("Item not found with ID: " + saleItemDTO.getItemId());
+                }
+            }
+        }
+    }
+    
+    /**
+     * Creates a Sale entity with items from DTO
+     * @param saleDTO The sale DTO containing items and metadata
+     * @param paymentMethod The payment method for this sale
+     * @param totalAmountOverride If not null, use this as total amount (for split payments)
+     */
+    private Sale createSaleEntity(SaleDTO saleDTO, PaymentMethod paymentMethod, BigDecimal totalAmountOverride) {
         Sale sale = new Sale();
         sale.setSaleDate(LocalDateTime.now());
-        sale.setPaymentMethod(saleDTO.getPaymentMethod());
+        sale.setPaymentMethod(paymentMethod);
         
         // Set the selected VAT rate from DTO (kept for backward compatibility, but now each item has its own VAT)
         if (saleDTO.getSelectedVatRate() != null) {
@@ -109,7 +200,6 @@ public class SaleService {
                     .orElseThrow(() -> new RuntimeException("User not found with ID: " + saleDTO.getUserId()));
             sale.setUser(user);
         }
-        // Note: User is optional to handle existing data without user associations
         
         BigDecimal totalAmount = BigDecimal.ZERO;
         
@@ -126,9 +216,17 @@ public class SaleService {
                 if (itemOpt.isPresent()) {
                     Item item = itemOpt.get();
                     
-                    // Check stock availability
-                    if (item.getStockQuantity() < saleItemDTO.getQuantity()) {
-                        throw new RuntimeException("Insufficient stock for item: " + item.getName());
+                    // For split payments, stock is already updated in updateStockForSaleItems
+                    // For regular sales, update stock here
+                    if (saleDTO.getPaymentMethod() != PaymentMethod.SPLIT) {
+                        // Check stock availability for regular sales
+                        if (item.getStockQuantity() < saleItemDTO.getQuantity()) {
+                            throw new RuntimeException("Insufficient stock for item: " + item.getName());
+                        }
+                        
+                        // Update stock
+                        item.setStockQuantity(item.getStockQuantity() - saleItemDTO.getQuantity());
+                        itemRepository.save(item);
                     }
                     
                     saleItem.setItem(item);
@@ -141,16 +239,12 @@ public class SaleService {
                         ? saleItemDTO.getVatRate() 
                         : (item.getVatRate() != null ? item.getVatRate() : new BigDecimal("23.00"));
                     BigDecimal totalPriceIncludingVat = saleItemDTO.getTotalPrice();
-                    BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, BigDecimal.ROUND_HALF_UP);
+                    BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, java.math.RoundingMode.HALF_UP);
                     BigDecimal totalVatAmount = totalPriceIncludingVat.subtract(totalPriceExcludingVat);
                     
                     saleItem.setVatRate(vatRate);
                     saleItem.setVatAmount(totalVatAmount);
                     saleItem.setPriceExcludingVat(totalPriceExcludingVat);
-                    
-                    // Update stock
-                    item.setStockQuantity(item.getStockQuantity() - saleItemDTO.getQuantity());
-                    itemRepository.save(item);
                 } else {
                     throw new RuntimeException("Item not found with ID: " + saleItemDTO.getItemId());
                 }
@@ -166,7 +260,7 @@ public class SaleService {
                     ? saleItemDTO.getVatRate() 
                     : new BigDecimal("23.00");
                 BigDecimal totalPriceIncludingVat = saleItemDTO.getTotalPrice();
-                BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, BigDecimal.ROUND_HALF_UP);
+                BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, java.math.RoundingMode.HALF_UP);
                 BigDecimal totalVatAmount = totalPriceIncludingVat.subtract(totalPriceExcludingVat);
                 
                 saleItem.setVatRate(vatRate);
@@ -178,28 +272,11 @@ public class SaleService {
             totalAmount = totalAmount.add(saleItemDTO.getTotalPrice());
         }
         
-        sale.setTotalAmount(totalAmount);
+        // Use override amount if provided (for split payments), otherwise use calculated total
+        sale.setTotalAmount(totalAmountOverride != null ? totalAmountOverride : totalAmount);
         sale.setNotes(saleDTO.getNotes()); // Set notes from DTO
         
-        // Handle split payments if payment method is SPLIT
-        if (saleDTO.getPaymentMethod() == PaymentMethod.SPLIT && saleDTO.getPaymentSplits() != null && !saleDTO.getPaymentSplits().isEmpty()) {
-            BigDecimal splitTotal = BigDecimal.ZERO;
-            for (SalePaymentDTO paymentSplitDTO : saleDTO.getPaymentSplits()) {
-                SalePayment salePayment = new SalePayment();
-                salePayment.setSale(sale);
-                salePayment.setPaymentMethod(paymentSplitDTO.getPaymentMethod());
-                salePayment.setAmount(paymentSplitDTO.getAmount());
-                sale.getSalePayments().add(salePayment);
-                splitTotal = splitTotal.add(paymentSplitDTO.getAmount());
-            }
-            // Validate that split payments sum equals total amount
-            if (splitTotal.compareTo(totalAmount) != 0) {
-                throw new RuntimeException("Split payment amounts (" + splitTotal + ") must equal total amount (" + totalAmount + ")");
-            }
-        }
-        
-        Sale savedSale = saleRepository.save(sale);
-        return convertToDTO(savedSale);
+        return sale;
     }
     
     public Double getTotalSalesByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
@@ -766,7 +843,7 @@ public class SaleService {
                         ? saleItemDTO.getVatRate() 
                         : (item.getVatRate() != null ? item.getVatRate() : new BigDecimal("23.00"));
                     BigDecimal totalPriceIncludingVat = saleItemDTO.getTotalPrice();
-                    BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, BigDecimal.ROUND_HALF_UP);
+                    BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP)), 2, java.math.RoundingMode.HALF_UP);
                     BigDecimal totalVatAmount = totalPriceIncludingVat.subtract(totalPriceExcludingVat);
                     
                     saleItem.setVatRate(vatRate);
@@ -787,7 +864,7 @@ public class SaleService {
                     ? saleItemDTO.getVatRate() 
                     : new BigDecimal("23.00");
                 BigDecimal totalPriceIncludingVat = saleItemDTO.getTotalPrice();
-                BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))), 2, BigDecimal.ROUND_HALF_UP);
+                BigDecimal totalPriceExcludingVat = totalPriceIncludingVat.divide(BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP)), 2, java.math.RoundingMode.HALF_UP);
                 BigDecimal totalVatAmount = totalPriceIncludingVat.subtract(totalPriceExcludingVat);
                 
                 saleItem.setVatRate(vatRate);

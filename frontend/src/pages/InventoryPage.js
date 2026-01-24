@@ -347,13 +347,13 @@ const InventoryPage = () => {
         <div class="label-container">
           <div class="item-name">${item.name}</div>
           <div class="barcode-price-row">
-            ${barcodeDataURL ? `
-              <div class="barcode-container">
-                <img src="${barcodeDataURL}" alt="Barcode" class="barcode-image" />
-              </div>
+          ${barcodeDataURL ? `
+            <div class="barcode-container">
+              <img src="${barcodeDataURL}" alt="Barcode" class="barcode-image" />
+            </div>
             ` : '<div></div>'}
-            <div class="item-price">
-              <span class="price-symbol">€</span>${item.price.toFixed(2)}
+          <div class="item-price">
+            <span class="price-symbol">€</span>${item.price.toFixed(2)}
             </div>
           </div>
         </div>

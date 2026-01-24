@@ -400,7 +400,7 @@ if ([RawPrint]::OpenPrinter($printer.Name, [ref]$hPrinter, [IntPtr]::Zero)) {
  * Open drawer via serial port - tries multiple commands and baud rates
  */
 async function openDrawerViaSerial(portPath, commands) {
-  return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
     let port = null;
     let isResolved = false;
     const timeout = setTimeout(() => {
@@ -967,8 +967,8 @@ ipcMain.handle('get-serial-ports', async () => {
 
   // Get serial ports
   if (SerialPort) {
-    try {
-      const ports = await SerialPort.list();
+  try {
+    const ports = await SerialPort.list();
       result.serialPorts = ports.map(p => ({
         path: p.path,
         manufacturer: p.manufacturer || 'Unknown',
@@ -988,7 +988,7 @@ ipcMain.handle('get-serial-ports', async () => {
     // Try to get default printer port
     try {
       result.defaultPrinterPort = await getDefaultPrinterPort();
-    } catch (error) {
+  } catch (error) {
       logToFile('WARN', 'Could not get default printer port', { error: error.message });
     }
   }

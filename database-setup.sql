@@ -23,7 +23,8 @@
 -- - Categories with VAT rates
 -- - Items with VAT rates (inherited from categories)
 -- - Batch tracking
--- - Sales with payment methods, notes, and selected VAT rates
+-- - Sales with payment methods (CASH, CARD, SPLIT), notes, and selected VAT rates
+-- - Split payments create two separate Sale records (CASH and CARD) instead of one SPLIT sale
 -- - Attendance tracking (multiple entries per user per day allowed)
 -- ============================================
 
@@ -131,6 +132,8 @@ CREATE TABLE batches (
 );
 
 -- Create sales table
+-- Note: SPLIT payment method is kept for backward compatibility
+-- Current implementation creates two separate Sale records (CASH and CARD) for split payments
 CREATE TABLE sales (
     id BIGSERIAL PRIMARY KEY,
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount > 0),
@@ -166,6 +169,8 @@ CREATE TABLE sale_items (
 );
 
 -- Create sale_payments table for split payment support
+-- Note: Current implementation creates two separate Sale records (CASH and CARD) for split payments
+-- This table is kept for backward compatibility with existing data
 CREATE TABLE sale_payments (
     id BIGSERIAL PRIMARY KEY,
     sale_id BIGINT NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
@@ -321,7 +326,8 @@ BEGIN
     RAISE NOTICE '- Category management with VAT rates';
     RAISE NOTICE '- Item management with VAT support';
     RAISE NOTICE '- Batch tracking with expiry dates';
-    RAISE NOTICE '- Sales tracking with payment methods';
+    RAISE NOTICE '- Sales tracking with payment methods (CASH, CARD, SPLIT)';
+    RAISE NOTICE '- Split payments create two separate transactions (CASH and CARD)';
     RAISE NOTICE '- Sale notes support for transactions';
     RAISE NOTICE '- Sale items with VAT calculations';
     RAISE NOTICE '- Discount support for sales';

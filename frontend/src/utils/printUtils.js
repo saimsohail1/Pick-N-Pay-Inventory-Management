@@ -835,6 +835,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
           font-size: 10px; 
           border-top: 1px solid #000;
           padding-top: 10px;
+          font-weight: 900;
         }
         
         .right { text-align: right; }
@@ -888,6 +889,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
           justify-content: space-between;
           margin: 5px 0;
           padding: 3px 0;
+          font-weight: 900;
         }
         
         .summary-total {
@@ -996,9 +998,19 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
               }
             }
             
-            // Always show VAT, even if it's 0
-            const vatRateDisplay = vatRate.toFixed(1);
-            const vatAmountDisplay = totalVatAmount.toFixed(2);
+            // Calculate price before VAT
+            const totalAmount = parseFloat(sale.totalAmount || 0);
+            const priceBeforeVat = totalAmount - totalVatAmount;
+            
+            // Format VAT display - if VAT is 0, show "VAT 0", otherwise show full details
+            let vatDisplay = '';
+            if (totalVatAmount === 0 && vatRate === 0) {
+              vatDisplay = '<strong>VAT 0</strong>';
+            } else {
+              const vatRateDisplay = vatRate.toFixed(1);
+              const vatAmountDisplay = totalVatAmount.toFixed(2);
+              vatDisplay = `<strong>VAT (${vatRateDisplay}%): €${vatAmountDisplay}</strong>`;
+            }
             
             return `
             <tr>
@@ -1019,10 +1031,13 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
                   </div>
                 `).join('')}
                 <div class="vat-info" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #000; font-weight: 900; font-size: 11px;">
-                  <strong>VAT (${vatRateDisplay}%): €${vatAmountDisplay}</strong>
+                  ${vatDisplay}
+                  <div style="margin-top: 4px; font-weight: 900; font-size: 11px;">
+                    <strong>Before VAT: €${priceBeforeVat.toFixed(2)}</strong>
+                  </div>
                 </div>
               </td>
-              <td class="right total-amount">€${parseFloat(sale.totalAmount || 0).toFixed(2)}</td>
+              <td class="right total-amount">€${totalAmount.toFixed(2)}</td>
             </tr>
           `;
           }).join('')}

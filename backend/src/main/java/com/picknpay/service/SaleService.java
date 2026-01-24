@@ -121,9 +121,12 @@ public class SaleService {
                 if (itemOpt.isPresent()) {
                     Item item = itemOpt.get();
                     
-                    // Allow sales even if stock is 0 or negative (stock can go negative)
-                    // This allows editing quantities in cart even when items run out of stock
-                    // Stock will be updated below, potentially going negative
+                    // Check stock availability - prevent sale if quantity exceeds available stock
+                    // Items can be added to cart and edited, but sale cannot complete if insufficient stock
+                    if (item.getStockQuantity() < saleItemDTO.getQuantity()) {
+                        throw new RuntimeException("Insufficient stock for item: " + item.getName() + 
+                            ". Available: " + item.getStockQuantity() + ", Requested: " + saleItemDTO.getQuantity());
+                    }
                     
                     saleItem.setItem(item);
                     saleItem.setItemName(item.getName());

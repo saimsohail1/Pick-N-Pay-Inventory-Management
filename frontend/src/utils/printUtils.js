@@ -950,14 +950,14 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
                 // Single item - use its VAT rate directly
                 const item = sale.saleItems[0];
                 vatRate = parseFloat(item.vatRate || 0);
-                // Use stored vatAmount if available, otherwise calculate it
-                const storedVatAmount = parseFloat(item.vatAmount || 0);
-                if (storedVatAmount > 0) {
-                  totalVatAmount = storedVatAmount;
+                // Always use stored vatAmount from database (even if 0) - it's the source of truth
+                if (item.vatAmount !== null && item.vatAmount !== undefined) {
+                  totalVatAmount = parseFloat(item.vatAmount || 0);
                 } else {
-                  // Calculate VAT: totalPrice includes VAT, so VAT = totalPrice * (vatRate / (100 + vatRate))
+                  // Only calculate if vatAmount is not stored (shouldn't happen, but fallback)
                   const totalPrice = parseFloat(item.totalPrice || 0);
                   if (vatRate > 0 && totalPrice > 0) {
+                    // Calculate VAT: totalPrice includes VAT, so VAT = totalPrice * (vatRate / (100 + vatRate))
                     totalVatAmount = totalPrice * (vatRate / (100 + vatRate));
                   }
                 }
@@ -970,11 +970,16 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
                   const gross = parseFloat(item.totalPrice || 0);
                   const itemVatRate = parseFloat(item.vatRate || 0);
                   
-                  // Use stored vatAmount if available, otherwise calculate it
-                  let itemVatAmount = parseFloat(item.vatAmount || 0);
-                  if (itemVatAmount === 0 && itemVatRate > 0 && gross > 0) {
-                    // Calculate VAT: totalPrice includes VAT, so VAT = totalPrice * (vatRate / (100 + vatRate))
-                    itemVatAmount = gross * (itemVatRate / (100 + itemVatRate));
+                  // Always use stored vatAmount from database (even if 0) - it's the source of truth
+                  let itemVatAmount = 0;
+                  if (item.vatAmount !== null && item.vatAmount !== undefined) {
+                    itemVatAmount = parseFloat(item.vatAmount || 0);
+                  } else {
+                    // Only calculate if vatAmount is not stored (shouldn't happen, but fallback)
+                    if (itemVatRate > 0 && gross > 0) {
+                      // Calculate VAT: totalPrice includes VAT, so VAT = totalPrice * (vatRate / (100 + vatRate))
+                      itemVatAmount = gross * (itemVatRate / (100 + itemVatRate));
+                    }
                   }
                   
                   totalVatAmount += itemVatAmount;

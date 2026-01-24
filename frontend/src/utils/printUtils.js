@@ -750,7 +750,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
             margin: 10mm; 
           }
           * {
-            font-weight: bold !important;
+            font-weight: 900 !important;
           }
           body { 
             margin: 0; 
@@ -760,7 +760,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
             line-height: 1.4;
             color: #000;
             background: white;
-            font-weight: bold;
+            font-weight: 900;
           }
           .no-print {
             display: none !important;
@@ -775,7 +775,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
           padding: 10mm; 
           color: #000;
           background: white;
-          font-weight: bold;
+          font-weight: 900;
         }
         
         .header { 
@@ -788,19 +788,19 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         .header h1 {
           margin: 0 0 5px 0;
           font-size: 18px;
-          font-weight: bold;
+          font-weight: 900;
         }
         
         .header .subtitle {
           margin: 5px 0;
           font-size: 14px;
-          font-weight: bold;
+          font-weight: 900;
         }
         
         .header .date-info {
           margin: 5px 0;
           font-size: 12px;
-          font-weight: bold;
+          font-weight: 900;
         }
         
         table { 
@@ -819,14 +819,14 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         
         th { 
           background-color: #f0f0f0; 
-          font-weight: bold; 
+          font-weight: 900; 
           font-size: 11px;
           text-transform: uppercase;
         }
         
         td { 
           font-size: 11px;
-          font-weight: bold;
+          font-weight: 900;
         }
         
         .footer { 
@@ -839,14 +839,14 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         
         .right { text-align: right; }
         .center { text-align: center; }
-        .bold { font-weight: bold; }
+        .bold { font-weight: 900; }
         
         .sale-item {
           font-size: 10px;
           margin: 2px 0;
           padding: 2px 0;
           border-bottom: 1px dotted #ccc;
-          font-weight: bold;
+          font-weight: 900;
         }
         
         .sale-item:last-child {
@@ -854,12 +854,12 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         }
         
         .sale-number {
-          font-weight: bold;
+          font-weight: 900;
           color: #333;
         }
         
         .payment-method {
-          font-weight: bold;
+          font-weight: 900;
           text-transform: uppercase;
         }
         
@@ -872,7 +872,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         }
         
         .total-amount {
-          font-weight: bold;
+          font-weight: 900;
           font-size: 12px;
         }
         
@@ -894,7 +894,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
           border-top: 1px solid #000;
           padding-top: 5px;
           margin-top: 10px;
-          font-weight: bold;
+          font-weight: 900;
           font-size: 12px;
         }
         
@@ -903,7 +903,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
           padding: 8px;
           margin: 5px 0;
           border: 2px solid #000;
-          font-weight: bold;
+          font-weight: 900;
           font-size: 11px;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
@@ -913,7 +913,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
           font-size: 11px;
           color: #000;
           margin-top: 3px;
-          font-weight: bold;
+          font-weight: 900;
         }
       </style>
     </head>
@@ -941,7 +941,7 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
         </thead>
         <tbody>
           ${sales.map((sale, index) => {
-            // Calculate VAT rate: if single item, use that item's VAT rate directly; otherwise calculate weighted average
+            // Calculate VAT rate and amount: if single item, use that item's VAT rate directly; otherwise calculate weighted average
             let vatRate = 0;
             let totalVatAmount = 0;
             
@@ -950,20 +950,37 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
                 // Single item - use its VAT rate directly
                 const item = sale.saleItems[0];
                 vatRate = parseFloat(item.vatRate || 0);
-                totalVatAmount = parseFloat(item.vatAmount || 0);
+                // Use stored vatAmount if available, otherwise calculate it
+                const storedVatAmount = parseFloat(item.vatAmount || 0);
+                if (storedVatAmount > 0) {
+                  totalVatAmount = storedVatAmount;
+                } else {
+                  // Calculate VAT: totalPrice includes VAT, so VAT = totalPrice * (vatRate / (100 + vatRate))
+                  const totalPrice = parseFloat(item.totalPrice || 0);
+                  if (vatRate > 0 && totalPrice > 0) {
+                    totalVatAmount = totalPrice * (vatRate / (100 + vatRate));
+                  }
+                }
               } else {
-                // Multiple items - calculate weighted average VAT rate
+                // Multiple items - calculate weighted average VAT rate and sum VAT amounts
                 let weightedVatSum = 0;
                 let totalGrossForAvg = 0;
                 
                 sale.saleItems.forEach(item => {
                   const gross = parseFloat(item.totalPrice || 0);
                   const itemVatRate = parseFloat(item.vatRate || 0);
-                  const itemVatAmount = parseFloat(item.vatAmount || 0);
+                  
+                  // Use stored vatAmount if available, otherwise calculate it
+                  let itemVatAmount = parseFloat(item.vatAmount || 0);
+                  if (itemVatAmount === 0 && itemVatRate > 0 && gross > 0) {
+                    // Calculate VAT: totalPrice includes VAT, so VAT = totalPrice * (vatRate / (100 + vatRate))
+                    itemVatAmount = gross * (itemVatRate / (100 + itemVatRate));
+                  }
                   
                   totalVatAmount += itemVatAmount;
                   
-                  if (gross > 0 && itemVatRate > 0) {
+                  // Include all items in calculation, even if VAT rate is 0
+                  if (gross > 0) {
                     weightedVatSum += itemVatRate * gross;
                     totalGrossForAvg += gross;
                   }
@@ -975,7 +992,9 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
               }
             }
             
-            const vatRateDisplay = vatRate > 0 ? vatRate.toFixed(1) : '0.0';
+            // Always show VAT, even if it's 0
+            const vatRateDisplay = vatRate.toFixed(1);
+            const vatAmountDisplay = totalVatAmount.toFixed(2);
             
             return `
             <tr>
@@ -995,8 +1014,8 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
                     <span class="right">€${parseFloat(item.totalPrice || 0).toFixed(2)}</span>
                   </div>
                 `).join('')}
-                <div class="vat-info" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #000; font-weight: bold; font-size: 11px;">
-                  <strong>VAT (${vatRateDisplay}%): €${totalVatAmount.toFixed(2)}</strong>
+                <div class="vat-info" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #000; font-weight: 900; font-size: 11px;">
+                  <strong>VAT (${vatRateDisplay}%): €${vatAmountDisplay}</strong>
                 </div>
               </td>
               <td class="right total-amount">€${parseFloat(sale.totalAmount || 0).toFixed(2)}</td>

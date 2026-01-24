@@ -290,12 +290,12 @@ public class SaleService {
         Double cardAmountDouble = saleRepository.getTotalSalesByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CARD);
         BigDecimal cardAmount = cardAmountDouble != null ? BigDecimal.valueOf(cardAmountDouble) : BigDecimal.ZERO;
 
-        // Get all sales for the day to handle split payments
-        List<Sale> allSales = saleRepository.findSalesByDateRange(startOfDay, endOfDay);
+        // Get all sales for the day to handle split payments (with salePayments eagerly fetched)
+        List<Sale> allSales = saleRepository.findSalesByDateRangeWithPayments(startOfDay, endOfDay);
         
         // Add split payment amounts to cash and card totals
         for (Sale sale : allSales) {
-            if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null) {
+            if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null && !sale.getSalePayments().isEmpty()) {
                 for (SalePayment payment : sale.getSalePayments()) {
                     if (payment.getPaymentMethod() == PaymentMethod.CASH) {
                         cashAmount = cashAmount.add(payment.getAmount());

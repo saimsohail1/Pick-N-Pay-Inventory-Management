@@ -179,7 +179,42 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
     return `${day}/${month}/${year}`;
   };
 
-  // No need to calculate average VAT - each item shows its own VAT %
+  // Calculate VAT information
+  let totalVatAmount = 0;
+  let averageVatRate = 0;
+  
+  if (sale.saleItems && sale.saleItems.length > 0) {
+    // Calculate total VAT amount and prepare for average calculation
+    let totalGross = 0;
+    let weightedVatSum = 0;
+    
+    sale.saleItems.forEach(item => {
+      const totalPrice = parseFloat(item.totalPrice || 0);
+      const vatRate = parseFloat(item.vatRate || 0);
+      
+      // Calculate VAT amount if not provided
+      let vatAmount = parseFloat(item.vatAmount || 0);
+      if (vatAmount === 0 && vatRate > 0 && totalPrice > 0) {
+        // Calculate VAT: totalPrice includes VAT, so VAT = totalPrice * (vatRate / (100 + vatRate))
+        vatAmount = totalPrice * (vatRate / (100 + vatRate));
+      }
+      
+      totalVatAmount += vatAmount;
+      totalGross += totalPrice;
+      weightedVatSum += (totalPrice * vatRate);
+    });
+    
+    // Calculate average VAT rate
+    if (sale.saleItems.length === 1) {
+      // Single item - use its VAT rate directly
+      averageVatRate = parseFloat(sale.saleItems[0].vatRate || 0);
+    } else {
+      // Multiple items - calculate weighted average VAT rate
+      if (totalGross > 0) {
+        averageVatRate = weightedVatSum / totalGross;
+      }
+    }
+  }
 
   return `
     <!DOCTYPE html>
@@ -282,6 +317,15 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         </div>
       `;
       }).join('')}
+      
+      ${totalVatAmount > 0 ? `
+        <div style="margin-top: 8px; padding-top: 5px; border-top: 1px solid #000;">
+          <div class="item-row">
+            <span style="font-weight: 600; font-size: 11px;">VAT (${averageVatRate.toFixed(1)}%):</span>
+            <span style="font-weight: 600; font-size: 11px;">€${totalVatAmount.toFixed(2)}</span>
+          </div>
+        </div>
+      ` : ''}
       
       <div class="total" style="margin-top: 8px;">
         <div class="item-row">

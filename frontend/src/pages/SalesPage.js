@@ -1572,6 +1572,31 @@ const SalesPage = () => {
           opacity: 0.5;
         }
       `}</style>
+      {/* Hidden Barcode Input - Always focused for scanning */}
+      <input
+        ref={barcodeInputRef}
+        type="text"
+        value={barcodeInput}
+        onChange={(e) => setBarcodeInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && barcodeInput.trim()) {
+            processBarcode(barcodeInput.trim());
+            setBarcodeInput('');
+          }
+        }}
+        style={{
+          position: 'absolute',
+          top: '-9999px',
+          left: '-9999px',
+          opacity: 0,
+          width: '1px',
+          height: '1px',
+          border: 'none',
+          padding: 0,
+          margin: 0
+        }}
+        autoFocus
+      />
       {/* Compact Header */}
       <div className="text-white py-2 px-3" style={{ minHeight: '55px', margin: 0, padding: '0.4rem 1rem', backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a' }}>
         <div className="d-flex align-items-center justify-content-between w-100">

@@ -20,6 +20,10 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     @Query("SELECT s FROM Sale s WHERE s.saleDate BETWEEN :startDate AND :endDate ORDER BY s.saleDate DESC")
     List<Sale> findSalesByDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
     
+    // Get sales by date range with salePayments eagerly fetched (for daily reports)
+    @Query("SELECT DISTINCT s FROM Sale s LEFT JOIN FETCH s.salePayments WHERE s.saleDate BETWEEN :startDate AND :endDate ORDER BY s.saleDate DESC")
+    List<Sale> findSalesByDateRangeWithPayments(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+    
     // Get sales by user ID and date range (handles null users)
     @Query("SELECT s FROM Sale s WHERE (s.user.id = :userId OR (s.user IS NULL AND :userId IS NULL)) AND s.saleDate BETWEEN :startDate AND :endDate ORDER BY s.saleDate DESC")
     List<Sale> findSalesByUserIdAndDateRange(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);

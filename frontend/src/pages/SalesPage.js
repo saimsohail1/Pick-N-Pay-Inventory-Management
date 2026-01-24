@@ -628,6 +628,27 @@ const SalesPage = () => {
     return changeNotes;
   };
 
+  // Validate cart items have sufficient stock before checkout
+  const validateCartStock = () => {
+    const insufficientStockItems = [];
+    
+    cart.forEach(cartItem => {
+      if (cartItem.itemId !== null) {
+        // Find the item in the items list to check its stock
+        const item = items.find(i => i.id === cartItem.itemId);
+        if (item && item.stockQuantity < cartItem.quantity) {
+          insufficientStockItems.push({
+            name: cartItem.itemName,
+            available: item.stockQuantity,
+            requested: cartItem.quantity
+          });
+        }
+      }
+    });
+    
+    return insufficientStockItems;
+  };
+
   const handleConfirmCheckout = async (selectedPaymentMethod) => {
               // Prevent double-click or multiple submissions
               if (paymentInProgressRef.current || loading) {
@@ -670,6 +691,17 @@ const SalesPage = () => {
   const processCashPayment = async () => {
     // Prevent duplicate payment processing
     if (paymentInProgressRef.current) {
+      return;
+    }
+    
+    // Validate stock before proceeding
+    const insufficientStock = validateCartStock();
+    if (insufficientStock.length > 0) {
+      const errorMessage = insufficientStock.map(item => 
+        `${item.name}: Available ${item.available}, Requested ${item.requested}`
+      ).join('\n');
+      setError(`Insufficient stock for the following items:\n${errorMessage}\n\nPlease adjust quantities in cart.`);
+      setTimeout(() => setError(null), 8000);
       return;
     }
     
@@ -756,6 +788,23 @@ const SalesPage = () => {
   };
 
   const processCardPayment = async () => {
+    // Prevent duplicate payment processing
+    if (paymentInProgressRef.current) {
+      return;
+    }
+    
+    // Validate stock before proceeding
+    const insufficientStock = validateCartStock();
+    if (insufficientStock.length > 0) {
+      const errorMessage = insufficientStock.map(item => 
+        `${item.name}: Available ${item.available}, Requested ${item.requested}`
+      ).join('\n');
+      setError(`Insufficient stock for the following items:\n${errorMessage}\n\nPlease adjust quantities in cart.`);
+      setTimeout(() => setError(null), 8000);
+      return;
+    }
+    
+    paymentInProgressRef.current = true;
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -823,6 +872,7 @@ const SalesPage = () => {
         }
       }, 200);
     } finally {
+      paymentInProgressRef.current = false;
       setLoading(false);
     }
   };
@@ -830,6 +880,18 @@ const SalesPage = () => {
   const processSplitPayment = async () => {
     // Prevent duplicate payment processing
     if (paymentInProgressRef.current) {
+      return;
+    }
+    
+    // Validate stock before proceeding
+    const insufficientStock = validateCartStock();
+    if (insufficientStock.length > 0) {
+      const errorMessage = insufficientStock.map(item => 
+        `${item.name}: Available ${item.available}, Requested ${item.requested}`
+      ).join('\n');
+      setError(`Insufficient stock for the following items:\n${errorMessage}\n\nPlease adjust quantities in cart.`);
+      setTimeout(() => setError(null), 8000);
+      setSplitPaymentDialogOpen(false);
       return;
     }
     

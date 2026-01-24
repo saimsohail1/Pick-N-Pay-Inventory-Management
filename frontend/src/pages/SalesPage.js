@@ -3087,16 +3087,6 @@ const SalesPage = () => {
                 style={{ backgroundColor: '#2a2a2a', color: '#ffffff', border: '1px solid #444' }}
               />
             </div>
-            <div className="alert alert-info" style={{ backgroundColor: '#2a2a2a', border: '1px solid #444', color: '#ffffff' }}>
-              <small>
-                Cash: €{(parseFloat(splitCashAmount || 0) || 0).toFixed(2)} + 
-                Card: €{(parseFloat(splitCardAmount || 0) || 0).toFixed(2)} = 
-                €{((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)).toFixed(2)}
-                {Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (calculateTotal() || 0)) > 0.01 && (
-                  <span className="text-warning"> (Total: €{(calculateTotal() || 0).toFixed(2)})</span>
-                )}
-              </small>
-            </div>
           </div>
         </Modal.Body>
         <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #333' }}>
@@ -3121,7 +3111,7 @@ const SalesPage = () => {
             }}
             disabled={loading || paymentInProgressRef.current || 
               Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (calculateTotal() || 0)) > 0.01}
-            style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#000000', fontWeight: 'bold' }}
+            style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#ffffff', fontWeight: 'bold' }}
           >
             Continue
           </Button>

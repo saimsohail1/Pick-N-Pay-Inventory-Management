@@ -749,6 +749,9 @@ export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateR
             size: A4; 
             margin: 10mm; 
           }
+          * {
+            font-weight: bold !important;
+          }
           body { 
             margin: 0; 
             padding: 0; 

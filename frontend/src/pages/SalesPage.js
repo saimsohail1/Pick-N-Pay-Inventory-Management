@@ -1572,31 +1572,6 @@ const SalesPage = () => {
           opacity: 0.5;
         }
       `}</style>
-      {/* Hidden Barcode Input - Always focused for scanning */}
-      <input
-        ref={barcodeInputRef}
-        type="text"
-        value={barcodeInput}
-        onChange={(e) => setBarcodeInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && barcodeInput.trim()) {
-            processBarcode(barcodeInput.trim());
-            setBarcodeInput('');
-          }
-        }}
-        style={{
-          position: 'absolute',
-          top: '-9999px',
-          left: '-9999px',
-          opacity: 0,
-          width: '1px',
-          height: '1px',
-          border: 'none',
-          padding: 0,
-          margin: 0
-        }}
-        autoFocus
-      />
       {/* Compact Header */}
       <div className="text-white py-2 px-3" style={{ minHeight: '55px', margin: 0, padding: '0.4rem 1rem', backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a' }}>
         <div className="d-flex align-items-center justify-content-between w-100">
@@ -2088,6 +2063,35 @@ const SalesPage = () => {
           ) : (
             /* Normal Sales View */
             <>
+            {/* Barcode Scanner Input - Visible at top of cart */}
+            <div className="px-2 py-2" style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333' }}>
+              <Form.Group className="mb-0">
+                <Form.Label className="small mb-1" style={{ color: '#ffffff', fontSize: '0.85rem' }}>
+                  <i className="bi bi-upc-scan me-1"></i>Scan Barcode
+                </Form.Label>
+                <Form.Control
+                  ref={barcodeInputRef}
+                  type="text"
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && barcodeInput.trim()) {
+                      processBarcode(barcodeInput.trim());
+                      setBarcodeInput('');
+                    }
+                  }}
+                  placeholder="Scan or type barcode..."
+                  autoFocus
+                  style={{
+                    backgroundColor: '#3a3a3a',
+                    border: '1px solid #555',
+                    color: '#ffffff',
+                    fontSize: '0.9rem',
+                    padding: '0.5rem'
+                  }}
+                />
+              </Form.Group>
+            </div>
             {/* Sales Cart Table with Control Buttons */}
             <div className="d-flex" style={{ height: '300px', flexShrink: 0 }}>
               {/* Cart Table - Scrollable */}

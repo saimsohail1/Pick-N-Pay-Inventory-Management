@@ -300,13 +300,26 @@ public class SaleService {
         Double cardAmountDouble = saleRepository.getTotalSalesByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CARD);
         BigDecimal cardAmount = cardAmountDouble != null ? BigDecimal.valueOf(cardAmountDouble) : BigDecimal.ZERO;
 
-        // Calculate VAT totals and breakdown by rate
+        // Get all sales for the day to handle split payments
+        List<Sale> allSales = saleRepository.findSalesByDateRange(startOfDay, endOfDay);
+        
+        // Add split payment amounts to cash and card totals
+        for (Sale sale : allSales) {
+            if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null) {
+                for (SalePayment payment : sale.getSalePayments()) {
+                    if (payment.getPaymentMethod() == PaymentMethod.CASH) {
+                        cashAmount = cashAmount.add(payment.getAmount());
+                    } else if (payment.getPaymentMethod() == PaymentMethod.CARD) {
+                        cardAmount = cardAmount.add(payment.getAmount());
+                    }
+                }
+            }
+        }
+
+        // Calculate VAT totals and breakdown by rate (using already fetched allSales)
         BigDecimal totalVatAmount = BigDecimal.ZERO;
         BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
         Map<BigDecimal, VatSummaryDTO> vatMap = new HashMap<>();
-        
-        // Get all sales for the day to calculate VAT
-        List<Sale> allSales = saleRepository.findSalesByDateRange(startOfDay, endOfDay);
         for (Sale sale : allSales) {
             for (SaleItem item : sale.getSaleItems()) {
                 if (item.getVatAmount() != null) {

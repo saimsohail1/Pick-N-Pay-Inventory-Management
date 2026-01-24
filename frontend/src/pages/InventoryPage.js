@@ -767,7 +767,7 @@ const InventoryPage = () => {
                   <td className="text-end fw-bold">€{item.price.toFixed(2)}</td>
                   <td className="text-center">
                     <Badge 
-                      bg={item.stockQuantity <= 10 ? 'warning' : 'success'}
+                      bg={item.stockQuantity <= 0 ? 'danger' : item.stockQuantity <= 10 ? 'warning' : 'success'}
                       className="fs-6"
                     >
                       {item.stockQuantity}

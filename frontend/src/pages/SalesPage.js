@@ -396,15 +396,7 @@ const SalesPage = () => {
       const response = await itemsAPI.getByBarcode(barcode);
       const item = response.data;
 
-      // Check if item is out of stock
-      if (item.stockQuantity <= 0) {
-        setOutOfStockItem(item);
-        setOutOfStockDialogOpen(true);
-        setScannerOpen(false);
-        setSimpleScannerOpen(false);
-        return;
-      }
-
+      // Allow adding out-of-stock items to cart (user can edit quantity)
         const newCartItem = {
         id: Date.now() + Math.random(),
           itemId: item.id,
@@ -438,14 +430,7 @@ const SalesPage = () => {
       return;
     }
 
-    // Check if item is out of stock
-    if (item.stockQuantity <= 0) {
-      setOutOfStockItem(item);
-      setOutOfStockDialogOpen(true);
-      setAddItemDialogOpen(false);
-      return;
-    }
-
+    // Allow adding out-of-stock items to cart (user can edit quantity)
       const newCartItem = {
       id: Date.now() + Math.random(),
         itemId: item.id,
@@ -1042,13 +1027,7 @@ const SalesPage = () => {
     }
     lastClickRef.current[clickKey] = now;
 
-    // Check if item is out of stock
-    if (item.stockQuantity <= 0) {
-      setOutOfStockItem(item);
-      setOutOfStockDialogOpen(true);
-      return;
-    }
-
+    // Allow adding out-of-stock items to cart (user can edit quantity)
     const cartItem = {
       id: Date.now() + Math.random(),
       itemId: item.id,

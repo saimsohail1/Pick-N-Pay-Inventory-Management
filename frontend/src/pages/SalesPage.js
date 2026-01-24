@@ -979,7 +979,9 @@ const SalesPage = () => {
         selectedVatRate: null, // No longer using selectedVatRate - each item has its own VAT
       };
 
+      console.log('Sending split payment sale data:', JSON.stringify(saleData, null, 2));
       const response = await salesAPI.create(saleData);
+      console.log('Split payment sale created successfully:', response.data);
       
       // Store the last sale for printing
       setLastSale(response.data);
@@ -999,10 +1001,13 @@ const SalesPage = () => {
         }
       }, 200);
     } catch (err) {
-      console.error('Error creating sale:', err);
+      console.error('Error creating split payment sale:', err);
       console.error('Error response:', err.response?.data);
-      setError(`Failed to complete sale: ${err.response?.data || err.message}`);
-      setTimeout(() => setError(null), 5000);
+      console.error('Error status:', err.response?.status);
+      const errorMessage = err.response?.data || err.message || 'Unknown error occurred';
+      console.error('Full error message:', errorMessage);
+      setError(`Failed to complete sale: ${errorMessage}`);
+      setTimeout(() => setError(null), 8000);
       // Refocus barcode input even on error
       setTimeout(() => {
         if (barcodeInputRef.current) {

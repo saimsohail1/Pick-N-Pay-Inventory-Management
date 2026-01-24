@@ -8,12 +8,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/sales")
@@ -118,13 +120,35 @@ public class SaleController {
     @PostMapping
     public ResponseEntity<?> createSale(@Valid @RequestBody SaleDTO saleDTO) {
         try {
+            System.out.println("Creating sale with payment method: " + saleDTO.getPaymentMethod());
+            if (saleDTO.getPaymentSplits() != null) {
+                System.out.println("Payment splits count: " + saleDTO.getPaymentSplits().size());
+                saleDTO.getPaymentSplits().forEach(split -> {
+                    System.out.println("  - " + split.getPaymentMethod() + ": " + split.getAmount());
+                });
+            }
             SaleDTO createdSale = saleService.createSale(saleDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdSale);
         } catch (RuntimeException e) {
+            System.err.println("RuntimeException creating sale: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body("Error creating sale: " + e.getMessage());
         } catch (Exception e) {
+            System.err.println("Exception creating sale: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body("Unexpected error: " + e.getMessage());
         }
+    }
+    
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        String errors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+        System.err.println("Validation error: " + errors);
+        return ResponseEntity.badRequest().body("Validation error: " + errors);
     }
     
     @PutMapping("/{id}")

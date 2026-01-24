@@ -48,11 +48,7 @@ const SalesPage = () => {
   const cashPaymentTimeoutRef = useRef(null);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [cashAmount, setCashAmount] = useState('');
-  const [selectedNotes, setSelectedNotes] = useState({});
-  const [saleNotes, setSaleNotes] = useState(''); // Notes for the sale
   const [selectedVatRate, setSelectedVatRate] = useState(null); // Selected VAT rate for the sale
-  const [notesVatDialogOpen, setNotesVatDialogOpen] = useState(false); // Dialog for notes and VAT selection
-  const [pendingPaymentMethod, setPendingPaymentMethod] = useState(null); // Store payment method while showing notes/VAT dialog
   const [cashConfirmDialogOpen, setCashConfirmDialogOpen] = useState(false);
   const [changeDue, setChangeDue] = useState(0);
   const [splitPaymentDialogOpen, setSplitPaymentDialogOpen] = useState(false);
@@ -121,7 +117,7 @@ const SalesPage = () => {
   // Refocus barcode input after modals close, cart operations, etc.
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
-        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !notesVatDialogOpen &&
+        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen &&
         !splitPaymentDialogOpen && !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
       // Small delay to ensure modal is fully closed
       const timer = setTimeout(() => {
@@ -132,13 +128,13 @@ const SalesPage = () => {
       return () => clearTimeout(timer);
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
-      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, notesVatDialogOpen,
+      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen,
       splitPaymentDialogOpen, outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
   // Keep barcode input focused continuously (when no modals are open)
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
-        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !notesVatDialogOpen &&
+        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen &&
         !splitPaymentDialogOpen && !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
       const handleFocusLoss = () => {
         // Only refocus if user clicked outside an input/button or on the document
@@ -163,7 +159,7 @@ const SalesPage = () => {
       };
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
-      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, notesVatDialogOpen,
+      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen,
       splitPaymentDialogOpen, outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
   useEffect(() => {
@@ -589,7 +585,6 @@ const SalesPage = () => {
       return;
     }
     setCashAmount('');
-    setSelectedNotes({});
     setCheckoutDialogOpen(true);
   };
 
@@ -602,7 +597,6 @@ const SalesPage = () => {
     // Reset payment state if not in progress
     if (!paymentInProgressRef.current) {
       setCashAmount('');
-      setSelectedNotes({});
     }
     setCheckoutDialogOpen(false);
     setCashConfirmDialogOpen(false);
@@ -613,11 +607,6 @@ const SalesPage = () => {
     if (paymentInProgressRef.current) {
       return;
     }
-    
-    setSelectedNotes(prev => ({
-      ...prev,
-      [noteValue]: (prev[noteValue] || 0) + 1
-    }));
     
     // Update cash amount
     const currentAmount = parseFloat(cashAmount || 0);
@@ -678,22 +667,18 @@ const SalesPage = () => {
                   cashPaymentTimeoutRef.current = setTimeout(() => {
                     cashPaymentTimeoutRef.current = null;
                     setCashConfirmDialogOpen(false);
-                    // Show notes/VAT dialog instead of processing payment directly
-                    setPendingPaymentMethod('CASH');
-                    setNotesVatDialogOpen(true);
+                    processCashPayment();
                   }, 5000);
                 } else {
-                  // No change due, show notes/VAT dialog
-                  setPendingPaymentMethod('CASH');
-                  setNotesVatDialogOpen(true);
+                  // No change due, process payment directly
+                  processCashPayment();
                 }
               } else if (selectedPaymentMethod === 'SPLIT') {
                 // Split payment - show split payment dialog
                 setSplitPaymentDialogOpen(true);
               } else {
-                // Card payment - show notes/VAT dialog
-                setPendingPaymentMethod('CARD');
-                setNotesVatDialogOpen(true);
+                // Card payment - process directly
+                processCardPayment();
               }
             };
 
@@ -714,7 +699,6 @@ const SalesPage = () => {
     setError(null);
     setSuccess(null);
     setCheckoutDialogOpen(false);
-    setNotesVatDialogOpen(false); // Close notes/VAT dialog
 
     try {
       // Calculate total amount from original prices (actual price customer pays - including VAT)
@@ -746,7 +730,6 @@ const SalesPage = () => {
         paymentMethod: 'CASH',
         saleItems: saleItems,
         userId: user?.id || null,
-        notes: saleNotes || null, // Include notes in sale data
         selectedVatRate: null, // No longer using selectedVatRate - each item has its own VAT
         cashAmount: parseFloat(cashAmount || 0),
         changeDue: parseFloat(cashAmount || 0) > 0 ? (parseFloat(cashAmount || 0) - totalAmount) : 0
@@ -759,8 +742,6 @@ const SalesPage = () => {
       
       setCart([]);
       setCashAmount('');
-      setSelectedNotes({});
-      setSaleNotes(''); // Clear sale notes after sale
       setAppliedDiscount(null); // Clear discount after sale
       setSelectedCartItem(null); // Clear selected item after sale
       setCustomDiscountAmount('');
@@ -794,7 +775,6 @@ const SalesPage = () => {
     setError(null);
     setSuccess(null);
     setCheckoutDialogOpen(false);
-    setNotesVatDialogOpen(false); // Close notes/VAT dialog
 
     try {
       // Calculate total amount from original prices (actual price customer pays - including VAT)
@@ -826,7 +806,6 @@ const SalesPage = () => {
         paymentMethod: 'CARD',
         saleItems: saleItems,
         userId: user?.id || null,
-        notes: saleNotes || null, // Include notes in sale data
         selectedVatRate: null, // No longer using selectedVatRate - each item has its own VAT
       };
 
@@ -836,7 +815,6 @@ const SalesPage = () => {
       setLastSale(response.data);
       
       setCart([]);
-      setSaleNotes(''); // Clear sale notes after sale
       setAppliedDiscount(null); // Clear discount after sale
       setCustomDiscountAmount('');
       setSelectedCartItem(null); // Clear selected item after sale
@@ -951,7 +929,6 @@ const SalesPage = () => {
         paymentSplits: paymentSplits,
         saleItems: saleItems,
         userId: user?.id || null,
-        notes: saleNotes || null, // Include notes in sale data
         selectedVatRate: null, // No longer using selectedVatRate - each item has its own VAT
       };
 
@@ -963,8 +940,6 @@ const SalesPage = () => {
       setCart([]);
       setSplitCashAmount('');
       setSplitCardAmount('');
-      setSelectedNotes({});
-      setSaleNotes(''); // Clear sale notes after sale
       setAppliedDiscount(null); // Clear discount after sale
       setSelectedCartItem(null); // Clear selected item after sale
       setCustomDiscountAmount('');
@@ -1448,13 +1423,13 @@ const SalesPage = () => {
         <div class="label-container">
           <div class="item-name">${itemToPrint.name}</div>
           <div class="barcode-price-row">
-            ${barcodeDataURL ? `
-              <div class="barcode-container">
-                <img src="${barcodeDataURL}" alt="Barcode" class="barcode-image" />
-              </div>
+          ${barcodeDataURL ? `
+            <div class="barcode-container">
+              <img src="${barcodeDataURL}" alt="Barcode" class="barcode-image" />
+            </div>
             ` : '<div></div>'}
-            <div class="item-price">
-              <span class="price-symbol">€</span>${itemToPrint.price.toFixed(2)}
+          <div class="item-price">
+            <span class="price-symbol">€</span>${itemToPrint.price.toFixed(2)}
             </div>
           </div>
         </div>
@@ -2077,27 +2052,7 @@ const SalesPage = () => {
                             </div>
                           </td>
                             <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
-                              {item.itemId === null ? (
-                                // Manual sale - make price editable inline
-                                <Form.Control
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  value={item.unitPrice || 0}
-                                  onChange={(e) => handleManualSalePriceChange(item.id, e.target.value)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  onFocus={(e) => e.target.select()}
-                                  style={{ 
-                                    width: '80px', 
-                                    fontSize: '0.9rem', 
-                                    backgroundColor: '#3a3a3a', 
-                                    border: '1px solid #ffc107', 
-                                    color: '#ffffff',
-                                    textAlign: 'right',
-                                    display: 'inline-block'
-                                  }}
-                                />
-                              ) : item.discountApplied ? (
+                              {item.discountApplied ? (
                                 <div>
                                   <div className="text-decoration-line-through" style={{ fontSize: '0.9rem', color: '#aaaaaa' }}>
                                     €{item.originalPrice.toFixed(2)}
@@ -2931,8 +2886,6 @@ const SalesPage = () => {
                         className="w-100 py-4 btn-3d"
                         onClick={() => {
                           setCashAmount('');
-                          setSelectedNotes({});
-                          setSaleNotes('');
                           setSelectedVatRate(null);
                         }}
                         style={{ fontSize: '1.5rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
@@ -3402,81 +3355,6 @@ const SalesPage = () => {
             OK
           </Button>
         </Modal.Body>
-      </Modal>
-
-      {/* Notes Dialog */}
-      <Modal show={notesVatDialogOpen} onHide={() => setNotesVatDialogOpen(false)} centered size="lg">
-        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
-          <Modal.Title style={{ color: '#ffffff' }}>
-            <i className="bi bi-sticky me-2"></i>
-            Sale Notes
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
-          <div className="mb-4">
-            <label className="form-label fw-bold mb-3" style={{ color: '#e0e0e0', fontSize: '1.1rem' }}>
-              <i className="bi bi-sticky me-2"></i>
-              Sale Notes (Optional)
-            </label>
-            <Form.Control
-              as="textarea"
-              rows={4}
-              placeholder="Enter notes for this sale... (Press Enter for new line)"
-              value={saleNotes}
-              onChange={(e) => setSaleNotes(e.target.value)}
-              maxLength={1000}
-              style={{ 
-                backgroundColor: '#3a3a3a', 
-                border: '2px solid #555', 
-                color: '#ffffff',
-                fontSize: '1.1rem',
-                padding: '0.75rem',
-                resize: 'vertical',
-                fontFamily: 'inherit'
-              }}
-            />
-            <Form.Text className="text-muted" style={{ color: '#ffffff', fontSize: '0.95rem' }}>
-              {saleNotes.length}/1000 characters
-            </Form.Text>
-          </div>
-        </Modal.Body>
-        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
-          <Button 
-            onClick={() => {
-              setNotesVatDialogOpen(false);
-              setSaleNotes('');
-            }}
-            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={() => {
-              // Process payment based on pending payment method
-              if (pendingPaymentMethod === 'CASH') {
-                processCashPayment();
-              } else if (pendingPaymentMethod === 'CARD') {
-                processCardPayment();
-              } else if (pendingPaymentMethod === 'SPLIT') {
-                processSplitPayment();
-              }
-            }}
-            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff', fontWeight: 'bold' }}
-            disabled={loading || paymentInProgressRef.current}
-          >
-            {loading ? (
-              <>
-                <Spinner animation="border" size="sm" className="me-2" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <i className="bi bi-check-circle me-2"></i>
-                Complete Sale
-              </>
-            )}
-          </Button>
-        </Modal.Footer>
       </Modal>
 
       {/* Delete Confirmation Modal */}

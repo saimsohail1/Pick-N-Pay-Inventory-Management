@@ -43,14 +43,24 @@ public class Sale {
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<SaleItem> saleItems;
     
+    @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<SalePayment> salePayments;
+    
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
+    
+    @Column(name = "notes", length = 1000)
+    private String notes;
+    
+    @Column(name = "selected_vat_rate", precision = 5, scale = 2)
+    private BigDecimal selectedVatRate;
     
     // Constructors
     public Sale() {
         this.saleDate = LocalDateTime.now();
         this.saleItems = new ArrayList<>();
+        this.salePayments = new ArrayList<>();
     }
     
     public Sale(BigDecimal totalAmount, PaymentMethod paymentMethod) {
@@ -138,5 +148,29 @@ public class Sale {
     
     public void setUser(User user) {
         this.user = user;
+    }
+    
+    public String getNotes() {
+        return notes;
+    }
+    
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+    
+    public BigDecimal getSelectedVatRate() {
+        return selectedVatRate;
+    }
+    
+    public void setSelectedVatRate(BigDecimal selectedVatRate) {
+        this.selectedVatRate = selectedVatRate;
+    }
+    
+    public List<SalePayment> getSalePayments() {
+        return salePayments;
+    }
+    
+    public void setSalePayments(List<SalePayment> salePayments) {
+        this.salePayments = salePayments;
     }
 }

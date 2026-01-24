@@ -123,8 +123,10 @@ CREATE TABLE sales (
     discount_type VARCHAR(20), -- Can be NULL
     discount_value DECIMAL(10,2), -- Can be NULL
     sale_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD')),
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, -- Sales MUST have a user
+    payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD', 'SPLIT')),
+    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL, -- Can be NULL to preserve sales history when user is deleted
+    notes VARCHAR(1000), -- Optional notes for the sale
+    selected_vat_rate DECIMAL(5,2), -- Selected VAT rate (for backward compatibility)
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -146,6 +148,23 @@ CREATE TABLE sale_items (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Create sale_payments table for split payment support
+CREATE TABLE sale_payments (
+    id BIGSERIAL PRIMARY KEY,
+    sale_id BIGINT NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+    payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('CASH', 'CARD')),
+    amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for sale_payments
+CREATE INDEX idx_sale_payments_sale_id ON sale_payments(sale_id);
+CREATE INDEX idx_sale_payments_payment_method ON sale_payments(payment_method);
+
+-- Create trigger for sale_payments updated_at
+CREATE TRIGGER update_sale_payments_updated_at BEFORE UPDATE ON sale_payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Create attendances table
 -- Note: Allows one record per user per day (first time-in, last time-out)

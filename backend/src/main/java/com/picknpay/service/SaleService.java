@@ -2,12 +2,14 @@ package com.picknpay.service;
 
 import com.picknpay.dto.SaleDTO;
 import com.picknpay.dto.SaleItemDTO;
+import com.picknpay.dto.SalePaymentDTO;
 import com.picknpay.dto.DailyReportDTO;
 import com.picknpay.dto.CategorySummaryDTO;
 import com.picknpay.dto.VatSummaryDTO;
 import com.picknpay.entity.Item;
 import com.picknpay.entity.Sale;
 import com.picknpay.entity.SaleItem;
+import com.picknpay.entity.SalePayment;
 import com.picknpay.entity.PaymentMethod;
 import com.picknpay.entity.User;
 import com.picknpay.repository.ItemRepository;
@@ -168,6 +170,38 @@ public class SaleService {
         }
         
         sale.setTotalAmount(totalAmount);
+        
+        // Handle split payments
+        if (saleDTO.getPaymentMethod() == PaymentMethod.SPLIT && saleDTO.getPaymentSplits() != null && !saleDTO.getPaymentSplits().isEmpty()) {
+            // Validate split amounts sum to total
+            BigDecimal splitTotal = saleDTO.getPaymentSplits().stream()
+                    .map(SalePaymentDTO::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+            if (splitTotal.compareTo(totalAmount) != 0) {
+                throw new RuntimeException("Split payment amounts must equal total amount. Total: " + totalAmount + ", Split total: " + splitTotal);
+            }
+            
+            // Create SalePayment entities
+            for (SalePaymentDTO paymentDTO : saleDTO.getPaymentSplits()) {
+                SalePayment salePayment = new SalePayment();
+                salePayment.setSale(sale);
+                salePayment.setPaymentMethod(paymentDTO.getPaymentMethod());
+                salePayment.setAmount(paymentDTO.getAmount());
+                sale.getSalePayments().add(salePayment);
+            }
+        }
+        
+        // Set notes if provided
+        if (saleDTO.getNotes() != null) {
+            sale.setNotes(saleDTO.getNotes());
+        }
+        
+        // Set selected VAT rate if provided
+        if (saleDTO.getSelectedVatRate() != null) {
+            sale.setSelectedVatRate(saleDTO.getSelectedVatRate());
+        }
+        
         Sale savedSale = saleRepository.save(sale);
         return convertToDTO(savedSale);
     }
@@ -184,12 +218,30 @@ public class SaleService {
         dto.setSaleDate(sale.getSaleDate());
         dto.setPaymentMethod(sale.getPaymentMethod());
         dto.setUserId(sale.getUser() != null ? sale.getUser().getId() : null);
+        dto.setNotes(sale.getNotes());
+        dto.setSelectedVatRate(sale.getSelectedVatRate());
         
         List<SaleItemDTO> saleItemDTOs = sale.getSaleItems().stream()
                 .map(this::convertSaleItemToDTO)
                 .collect(Collectors.toList());
         dto.setSaleItems(saleItemDTOs);
         
+        // Convert payment splits if they exist
+        if (sale.getSalePayments() != null && !sale.getSalePayments().isEmpty()) {
+            List<SalePaymentDTO> paymentSplitDTOs = sale.getSalePayments().stream()
+                    .map(this::convertSalePaymentToDTO)
+                    .collect(Collectors.toList());
+            dto.setPaymentSplits(paymentSplitDTOs);
+        }
+        
+        return dto;
+    }
+    
+    private SalePaymentDTO convertSalePaymentToDTO(SalePayment salePayment) {
+        SalePaymentDTO dto = new SalePaymentDTO();
+        dto.setId(salePayment.getId());
+        dto.setPaymentMethod(salePayment.getPaymentMethod());
+        dto.setAmount(salePayment.getAmount());
         return dto;
     }
     

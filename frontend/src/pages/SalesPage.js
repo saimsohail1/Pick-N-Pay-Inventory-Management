@@ -49,8 +49,15 @@ const SalesPage = () => {
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [cashAmount, setCashAmount] = useState('');
   const [selectedNotes, setSelectedNotes] = useState({});
+  const [saleNotes, setSaleNotes] = useState(''); // Notes for the sale
+  const [selectedVatRate, setSelectedVatRate] = useState(null); // Selected VAT rate for the sale
+  const [notesVatDialogOpen, setNotesVatDialogOpen] = useState(false); // Dialog for notes and VAT selection
+  const [pendingPaymentMethod, setPendingPaymentMethod] = useState(null); // Store payment method while showing notes/VAT dialog
   const [cashConfirmDialogOpen, setCashConfirmDialogOpen] = useState(false);
   const [changeDue, setChangeDue] = useState(0);
+  const [splitPaymentDialogOpen, setSplitPaymentDialogOpen] = useState(false);
+  const [splitCashAmount, setSplitCashAmount] = useState('');
+  const [splitCardAmount, setSplitCardAmount] = useState('');
   const [itemNotFoundDialogOpen, setItemNotFoundDialogOpen] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [registerItemDialogOpen, setRegisterItemDialogOpen] = useState(false);
@@ -66,9 +73,10 @@ const SalesPage = () => {
   const [selectedCartItem, setSelectedCartItem] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [currentView, setCurrentView] = useState('categories'); // 'categories' or 'categoryItems'
+  const [currentView, setCurrentView] = useState('categories'); // 'categories', 'categoryItems', 'quickSale', or 'manualSale'
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryItems, setCategoryItems] = useState([]);
+  const [manualSaleAmount, setManualSaleAmount] = useState('');
   const [heldTransactions, setHeldTransactions] = useState([]);
   const [showHeldTransactions, setShowHeldTransactions] = useState(false);
   const [selectedHeldTransaction, setSelectedHeldTransaction] = useState(null);
@@ -102,27 +110,6 @@ const SalesPage = () => {
     fetchCompanyName();
   }, []);
 
-  // Broadcast cart updates to customer display window
-  useEffect(() => {
-    if (window.electron && window.electron.ipcRenderer) {
-      const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-      const discountAmount = appliedDiscount 
-        ? (appliedDiscount.type === 'percentage' 
-          ? (subtotal * appliedDiscount.value) / 100 
-          : Math.min(appliedDiscount.value, subtotal))
-        : 0;
-      const total = Math.max(0, subtotal - discountAmount);
-      
-      const cartData = {
-        cart: cart,
-        subtotal: subtotal,
-        discountAmount: discountAmount,
-        total: total
-      };
-      
-      window.electron.ipcRenderer.send('cart-updated', cartData);
-    }
-  }, [cart, appliedDiscount, customDiscountAmount]);
 
   // Auto-focus barcode input on mount and keep it focused
   useEffect(() => {
@@ -134,8 +121,8 @@ const SalesPage = () => {
   // Refocus barcode input after modals close, cart operations, etc.
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
-        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && 
-        !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
+        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !notesVatDialogOpen &&
+        !splitPaymentDialogOpen && !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
       // Small delay to ensure modal is fully closed
       const timer = setTimeout(() => {
         if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current) {
@@ -145,14 +132,14 @@ const SalesPage = () => {
       return () => clearTimeout(timer);
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
-      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, 
-      outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
+      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, notesVatDialogOpen,
+      splitPaymentDialogOpen, outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
   // Keep barcode input focused continuously (when no modals are open)
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
-        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && 
-        !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
+        !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !notesVatDialogOpen &&
+        !splitPaymentDialogOpen && !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
       const handleFocusLoss = () => {
         // Only refocus if user clicked outside an input/button or on the document
         setTimeout(() => {
@@ -176,8 +163,8 @@ const SalesPage = () => {
       };
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
-      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, 
-      outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
+      registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, notesVatDialogOpen,
+      splitPaymentDialogOpen, outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
   useEffect(() => {
     // Focus on barcode input when component mounts
@@ -298,7 +285,11 @@ const SalesPage = () => {
         if (settingsData) {
           currentCompanySettings = {
             companyName: settingsData.companyName || "ADAMS GREEN",
-            address: settingsData.address || ''
+            address: settingsData.address || '',
+            vatNumber: settingsData.vatNumber || '',
+            phone: settingsData.phone || '',
+            website: settingsData.website || '',
+            eircode: settingsData.eircode || ''
           };
         }
       } catch (err) {
@@ -313,7 +304,13 @@ const SalesPage = () => {
           await printReceiptRaw(
             lastSale,
             currentCompanySettings.companyName,
-            currentCompanySettings.address
+            currentCompanySettings.address,
+            null, // printerName
+            null, // cashierName
+            currentCompanySettings.vatNumber,
+            currentCompanySettings.phone, // phone
+            currentCompanySettings.website, // website
+            currentCompanySettings.eircode // eircode
           );
           setSuccess('Receipt printed successfully!');
           setTimeout(() => setSuccess(null), 3000);
@@ -357,32 +354,43 @@ const SalesPage = () => {
     });
   };
 
-  // Helper function for quick sale items (special case)
-  const addOrUpdateQuickSaleItem = (price) => {
+  // Helper function for quick sale items and manual sales (special case)
+  const addOrUpdateQuickSaleItem = (price, label = 'Quick Sale') => {
+    const validPrice = parseFloat(price) || 0;
+    if (isNaN(validPrice) || validPrice <= 0) {
+      console.error('Invalid price for quick sale item:', price);
+      return;
+    }
+    
     setCart(currentCart => {
       const existingItemIndex = currentCart.findIndex(
-        item => item.itemId === null && item.unitPrice === price
+        item => item.itemId === null && item.unitPrice === validPrice && item.itemName?.startsWith(label)
       );
 
       if (existingItemIndex >= 0) {
-        // Update quantity of existing quick sale item
+        // Update quantity of existing sale item
         const updatedCart = [...currentCart];
-        updatedCart[existingItemIndex].quantity += 1;
-        updatedCart[existingItemIndex].totalPrice = 
-          updatedCart[existingItemIndex].unitPrice * updatedCart[existingItemIndex].quantity;
+        const existingItem = updatedCart[existingItemIndex];
+        const currentQuantity = existingItem?.quantity || 0;
+        const currentUnitPrice = existingItem?.unitPrice || 0;
+        updatedCart[existingItemIndex].quantity = currentQuantity + 1;
+        updatedCart[existingItemIndex].totalPrice = currentUnitPrice * (currentQuantity + 1);
         return updatedCart;
       } else {
-        // Add new quick sale item at the beginning (latest first)
-        const quickSaleItem = {
+        // Add new sale item at the beginning (latest first)
+        // Default VAT: 0% for Manual Sale, 23% for Quick Sale
+        const defaultVatRate = label === 'Manual Sale' ? 0.00 : 23.00;
+        const saleItem = {
           id: Date.now() + Math.random(),
           itemId: null,
-          itemName: `Quick Sale (€${price.toFixed(2)})`,
+          itemName: `${label} (€${validPrice.toFixed(2)})`,
           itemBarcode: 'N/A',
           quantity: 1,
-          unitPrice: price,
-          totalPrice: price
+          unitPrice: validPrice,
+          totalPrice: validPrice,
+          vatRate: defaultVatRate
         };
-        return [quickSaleItem, ...currentCart];
+        return [saleItem, ...currentCart];
       }
     });
   };
@@ -408,7 +416,8 @@ const SalesPage = () => {
           itemBarcode: item.barcode,
           quantity: 1,
           unitPrice: item.price,
-          totalPrice: item.price
+          totalPrice: item.price,
+          vatRate: item.vatRate != null ? item.vatRate : 23.00 // Add VAT rate from item (0 is valid)
         };
 
       addOrUpdateCartItem(newCartItem);
@@ -449,6 +458,7 @@ const SalesPage = () => {
         quantity: data.quantity,
         unitPrice: data.unitPrice,
         totalPrice: data.unitPrice * data.quantity,
+        vatRate: item.vatRate != null ? item.vatRate : 23.00 // Add VAT rate from item (0 is valid)
       };
 
     addOrUpdateCartItem(newCartItem, data.quantity);
@@ -499,28 +509,41 @@ const SalesPage = () => {
   };
 
   const calculateSubtotal = () => {
-    return cart.reduce((sum, item) => sum + item.totalPrice, 0);
+    if (!cart || cart.length === 0) return 0;
+    return cart.reduce((sum, item) => {
+      const price = item?.totalPrice ?? 0;
+      return sum + (isNaN(price) ? 0 : price);
+    }, 0);
   };
 
   const calculateTotalItems = () => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
+    if (!cart || cart.length === 0) return 0;
+    return cart.reduce((sum, item) => {
+      const quantity = item?.quantity ?? 0;
+      return sum + (isNaN(quantity) ? 0 : quantity);
+    }, 0);
   };
 
   const calculateDiscountAmount = () => {
     if (!appliedDiscount) return 0;
     
-    const subtotal = calculateSubtotal();
+    const subtotal = calculateSubtotal() || 0;
+    if (subtotal <= 0) return 0;
+    
     if (appliedDiscount.type === 'percentage') {
-      return (subtotal * appliedDiscount.value) / 100;
+      const discount = (subtotal * (appliedDiscount.value || 0)) / 100;
+      return isNaN(discount) ? 0 : discount;
     } else {
-      return Math.min(appliedDiscount.value, subtotal); // Don't discount more than the total
+      const discount = Math.min(appliedDiscount.value || 0, subtotal);
+      return isNaN(discount) ? 0 : discount;
     }
   };
 
   const calculateTotal = () => {
-    const subtotal = calculateSubtotal();
-    const discountAmount = calculateDiscountAmount();
-    return Math.max(0, subtotal - discountAmount);
+    const subtotal = calculateSubtotal() || 0;
+    const discountAmount = calculateDiscountAmount() || 0;
+    const total = subtotal - discountAmount;
+    return isNaN(total) ? 0 : Math.max(0, total);
   };
 
   const handleDiscountSelect = (discount) => {
@@ -543,13 +566,20 @@ const SalesPage = () => {
   };
 
   const calculateDiscountedItemPrice = (item) => {
-    if (!appliedDiscount) return item.totalPrice;
+    if (!item) return 0;
+    const itemPrice = item?.totalPrice ?? 0;
+    if (isNaN(itemPrice) || itemPrice <= 0) return 0;
+    
+    if (!appliedDiscount) return itemPrice;
     
     const subtotal = calculateSubtotal();
+    if (!subtotal || subtotal <= 0) return itemPrice;
+    
     const discountAmount = calculateDiscountAmount();
     const discountRatio = discountAmount / subtotal;
     
-    return item.totalPrice * (1 - discountRatio);
+    const discountedPrice = itemPrice * (1 - discountRatio);
+    return isNaN(discountedPrice) ? itemPrice : Math.max(0, discountedPrice);
   };
 
   const handleCheckout = () => {
@@ -595,13 +625,17 @@ const SalesPage = () => {
   };
 
   const calculateChange = () => {
-    const total = calculateTotal();
-    const paid = parseFloat(cashAmount || 0);
+    const total = calculateTotal() || 0;
+    const paid = parseFloat(cashAmount || 0) || 0;
+    if (isNaN(paid) || isNaN(total)) {
+      return 0;
+    }
     // If no cash amount entered, assume exact payment (no change)
     if (paid === 0) {
       return 0;
     }
-    return Math.max(0, paid - total);
+    const change = paid - total;
+    return isNaN(change) ? 0 : Math.max(0, change);
   };
 
   const calculateChangeNotes = (changeAmount) => {
@@ -644,14 +678,22 @@ const SalesPage = () => {
                   cashPaymentTimeoutRef.current = setTimeout(() => {
                     cashPaymentTimeoutRef.current = null;
                     setCashConfirmDialogOpen(false);
-                    processCashPayment();
+                    // Show notes/VAT dialog instead of processing payment directly
+                    setPendingPaymentMethod('CASH');
+                    setNotesVatDialogOpen(true);
                   }, 5000);
                 } else {
-                  // No change due, proceed directly
-                  processCashPayment();
+                  // No change due, show notes/VAT dialog
+                  setPendingPaymentMethod('CASH');
+                  setNotesVatDialogOpen(true);
                 }
+              } else if (selectedPaymentMethod === 'SPLIT') {
+                // Split payment - show split payment dialog
+                setSplitPaymentDialogOpen(true);
               } else {
-                processCardPayment();
+                // Card payment - show notes/VAT dialog
+                setPendingPaymentMethod('CARD');
+                setNotesVatDialogOpen(true);
               }
             };
 
@@ -672,17 +714,31 @@ const SalesPage = () => {
     setError(null);
     setSuccess(null);
     setCheckoutDialogOpen(false);
+    setNotesVatDialogOpen(false); // Close notes/VAT dialog
 
     try {
-      const saleItems = cart.map((item) => ({
-        itemId: item.itemId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        totalPrice: calculateDiscountedItemPrice(item)
-      }));
+      // Calculate total amount from original prices (actual price customer pays - including VAT)
+      let totalAmount = 0;
+      const saleItems = cart.map((item) => {
+        // Get the actual price the customer pays (with discounts, including original VAT)
+        const actualItemPrice = calculateDiscountedItemPrice(item);
+        
+        // Add to total - this is the actual price paid
+        totalAmount += actualItemPrice;
+        
+        // For sale items, store the actual price paid and the individual item VAT rate
+        // The backend will calculate VAT breakdown based on individual item VAT rate
+        return {
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: actualItemPrice, // Store actual price paid (including original VAT)
+          vatRate: item.vatRate != null ? item.vatRate : 23.00 // Use individual item VAT rate (0 is valid)
+        };
+      });
 
       const saleData = {
-        totalAmount: calculateTotal(),
+        totalAmount: totalAmount, // Total is actual price paid (including VAT)
         subtotalAmount: calculateSubtotal(),
         discountAmount: calculateDiscountAmount(),
         discountType: appliedDiscount?.type || null,
@@ -690,8 +746,10 @@ const SalesPage = () => {
         paymentMethod: 'CASH',
         saleItems: saleItems,
         userId: user?.id || null,
+        notes: saleNotes || null, // Include notes in sale data
+        selectedVatRate: null, // No longer using selectedVatRate - each item has its own VAT
         cashAmount: parseFloat(cashAmount || 0),
-        changeDue: parseFloat(cashAmount || 0) > 0 ? calculateChange() : 0
+        changeDue: parseFloat(cashAmount || 0) > 0 ? (parseFloat(cashAmount || 0) - totalAmount) : 0
       };
 
       const response = await salesAPI.create(saleData);
@@ -702,6 +760,7 @@ const SalesPage = () => {
       setCart([]);
       setCashAmount('');
       setSelectedNotes({});
+      setSaleNotes(''); // Clear sale notes after sale
       setAppliedDiscount(null); // Clear discount after sale
       setSelectedCartItem(null); // Clear selected item after sale
       setCustomDiscountAmount('');
@@ -735,17 +794,31 @@ const SalesPage = () => {
     setError(null);
     setSuccess(null);
     setCheckoutDialogOpen(false);
+    setNotesVatDialogOpen(false); // Close notes/VAT dialog
 
     try {
-      const saleItems = cart.map((item) => ({
-        itemId: item.itemId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        totalPrice: calculateDiscountedItemPrice(item)
-      }));
+      // Calculate total amount from original prices (actual price customer pays - including VAT)
+      let totalAmount = 0;
+      const saleItems = cart.map((item) => {
+        // Get the actual price the customer pays (with discounts, including original VAT)
+        const actualItemPrice = calculateDiscountedItemPrice(item);
+        
+        // Add to total - this is the actual price paid
+        totalAmount += actualItemPrice;
+        
+        // For sale items, store the actual price paid and the individual item VAT rate
+        // The backend will calculate VAT breakdown based on individual item VAT rate
+        return {
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: actualItemPrice, // Store actual price paid (including original VAT)
+          vatRate: item.vatRate != null ? item.vatRate : 23.00 // Use individual item VAT rate (0 is valid)
+        };
+      });
 
       const saleData = {
-        totalAmount: calculateTotal(),
+        totalAmount: totalAmount, // Total is actual price paid (including VAT)
         subtotalAmount: calculateSubtotal(),
         discountAmount: calculateDiscountAmount(),
         discountType: appliedDiscount?.type || null,
@@ -753,6 +826,8 @@ const SalesPage = () => {
         paymentMethod: 'CARD',
         saleItems: saleItems,
         userId: user?.id || null,
+        notes: saleNotes || null, // Include notes in sale data
+        selectedVatRate: null, // No longer using selectedVatRate - each item has its own VAT
       };
 
       const response = await salesAPI.create(saleData);
@@ -761,6 +836,7 @@ const SalesPage = () => {
       setLastSale(response.data);
       
       setCart([]);
+      setSaleNotes(''); // Clear sale notes after sale
       setAppliedDiscount(null); // Clear discount after sale
       setCustomDiscountAmount('');
       setSelectedCartItem(null); // Clear selected item after sale
@@ -788,6 +864,135 @@ const SalesPage = () => {
     }
   };
 
+  const processSplitPayment = async () => {
+    // Prevent duplicate payment processing
+    if (paymentInProgressRef.current) {
+      return;
+    }
+    
+    paymentInProgressRef.current = true;
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    setCheckoutDialogOpen(false);
+    setSplitPaymentDialogOpen(false);
+    setNotesVatDialogOpen(false);
+
+    try {
+      const totalAmount = calculateTotal() || 0;
+      if (isNaN(totalAmount) || totalAmount <= 0) {
+        throw new Error('Invalid total amount. Please ensure cart has valid items.');
+      }
+      
+      const cashAmountValue = parseFloat(splitCashAmount || 0) || 0;
+      const cardAmountValue = parseFloat(splitCardAmount || 0) || 0;
+      
+      if (isNaN(cashAmountValue) || isNaN(cardAmountValue)) {
+        throw new Error('Invalid payment amounts. Please enter valid numbers.');
+      }
+      
+      const splitTotal = cashAmountValue + cardAmountValue;
+
+      // Validate split amounts
+      if (cashAmountValue < 0 || cardAmountValue < 0) {
+        throw new Error('Payment amounts cannot be negative');
+      }
+
+      if (Math.abs(splitTotal - totalAmount) > 0.01) {
+        throw new Error(`Split payment amounts (€${splitTotal.toFixed(2)}) must equal total amount (€${totalAmount.toFixed(2)})`);
+      }
+
+      if (cashAmountValue === 0 && cardAmountValue === 0) {
+        throw new Error('At least one payment method must have an amount greater than 0');
+      }
+
+      // Calculate total amount from original prices (actual price customer pays - including VAT)
+      let calculatedTotalAmount = 0;
+      const saleItems = cart.map((item) => {
+        // Get the actual price the customer pays (with discounts, including original VAT)
+        const actualItemPrice = calculateDiscountedItemPrice(item);
+        
+        // Add to total - this is the actual price paid
+        calculatedTotalAmount += actualItemPrice;
+        
+        // For sale items, store the actual price paid and the individual item VAT rate
+        // The backend will calculate VAT breakdown based on individual item VAT rate
+        return {
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: actualItemPrice, // Store actual price paid (including original VAT)
+          vatRate: item.vatRate != null ? item.vatRate : 23.00 // Use individual item VAT rate (0 is valid)
+        };
+      });
+
+      // Build payment splits array
+      const paymentSplits = [];
+      if (cashAmountValue > 0) {
+        paymentSplits.push({
+          paymentMethod: 'CASH',
+          amount: cashAmountValue
+        });
+      }
+      if (cardAmountValue > 0) {
+        paymentSplits.push({
+          paymentMethod: 'CARD',
+          amount: cardAmountValue
+        });
+      }
+
+      const saleData = {
+        totalAmount: calculatedTotalAmount, // Total is actual price paid (including VAT)
+        subtotalAmount: calculateSubtotal(),
+        discountAmount: calculateDiscountAmount(),
+        discountType: appliedDiscount?.type || null,
+        discountValue: appliedDiscount?.value || null,
+        paymentMethod: 'SPLIT',
+        paymentSplits: paymentSplits,
+        saleItems: saleItems,
+        userId: user?.id || null,
+        notes: saleNotes || null, // Include notes in sale data
+        selectedVatRate: null, // No longer using selectedVatRate - each item has its own VAT
+      };
+
+      const response = await salesAPI.create(saleData);
+      
+      // Store the last sale for printing
+      setLastSale(response.data);
+      
+      setCart([]);
+      setSplitCashAmount('');
+      setSplitCardAmount('');
+      setSelectedNotes({});
+      setSaleNotes(''); // Clear sale notes after sale
+      setAppliedDiscount(null); // Clear discount after sale
+      setSelectedCartItem(null); // Clear selected item after sale
+      setCustomDiscountAmount('');
+      setSuccess('Split payment completed successfully!');
+      addTimeout(() => setSuccess(null), 3000);
+      // Refocus barcode input after payment
+      setTimeout(() => {
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.focus();
+        }
+      }, 200);
+    } catch (err) {
+      console.error('Error creating sale:', err);
+      console.error('Error response:', err.response?.data);
+      setError(`Failed to complete sale: ${err.response?.data || err.message}`);
+      setTimeout(() => setError(null), 5000);
+      // Refocus barcode input even on error
+      setTimeout(() => {
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.focus();
+        }
+      }, 200);
+    } finally {
+      setLoading(false);
+      paymentInProgressRef.current = false;
+    }
+  };
+
   const handleQuickPriceSale = (price, e) => {
     // Use the same logic as plus button
     if (e) {
@@ -798,6 +1003,20 @@ const SalesPage = () => {
     addOrUpdateQuickSaleItem(price);
     setSuccess(`Quick sale of €${price.toFixed(2)} added to cart.`);
     setTimeout(() => setSuccess(null), 2000);
+  };
+
+  const handleManualSale = () => {
+    const amount = parseFloat(manualSaleAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Please enter a valid amount greater than 0.');
+      addTimeout(() => setError(null), 3000);
+      return;
+    }
+    
+    addOrUpdateQuickSaleItem(amount, 'Manual Sale');
+    setSuccess(`Manual sale of €${amount.toFixed(2)} added to cart.`);
+    setTimeout(() => setSuccess(null), 2000);
+    setManualSaleAmount('');
   };
 
   const handleCustomQuickPrice = () => {
@@ -814,6 +1033,8 @@ const SalesPage = () => {
   const handleCategoryClick = async (category) => {
     if (category.name === 'Quick Sale') {
       setCurrentView('quickSale');
+    } else if (category.name === 'Manual Sales') {
+      setCurrentView('manualSale');
     } else {
       try {
         setLoading(true);
@@ -860,7 +1081,8 @@ const SalesPage = () => {
       itemBarcode: item.barcode || 'N/A',
       quantity: 1,
       unitPrice: parseFloat(item.price),
-      totalPrice: parseFloat(item.price)
+      totalPrice: parseFloat(item.price),
+      vatRate: item.vatRate != null ? item.vatRate : 23.00 // Add VAT rate from item (0 is valid)
     };
 
     addOrUpdateCartItem(cartItem);
@@ -917,6 +1139,21 @@ const SalesPage = () => {
       return;
     }
     
+    // Check if this is a manual sale (no itemId) - these don't exist in the database
+    if (selectedCartItem.itemId === null) {
+      // For manual sales, use cart item data directly
+      const itemToEditData = {
+        ...selectedCartItem,
+        stockQuantity: selectedCartItem.quantity, // Use cart quantity as stock (not editable for manual sales)
+        cartQuantity: selectedCartItem.quantity, // Cart quantity
+        isManualSale: true // Flag to indicate this is a manual sale
+      };
+      
+      setItemToEdit(itemToEditData);
+      setEditItemDialogOpen(true);
+      return;
+    }
+    
     // Fetch the full item data from database to get actual stock quantity and category
     try {
       setLoading(true);
@@ -934,7 +1171,8 @@ const SalesPage = () => {
         generalExpiryDate: fullItemData.generalExpiryDate,
         batchId: fullItemData.batchId,
         description: fullItemData.description,
-        vatRate: fullItemData.vatRate
+        vatRate: fullItemData.vatRate,
+        isManualSale: false
       };
       
       setItemToEdit(itemToEditData);
@@ -973,11 +1211,76 @@ const SalesPage = () => {
     );
   };
 
+  const handleItemVatChange = (itemId, vatRate) => {
+    setCart(prevCart => 
+      prevCart.map(item => {
+        if (item.id === itemId) {
+          return {
+            ...item,
+            vatRate: parseFloat(vatRate)
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleManualSalePriceChange = (itemId, newPrice) => {
+    const priceValue = parseFloat(newPrice) || 0;
+    if (isNaN(priceValue) || priceValue < 0) {
+      return; // Invalid price, don't update
+    }
+    
+    setCart(prevCart => 
+      prevCart.map(item => {
+        if (item.id === itemId && item.itemId === null) { // Only for manual sales
+          const updatedItem = {
+            ...item,
+            unitPrice: priceValue,
+            totalPrice: priceValue * item.quantity
+          };
+          return updatedItem;
+        }
+        return item;
+      })
+    );
+  };
+
   const handleSaveEditedItem = async (formData) => {
     if (!itemToEdit) return;
 
     setLoading(true);
     try {
+      // Check if this is a manual sale (no database item)
+      if (itemToEdit.isManualSale || itemToEdit.itemId === null) {
+        // For manual sales, just update the cart item - no database update needed
+        const updatedCart = cart.map(item => {
+          if (item.id === itemToEdit.id) {
+            const originalCartQuantity = item.quantity;
+            const updatedItem = {
+              ...item,
+              itemName: formData.name || item.itemName,
+              unitPrice: parseFloat(formData.price),
+              quantity: originalCartQuantity, // Keep cart quantity unchanged
+              totalPrice: parseFloat(formData.price) * originalCartQuantity,
+              itemBarcode: formData.barcode || item.itemBarcode || 'N/A',
+              vatRate: parseFloat(formData.vatRate) || item.vatRate || 0.00
+            };
+            return updatedItem;
+          }
+          return item;
+        });
+
+        setCart(updatedCart);
+        setEditItemDialogOpen(false);
+        setSuccess(`Updated ${formData.name || itemToEdit.itemName} in cart.`);
+        addTimeout(() => setSuccess(null), 3000);
+        setItemToEdit(null);
+        setLoading(false);
+        return;
+      }
+
+      // For regular items, update the database
       // Prepare item data for database update
       // IMPORTANT: Update stockQuantity in database (this is the DB stock, not cart quantity)
       const itemData = {
@@ -1078,7 +1381,7 @@ const SalesPage = () => {
           @media print {
             @page { 
               size: 2in 4in;
-              margin: 0.01in;
+              margin: 0;
             }
             body {
               margin: 0;
@@ -1088,12 +1391,8 @@ const SalesPage = () => {
           
           body {
             font-family: 'Arial', sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 4in;
-            padding: 0.01in;
+            margin: 0;
+            padding: 2px;
             font-weight: bold;
           }
           
@@ -1106,13 +1405,21 @@ const SalesPage = () => {
           .item-name {
             font-size: 22px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 3px;
             word-wrap: break-word;
             line-height: 1.2;
           }
           
+          .barcode-price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 2px 0;
+            gap: 5px;
+          }
+          
           .barcode-container {
-            margin: 8px 0;
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -1121,13 +1428,14 @@ const SalesPage = () => {
           .barcode-image {
             max-width: 100%;
             height: auto;
+            max-height: 35px;
           }
           
           .item-price {
             font-size: 24px;
             font-weight: bold;
             color: #000;
-            margin-top: 5px;
+            white-space: nowrap;
           }
           
           .price-symbol {
@@ -1139,13 +1447,15 @@ const SalesPage = () => {
       <body>
         <div class="label-container">
           <div class="item-name">${itemToPrint.name}</div>
-          ${barcodeDataURL ? `
-            <div class="barcode-container">
-              <img src="${barcodeDataURL}" alt="Barcode" class="barcode-image" />
+          <div class="barcode-price-row">
+            ${barcodeDataURL ? `
+              <div class="barcode-container">
+                <img src="${barcodeDataURL}" alt="Barcode" class="barcode-image" />
+              </div>
+            ` : '<div></div>'}
+            <div class="item-price">
+              <span class="price-symbol">€</span>${itemToPrint.price.toFixed(2)}
             </div>
-          ` : ''}
-          <div class="item-price">
-            <span class="price-symbol">€</span>${itemToPrint.price.toFixed(2)}
           </div>
         </div>
       </body>
@@ -1244,17 +1554,60 @@ const SalesPage = () => {
   return (
     <div 
       className="sales-page-container" 
-      style={{ backgroundColor: '#000000', margin: 0, padding: '0.2rem', width: '100vw', height: '100vh', overflow: 'auto', position: 'relative' }}
+      style={{ 
+        backgroundColor: '#000000', 
+        margin: 0, 
+        padding: 0, 
+        width: '100vw', 
+        height: '100vh', 
+        maxWidth: '100vw',
+        maxHeight: '100vh',
+        overflow: 'hidden', 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        flexDirection: 'column'
+      }}
     >
       <style>{`
+        /* Reset body and html for full screen */
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          overflow: hidden !important;
+        }
+        
+        #root {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          overflow: hidden !important;
+        }
+        
         .sales-page-container {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          overflow-x: auto;
-          overflow-y: auto;
-          width: 100vw;
-          height: 100vh;
-          position: relative;
-          box-sizing: border-box;
+          width: 100vw !important;
+          height: 100vh !important;
+          max-width: 100vw !important;
+          max-height: 100vh !important;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
+          display: flex !important;
+          flex-direction: column !important;
+          overflow: hidden !important;
+          z-index: 1;
         }
         
         /* Enable scrolling for all child containers when zoomed */
@@ -1376,7 +1729,17 @@ const SalesPage = () => {
         }
       `}</style>
       {/* Compact Header */}
-      <div className="text-white py-2 px-3" style={{ minHeight: '55px', margin: 0, padding: '0.4rem 1rem', backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a' }}>
+      <div className="text-white py-2 px-3" style={{ 
+        minHeight: '75px', 
+        height: 'auto',
+        flexShrink: 0,
+        margin: 0, 
+        padding: '0.5rem 1rem', 
+        backgroundColor: '#1a1a1a', 
+        borderBottom: '1px solid #2a2a2a',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
         <div className="d-flex align-items-center justify-content-between w-100">
         <div className="d-flex align-items-center">
             <button
@@ -1553,9 +1916,31 @@ const SalesPage = () => {
       )}
 
       {/* Main Content - Two Column Layout */}
-      <div className="d-flex" style={{ margin: 0, padding: '0.3rem', gap: '0.4rem', minWidth: 'fit-content', minHeight: 'fit-content' }}>
+      <div className="d-flex" style={{ 
+        margin: 0, 
+        padding: '0.3rem', 
+        gap: '0.4rem', 
+        flex: '1 1 auto',
+        minHeight: 0,
+        maxHeight: 'calc(100vh - 75px)',
+        overflow: 'hidden',
+        width: '100%',
+        height: 'calc(100vh - 75px)',
+        boxSizing: 'border-box'
+      }}>
           {/* Left Panel - Items Grid (70%) */}
-        <div className="d-flex flex-column" style={{ width: '70%', padding: 0, backgroundColor: '#2a2a2a', borderRadius: '8px', overflow: 'hidden', color: '#ffffff', border: '1px solid #333333' }}>
+        <div className="d-flex flex-column" style={{ 
+          width: '70%', 
+          flex: '0 0 70%',
+          padding: 0, 
+          backgroundColor: '#2a2a2a', 
+          borderRadius: '8px', 
+          overflow: 'hidden', 
+          color: '#ffffff', 
+          border: '1px solid #333333',
+          minHeight: 0,
+          height: '100%'
+        }}>
           {showHeldTransactions ? (
             /* Held Transactions View */
             <div className="bg-dark" style={{ height: '100%', overflowY: 'auto', padding: '1rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
@@ -1636,9 +2021,18 @@ const SalesPage = () => {
             /* Normal Sales View */
             <>
             {/* Sales Cart Table with Control Buttons */}
-            <div className="d-flex">
+            <div className="d-flex" style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}>
               {/* Cart Table */}
-              <div className="bg-dark flex-grow-1" style={{ height: '350px', overflowY: 'auto', padding: '0.5rem', backgroundColor: '#2a2a2a', border: '1px solid #333333', borderRadius: '8px', color: '#ffffff' }}>
+              <div className="bg-dark flex-grow-1" style={{ 
+                flex: '1 1 auto',
+                minHeight: 0,
+                overflowY: 'auto', 
+                padding: '0.5rem', 
+                backgroundColor: '#2a2a2a', 
+                border: '1px solid #333333', 
+                borderRadius: '8px', 
+                color: '#ffffff' 
+              }}>
               {cart.length === 0 ? (
                   <div className="text-center py-2">
                     <i className="bi bi-cart fs-3" style={{ color: '#aaaaaa' }}></i>
@@ -1649,12 +2043,13 @@ const SalesPage = () => {
                   <Table striped hover className="mb-0" size="sm">
                       <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                         <tr>
-                          <th style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>ID</th>
-                          <th style={{ width: '40%', fontSize: '1rem', padding: '0.6rem' }}>Item</th>
-                          <th className="text-end" style={{ width: '12%', fontSize: '1rem', padding: '0.6rem' }}>Price</th>
-                          <th className="text-center" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Quantity</th>
-                          <th className="text-end" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Discount</th>
-                          <th className="text-end" style={{ width: '20%', fontSize: '1rem', padding: '0.6rem' }}>Total</th>
+                          <th style={{ width: '6%', fontSize: '1rem', padding: '0.6rem' }}>ID</th>
+                          <th style={{ width: '35%', fontSize: '1rem', padding: '0.6rem' }}>Item</th>
+                          <th className="text-end" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Price</th>
+                          <th className="text-center" style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>Quantity</th>
+                          <th className="text-end" style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>Discount</th>
+                          <th className="text-center" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>VAT</th>
+                          <th className="text-end" style={{ width: '13%', fontSize: '1rem', padding: '0.6rem' }}>Total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1682,7 +2077,27 @@ const SalesPage = () => {
                             </div>
                           </td>
                             <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
-                              {item.discountApplied ? (
+                              {item.itemId === null ? (
+                                // Manual sale - make price editable inline
+                                <Form.Control
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={item.unitPrice || 0}
+                                  onChange={(e) => handleManualSalePriceChange(item.id, e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onFocus={(e) => e.target.select()}
+                                  style={{ 
+                                    width: '80px', 
+                                    fontSize: '0.9rem', 
+                                    backgroundColor: '#3a3a3a', 
+                                    border: '1px solid #ffc107', 
+                                    color: '#ffffff',
+                                    textAlign: 'right',
+                                    display: 'inline-block'
+                                  }}
+                                />
+                              ) : item.discountApplied ? (
                                 <div>
                                   <div className="text-decoration-line-through" style={{ fontSize: '0.9rem', color: '#aaaaaa' }}>
                                     €{item.originalPrice.toFixed(2)}
@@ -1708,6 +2123,19 @@ const SalesPage = () => {
                                 onClick={(e) => e.stopPropagation()}
                                 style={{ width: '60px', fontSize: '0.9rem', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                               />
+                            </td>
+                            <td className="text-center" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                              <Form.Select
+                                size="sm"
+                                value={item.vatRate != null ? item.vatRate : 23.00}
+                                onChange={(e) => handleItemVatChange(item.id, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ width: '80px', fontSize: '0.9rem', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
+                              >
+                                <option value="0">0%</option>
+                                <option value="13.5">13.5%</option>
+                                <option value="23">23%</option>
+                              </Form.Select>
                             </td>
                             <td className="text-end fw-bold" style={{ fontSize: '1rem', padding: '0.6rem' }}>€{item.totalPrice.toFixed(2)}</td>
                           </tr>
@@ -1744,10 +2172,18 @@ const SalesPage = () => {
                               <Button
                     size="lg"
                     onClick={handleEditSelectedItem}
-                    disabled={!selectedCartItem}
+                    disabled={!selectedCartItem || (selectedCartItem && selectedCartItem.itemId === null)}
                     className="flex-fill btn-3d"
-                    style={{ fontSize: '1.4rem', padding: '0.8rem', width: '100%', minHeight: '80px', backgroundColor: selectedCartItem ? '#3a3a3a' : '#2a2a2a', color: '#ffffff' }}
-                    title="Edit item"
+                    style={{ 
+                      fontSize: '1.4rem', 
+                      padding: '0.8rem', 
+                      width: '100%', 
+                      minHeight: '80px', 
+                      backgroundColor: (selectedCartItem && selectedCartItem.itemId !== null) ? '#3a3a3a' : '#2a2a2a', 
+                      color: '#ffffff',
+                      opacity: (selectedCartItem && selectedCartItem.itemId === null) ? 0.5 : 1
+                    }}
+                    title={selectedCartItem && selectedCartItem.itemId === null ? "Manual sales can be edited directly in the cart" : "Edit item"}
                   >
                     <i className="bi bi-pencil"></i>
                               </Button>
@@ -1924,10 +2360,11 @@ const SalesPage = () => {
                           console.log('💰 IPC invoke function exists:', typeof window.electron.ipcRenderer.invoke === 'function');
                           
                           try {
-                            // Pass company info for the "Till Opened" receipt
+                            // Send ESC/POS command directly to open drawer (no printing)
                             const result = await window.electron.ipcRenderer.invoke('open-till', {
-                              companyName: companyName,
-                              companyAddress: companyAddress
+                              // Optional: specify printerPort or serialPort if needed
+                              // printerPort: 'LPT1', // Windows port (LPT1, LPT2, COM1, etc.)
+                              // serialPort: '/dev/ttyUSB0' // Linux/Mac serial port
                             });
                             
                             console.log('💰 Open Till IPC result received:', result);
@@ -1935,14 +2372,36 @@ const SalesPage = () => {
                             console.log('💰 Result keys:', result ? Object.keys(result) : 'null');
                             
                             if (result && result.success) {
-                              const successMsg = `Cash drawer opened successfully! ${result.printer ? `(Printer: ${result.printer})` : ''}`;
+                              const successMsg = `Cash drawer opened successfully! ${result.message || ''}`;
                               setSuccess(successMsg);
                               addTimeout(() => setSuccess(null), 3000);
                               console.log('✅', successMsg);
                             } else {
-                              const errorMsg = result?.message || result?.error || 'Failed to open cash drawer. Please check printer connection and drawer cable.';
+                              let errorMsg = result?.message || result?.error || 'Failed to open cash drawer.';
+                              
+                              // Add helpful guidance for Windows users
+                              if (errorMsg.includes('Windows port')) {
+                                errorMsg += ' To find your printer port: Open Windows Settings > Devices > Printers & scanners, select your printer, click "Manage", then check "Printer properties" > "Ports" tab.';
+                              }
+                              
+                              // Try to get available ports for better error message
+                              try {
+                                const portsInfo = await window.electron.ipcRenderer.invoke('get-serial-ports');
+                                if (portsInfo && portsInfo.defaultPrinterPort) {
+                                  errorMsg += ` Default printer port: ${portsInfo.defaultPrinterPort}.`;
+                                }
+                                if (portsInfo && portsInfo.serialPorts && portsInfo.serialPorts.length > 0) {
+                                  const portList = portsInfo.serialPorts.map(p => p.path).join(', ');
+                                  errorMsg += ` Found ${portsInfo.serialPorts.length} serial port(s): ${portList}.`;
+                                }
+                                errorMsg += ' Check log file for detailed error information.';
+                              } catch (portError) {
+                                console.warn('Could not get port info:', portError);
+                                errorMsg += ' Check log file for details.';
+                              }
+                              
                               setError(errorMsg);
-                              addTimeout(() => setError(null), 8000);
+                              addTimeout(() => setError(null), 15000);
                               console.error('❌ Open Till failed:', result);
                             }
                           } catch (invokeError) {
@@ -1950,9 +2409,21 @@ const SalesPage = () => {
                             console.error('❌ Error name:', invokeError.name);
                             console.error('❌ Error message:', invokeError.message);
                             console.error('❌ Error stack:', invokeError.stack);
-                            const errorMsg = `IPC invoke failed: ${invokeError.message || invokeError.toString()}`;
+                            
+                            let errorMsg = `Failed to open cash drawer: ${invokeError.message || invokeError.toString()}`;
+                            
+                            // Try to get available ports for better error message
+                            try {
+                              const portsInfo = await window.electron.ipcRenderer.invoke('get-serial-ports');
+                              if (portsInfo && portsInfo.serialPorts && portsInfo.serialPorts.length > 0) {
+                                errorMsg += ` Available ports: ${portsInfo.serialPorts.map(p => p.path).join(', ')}. Check console/logs for details.`;
+                              }
+                            } catch (portError) {
+                              console.warn('Could not get port info:', portError);
+                            }
+                            
                             setError(errorMsg);
-                            addTimeout(() => setError(null), 8000);
+                            addTimeout(() => setError(null), 10000);
                           }
                         } catch (err) {
                           console.error('❌ Unexpected error opening cash drawer:', err);
@@ -1967,7 +2438,7 @@ const SalesPage = () => {
                         }
                       }}
                       disabled={loading}
-                      title="Open cash drawer (ESC/POS command sent directly to printer port)"
+                      title="Open cash drawer directly (ESC/POS command - no printing)"
                     >
                       <i className="bi bi-cash-stack me-2"></i>
                       Open Till
@@ -1980,7 +2451,18 @@ const SalesPage = () => {
         </div>
 
           {/* Right Sidebar */}
-        <div className="d-flex flex-column" style={{ width: '35%', padding: 0, borderRadius: '8px', border: '1px solid #333333', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+        <div className="d-flex flex-column" style={{ 
+          width: '30%', 
+          flex: '0 0 30%',
+          padding: 0, 
+          borderRadius: '8px', 
+          border: '1px solid #333333', 
+          backgroundColor: '#2a2a2a', 
+          color: '#ffffff',
+          minHeight: 0,
+          height: '100%',
+          overflow: 'hidden'
+        }}>
             {/* Selected Item Display */}
             {selectedCartItem && (
               <div className="mb-1 p-1 bg-dark rounded border" style={{ backgroundColor: '#2a2a2a', borderColor: '#333333', color: '#ffffff' }}>
@@ -2039,6 +2521,21 @@ const SalesPage = () => {
                     className="scrollable-categories"
                   >
                   <div className="d-grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                    {/* Manual Sales Button */}
+                    <Button 
+                      size="lg"
+                      className="fw-bold category-btn btn-3d"
+                      onClick={() => setCurrentView('manualSale')}
+                      style={{ 
+                        padding: '1rem', 
+                        fontSize: '1.1rem', 
+                        minHeight: '60px',
+                        backgroundColor: '#1a1a1a',
+                        color: '#ffffff'
+                      }}
+                    >
+                      Manual Sales
+                    </Button>
                 {categories.map((category) => (
                   <Button 
                     key={category.id} 
@@ -2102,6 +2599,79 @@ const SalesPage = () => {
                 ))}
                     </div>
               </div>
+                </>
+              ) : currentView === 'manualSale' ? (
+                <>
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <h5 className="fw-bold mb-0">Manual Sales</h5>
+                    <Button 
+                      size="lg" 
+                      onClick={handleBackToCategories}
+                      title="Back to Categories"
+                    style={{ fontSize: '0.9rem', padding: '0.4rem', backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+                    >
+                      <i className="bi bi-x-circle me-2"></i>
+                      Back
+                    </Button>
+            </div>
+                  {/* Manual Sale Input Container */}
+                  <div 
+                    style={{ 
+                      flex: '1',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      padding: '2rem',
+                      gap: '1.5rem'
+                    }}
+                  >
+                    <div>
+                      <label className="form-label fw-bold" style={{ color: '#ffffff', fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                        Enter Amount (€)
+                      </label>
+                      <InputGroup size="lg">
+                        <InputGroup.Text style={{ backgroundColor: '#3a3a3a', color: '#ffffff', border: '1px solid #555' }}>
+                          €
+                        </InputGroup.Text>
+                        <Form.Control
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          placeholder="0.00"
+                          value={manualSaleAmount}
+                          onChange={(e) => setManualSaleAmount(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleManualSale();
+                            }
+                          }}
+                          style={{ 
+                            backgroundColor: '#2a2a2a', 
+                            color: '#ffffff', 
+                            border: '1px solid #555',
+                            fontSize: '1.5rem',
+                            textAlign: 'center'
+                          }}
+                          autoFocus
+                        />
+                      </InputGroup>
+                    </div>
+                    <Button
+                      onClick={handleManualSale}
+                      size="lg"
+                      className="fw-bold btn-3d"
+                      style={{ 
+                        padding: '1.5rem', 
+                        fontSize: '1.3rem', 
+                        backgroundColor: '#3a3a3a',
+                        color: '#ffffff',
+                        border: '2px solid #ffffff'
+                      }}
+                    >
+                      <i className="bi bi-check-circle me-2"></i>
+                      Add to Cart
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -2362,6 +2932,8 @@ const SalesPage = () => {
                         onClick={() => {
                           setCashAmount('');
                           setSelectedNotes({});
+                          setSaleNotes('');
+                          setSelectedVatRate(null);
                         }}
                         style={{ fontSize: '1.5rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                       >
@@ -2443,18 +3015,117 @@ const SalesPage = () => {
                   <Button
                     className="w-100 py-3 rounded-0 btn-3d"
                     onClick={() => {
-                      setCashAmount('');
-                      setSelectedNotes({});
+                      handleConfirmCheckout('SPLIT');
                     }}
+                    disabled={loading || paymentInProgressRef.current}
                     style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
-                    CLEAR PAYMENTS
+                    SPLIT PAYMENT
                   </Button>
                 </div>
               </div>
             </div>
           </div>
         </Modal.Body>
+      </Modal>
+
+      {/* Split Payment Dialog */}
+      <Modal show={splitPaymentDialogOpen} onHide={() => setSplitPaymentDialogOpen(false)} centered size="lg">
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', color: '#ffffff', borderBottom: '1px solid #333' }}>
+          <Modal.Title>Split Payment</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          <div className="mb-4">
+            <h5 className="text-center mb-3">Total Amount: €{calculateTotal().toFixed(2)}</h5>
+            <div className="mb-3">
+              <label className="form-label">Cash Amount (€)</label>
+              <input
+                type="number"
+                className="form-control"
+                value={splitCashAmount}
+                onChange={(e) => {
+                  const cashValue = e.target.value;
+                  setSplitCashAmount(cashValue);
+                  // Auto-calculate card amount
+                  const total = calculateTotal() || 0;
+                  const cash = parseFloat(cashValue || 0) || 0;
+                  if (isNaN(cash)) {
+                    setSplitCardAmount('');
+                    return;
+                  }
+                  const card = total - cash;
+                  setSplitCardAmount(card >= 0 && !isNaN(card) ? card.toFixed(2) : '');
+                }}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                style={{ backgroundColor: '#2a2a2a', color: '#ffffff', border: '1px solid #444' }}
+              />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Card Amount (€)</label>
+              <input
+                type="number"
+                className="form-control"
+                value={splitCardAmount}
+                onChange={(e) => {
+                  const cardValue = e.target.value;
+                  setSplitCardAmount(cardValue);
+                  // Auto-calculate cash amount
+                  const total = calculateTotal() || 0;
+                  const card = parseFloat(cardValue || 0) || 0;
+                  if (isNaN(card)) {
+                    setSplitCashAmount('');
+                    return;
+                  }
+                  const cash = total - card;
+                  setSplitCashAmount(cash >= 0 && !isNaN(cash) ? cash.toFixed(2) : '');
+                }}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                style={{ backgroundColor: '#2a2a2a', color: '#ffffff', border: '1px solid #444' }}
+              />
+            </div>
+            <div className="alert alert-info" style={{ backgroundColor: '#2a2a2a', border: '1px solid #444', color: '#ffffff' }}>
+              <small>
+                Cash: €{(parseFloat(splitCashAmount || 0) || 0).toFixed(2)} + 
+                Card: €{(parseFloat(splitCardAmount || 0) || 0).toFixed(2)} = 
+                €{((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)).toFixed(2)}
+                {Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (calculateTotal() || 0)) > 0.01 && (
+                  <span className="text-warning"> (Total: €{(calculateTotal() || 0).toFixed(2)})</span>
+                )}
+              </small>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #333' }}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setSplitPaymentDialogOpen(false);
+              setSplitCashAmount('');
+              setSplitCardAmount('');
+            }}
+            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              // Show notes/VAT dialog first, then process split payment
+              setPendingPaymentMethod('SPLIT');
+              setNotesVatDialogOpen(true);
+              setSplitPaymentDialogOpen(false);
+            }}
+            disabled={loading || paymentInProgressRef.current || 
+              Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (calculateTotal() || 0)) > 0.01}
+            style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#000000', fontWeight: 'bold' }}
+          >
+            Continue
+          </Button>
+        </Modal.Footer>
       </Modal>
 
       {/* Item Not Found Dialog */}
@@ -2491,7 +3162,7 @@ const SalesPage = () => {
                     barcode: scannedBarcode,
                     price: cachedData.price || '',
                     stockQuantity: cachedData.stockQuantity || '',
-                    vatRate: cachedData.vatRate || '23.00',
+                    vatRate: cachedData.vatRate != null ? cachedData.vatRate : '23.00', // 0 is valid VAT rate
                     categoryId: cachedData.categoryId || ''
                   });
                   setSuccess('Previous form data restored for this barcode!');
@@ -2720,7 +3391,9 @@ const SalesPage = () => {
                 cashPaymentTimeoutRef.current = null;
               }
               setCashConfirmDialogOpen(false);
-              processCashPayment();
+              // Show notes/VAT dialog instead of processing payment directly
+              setPendingPaymentMethod('CASH');
+              setNotesVatDialogOpen(true);
             }}
             style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             className="px-5"
@@ -2729,6 +3402,81 @@ const SalesPage = () => {
             OK
           </Button>
         </Modal.Body>
+      </Modal>
+
+      {/* Notes Dialog */}
+      <Modal show={notesVatDialogOpen} onHide={() => setNotesVatDialogOpen(false)} centered size="lg">
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className="bi bi-sticky me-2"></i>
+            Sale Notes
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          <div className="mb-4">
+            <label className="form-label fw-bold mb-3" style={{ color: '#e0e0e0', fontSize: '1.1rem' }}>
+              <i className="bi bi-sticky me-2"></i>
+              Sale Notes (Optional)
+            </label>
+            <Form.Control
+              as="textarea"
+              rows={4}
+              placeholder="Enter notes for this sale... (Press Enter for new line)"
+              value={saleNotes}
+              onChange={(e) => setSaleNotes(e.target.value)}
+              maxLength={1000}
+              style={{ 
+                backgroundColor: '#3a3a3a', 
+                border: '2px solid #555', 
+                color: '#ffffff',
+                fontSize: '1.1rem',
+                padding: '0.75rem',
+                resize: 'vertical',
+                fontFamily: 'inherit'
+              }}
+            />
+            <Form.Text className="text-muted" style={{ color: '#ffffff', fontSize: '0.95rem' }}>
+              {saleNotes.length}/1000 characters
+            </Form.Text>
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+          <Button 
+            onClick={() => {
+              setNotesVatDialogOpen(false);
+              setSaleNotes('');
+            }}
+            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => {
+              // Process payment based on pending payment method
+              if (pendingPaymentMethod === 'CASH') {
+                processCashPayment();
+              } else if (pendingPaymentMethod === 'CARD') {
+                processCardPayment();
+              } else if (pendingPaymentMethod === 'SPLIT') {
+                processSplitPayment();
+              }
+            }}
+            style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff', fontWeight: 'bold' }}
+            disabled={loading || paymentInProgressRef.current}
+          >
+            {loading ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-2"></i>
+                Complete Sale
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
       </Modal>
 
       {/* Delete Confirmation Modal */}

@@ -27,6 +27,12 @@ public class SaleDTO {
     
     private Long userId;
     
+    private String notes;
+    
+    private BigDecimal selectedVatRate;
+    
+    private List<SalePaymentDTO> paymentSplits; // For split payments
+    
     // Constructors
     public SaleDTO() {}
     
@@ -83,5 +89,29 @@ public class SaleDTO {
     
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+    
+    public String getNotes() {
+        return notes;
+    }
+    
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+    
+    public BigDecimal getSelectedVatRate() {
+        return selectedVatRate;
+    }
+    
+    public void setSelectedVatRate(BigDecimal selectedVatRate) {
+        this.selectedVatRate = selectedVatRate;
+    }
+    
+    public List<SalePaymentDTO> getPaymentSplits() {
+        return paymentSplits;
+    }
+    
+    public void setPaymentSplits(List<SalePaymentDTO> paymentSplits) {
+        this.paymentSplits = paymentSplits;
     }
 }

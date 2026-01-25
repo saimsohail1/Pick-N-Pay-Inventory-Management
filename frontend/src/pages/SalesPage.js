@@ -3377,7 +3377,6 @@ const SalesPage = () => {
               }
               setCashConfirmDialogOpen(false);
               // Process cash payment directly
-              setPendingPaymentMethod('CASH');
               processCashPayment();
             }}
             style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}

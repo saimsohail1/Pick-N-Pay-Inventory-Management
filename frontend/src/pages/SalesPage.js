@@ -899,9 +899,8 @@ const SalesPage = () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    setCheckoutDialogOpen(false);
-    setSplitPaymentDialogOpen(false);
-    setNotesVatDialogOpen(false);
+      setCheckoutDialogOpen(false);
+      setSplitPaymentDialogOpen(false);
 
     try {
       const totalAmount = calculateTotal() || 0;
@@ -3377,9 +3376,9 @@ const SalesPage = () => {
                 cashPaymentTimeoutRef.current = null;
               }
               setCashConfirmDialogOpen(false);
-              // Show notes/VAT dialog instead of processing payment directly
+              // Process cash payment directly
               setPendingPaymentMethod('CASH');
-              setNotesVatDialogOpen(true);
+              processCashPayment();
             }}
             style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
             className="px-5"

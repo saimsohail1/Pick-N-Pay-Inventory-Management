@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Container, Table, Button, Form, Row, Col, Alert, Spinner, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { salesAPI, usersAPI, companySettingsAPI } from '../services/api';
@@ -25,6 +25,8 @@ const DailyReport = () => {
   const [companySettings, setCompanySettings] = useState({ companyName: "ADAMS GREEN", address: '' });
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const requestIdRef = useRef(0);
 
   // Helper function to format date as DD/MM/YYYY
   const formatDate = (dateStr) => {
@@ -46,6 +48,7 @@ const DailyReport = () => {
   };
 
   const generateReport = async () => {
+    const currentRequestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -94,7 +97,7 @@ const DailyReport = () => {
         response = await salesAPI.getDailyReportByUser(startDate, user?.id);
         }
       }
-      console.log('API response:', response);
+      if (currentRequestId !== requestIdRef.current) return;
       const dailyReport = response.data;
 
       if (!dailyReport) {
@@ -156,6 +159,7 @@ const DailyReport = () => {
       });
 
     } catch (err) {
+      if (currentRequestId !== requestIdRef.current) return;
       console.error('Failed to generate report:', err);
       console.error('Error details:', {
         message: err.message,
@@ -186,7 +190,9 @@ const DailyReport = () => {
         vatBreakdown: []
       });
     } finally {
-      setLoading(false);
+      if (currentRequestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -196,19 +202,23 @@ const DailyReport = () => {
     setSelectedUserId(userId);
   };
 
-  // Auto-load report on page load
   useEffect(() => {
-    generateReport();
     fetchCompanySettings();
     if (isAdmin()) {
       fetchUsers();
+    } else {
+      setUsersLoaded(true);
     }
   }, []);
 
-  // Auto-generate report when date or user selection changes
   useEffect(() => {
+    if (!usersLoaded) return;
     generateReport();
-  }, [startDate, endDate, selectedUserId]);
+  }, [startDate, endDate, selectedUserId, usersLoaded]);
+
+  useEffect(() => {
+    return () => { requestIdRef.current++; };
+  }, []);
 
   const fetchCompanySettings = async () => {
     try {
@@ -232,13 +242,14 @@ const DailyReport = () => {
     try {
       const response = await usersAPI.getAll();
       setUsers(response.data);
-      // Set admin user as default selection
       const adminUser = response.data.find(u => u.role === 'ADMIN');
       if (adminUser) {
-        setSelectedUserId(adminUser.id);
+        setSelectedUserId(String(adminUser.id));
       }
     } catch (err) {
       console.error('Failed to fetch users:', err);
+    } finally {
+      setUsersLoaded(true);
     }
   };
 

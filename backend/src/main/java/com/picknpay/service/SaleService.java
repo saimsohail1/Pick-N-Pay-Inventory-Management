@@ -287,24 +287,29 @@ public class SaleService {
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay = date.atTime(23, 59, 59);
 
-        // Get total sales count and amount
-        Long totalSales = saleRepository.getSalesCountByDateRange(startOfDay, endOfDay);
-        Double totalAmountDouble = saleRepository.getTotalSalesByDateRange(startOfDay, endOfDay);
-        BigDecimal totalAmount = totalAmountDouble != null ? BigDecimal.valueOf(totalAmountDouble) : BigDecimal.ZERO;
-
-        // Get cash sales count and amount
-        Long cashSales = saleRepository.getSalesCountByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CASH);
-        Double cashAmountDouble = saleRepository.getTotalSalesByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CASH);
-        BigDecimal cashAmount = cashAmountDouble != null ? BigDecimal.valueOf(cashAmountDouble) : BigDecimal.ZERO;
-
-        // Get card sales count and amount
-        Long cardSales = saleRepository.getSalesCountByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CARD);
-        Double cardAmountDouble = saleRepository.getTotalSalesByDateRangeAndPaymentMethod(startOfDay, endOfDay, PaymentMethod.CARD);
-        BigDecimal cardAmount = cardAmountDouble != null ? BigDecimal.valueOf(cardAmountDouble) : BigDecimal.ZERO;
-
-        // Get all sales for the day to handle split payments (with salePayments eagerly fetched)
         List<Sale> allSales = saleRepository.findSalesByDateRangeWithPayments(startOfDay, endOfDay);
-        
+
+        Long totalSales = (long) allSales.size();
+        BigDecimal totalAmount = allSales.stream()
+                .map(Sale::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Long cashSales = allSales.stream()
+                .filter(s -> s.getPaymentMethod() == PaymentMethod.CASH)
+                .count();
+        BigDecimal cashAmount = allSales.stream()
+                .filter(s -> s.getPaymentMethod() == PaymentMethod.CASH)
+                .map(Sale::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Long cardSales = allSales.stream()
+                .filter(s -> s.getPaymentMethod() == PaymentMethod.CARD)
+                .count();
+        BigDecimal cardAmount = allSales.stream()
+                .filter(s -> s.getPaymentMethod() == PaymentMethod.CARD)
+                .map(Sale::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         // Add split payment amounts to cash and card totals
         for (Sale sale : allSales) {
             if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null && !sale.getSalePayments().isEmpty()) {

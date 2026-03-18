@@ -3,6 +3,7 @@ package com.picknpay.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.BatchSize;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -40,9 +41,11 @@ public class Sale {
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod;
     
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<SaleItem> saleItems;
     
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<SalePayment> salePayments;
     

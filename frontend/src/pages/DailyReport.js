@@ -253,6 +253,55 @@ const DailyReport = () => {
     }
   };
 
+  const handleExportCSV = () => {
+    const dateRangeText = startDate === endDate ? startDate : `${startDate}_to_${endDate}`;
+    const lines = [];
+
+    lines.push(`Z Report - ${companySettings.companyName || 'ADAMS GREEN'}`);
+    lines.push(`Period: ${formatDateRange()}`);
+    lines.push(`Generated: ${new Date().toLocaleString()}`);
+    lines.push('');
+
+    lines.push('Payment Methods');
+    lines.push('Label,Count,Total');
+    reportData.paymentMethods.forEach(p => {
+      lines.push(`${p.label},${p.count},${p.total.toFixed(2)}`);
+    });
+    lines.push('');
+
+    lines.push('Category Sales');
+    lines.push('Category,Count,Total');
+    reportData.categories.forEach(c => {
+      lines.push(`"${c.category}",${c.count},${c.total.toFixed(2)}`);
+    });
+    lines.push('');
+
+    if (reportData.vatBreakdown && reportData.vatBreakdown.length > 0) {
+      lines.push('VAT Summary');
+      lines.push('VAT %,Gross,VAT,Net');
+      let totalGross = 0, totalVat = 0, totalNet = 0;
+      reportData.vatBreakdown.forEach(v => {
+        const gross = parseFloat(v.gross || 0);
+        const vatAmt = parseFloat(v.vatAmount || 0);
+        const net = parseFloat(v.net || 0);
+        const rate = parseFloat(v.vatRate || 0);
+        lines.push(`${rate.toFixed(1)}%,${gross.toFixed(2)},${vatAmt.toFixed(2)},${net.toFixed(2)}`);
+        totalGross += gross;
+        totalVat += vatAmt;
+        totalNet += net;
+      });
+      lines.push(`Total,${totalGross.toFixed(2)},${totalVat.toFixed(2)},${totalNet.toFixed(2)}`);
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Z-Report_${dateRangeText}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handlePrintReport = async () => {
     try {
       // Ensure we have the latest company settings before printing
@@ -325,14 +374,24 @@ const DailyReport = () => {
                 <i className="bi bi-file-earmark-text me-2" style={{ color: '#ffffff' }}></i>
               {startDate === endDate ? 'Daily Report' : 'Date Range Report'}
               </h1>
-          <Button
-            onClick={handlePrintReport}
-            className="no-print"
-                style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
-          >
-            <i className="bi bi-printer me-2"></i>
-            PRINT
-          </Button>
+          <div className="d-flex gap-2">
+            <Button
+              onClick={handleExportCSV}
+              className="no-print"
+              style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+            >
+              <i className="bi bi-download me-2"></i>
+              CSV
+            </Button>
+            <Button
+              onClick={handlePrintReport}
+              className="no-print"
+              style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}
+            >
+              <i className="bi bi-printer me-2"></i>
+              PRINT
+            </Button>
+          </div>
         </div>
           </Card.Header>
           <Card.Body className="p-0">

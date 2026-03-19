@@ -242,10 +242,6 @@ const DailyReport = () => {
     try {
       const response = await usersAPI.getAll();
       setUsers(response.data);
-      const adminUser = response.data.find(u => u.role === 'ADMIN');
-      if (adminUser) {
-        setSelectedUserId(String(adminUser.id));
-      }
     } catch (err) {
       console.error('Failed to fetch users:', err);
     } finally {

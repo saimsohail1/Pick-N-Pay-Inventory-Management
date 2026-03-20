@@ -2,19 +2,27 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
+const activeControllers = new Set();
+
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (!config.signal) {
+      const controller = new AbortController();
+      config.signal = controller.signal;
+      config._abortController = controller;
+      activeControllers.add(controller);
     }
     return config;
   },
@@ -23,19 +31,35 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle auth errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.config._abortController) {
+      activeControllers.delete(response.config._abortController);
+    }
+    return response;
+  },
   (error) => {
+    if (error.config?._abortController) {
+      activeControllers.delete(error.config._abortController);
+    }
+    if (axios.isCancel(error)) {
+      return Promise.reject(error);
+    }
     if (error.response?.status === 401) {
-      // Token expired or invalid, clear local storage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      window.location.hash = '#/login';
     }
     return Promise.reject(error);
   }
 );
+
+export const cancelAllRequests = () => {
+  activeControllers.forEach(controller => {
+    try { controller.abort(); } catch (e) { /* already aborted */ }
+  });
+  activeControllers.clear();
+};
 
 // Items API
 export const itemsAPI = {

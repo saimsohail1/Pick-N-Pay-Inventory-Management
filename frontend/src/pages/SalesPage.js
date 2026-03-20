@@ -1807,15 +1807,7 @@ const SalesPage = () => {
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"
                 onClick={() => {
-                  // Check if running in Electron
-                  if (window && window.require) {
-                    try {
-                      const { ipcRenderer } = window.require('electron');
-                      ipcRenderer.send('app-minimize');
-                    } catch (error) {
-                      console.error('Error minimizing app:', error);
-                    }
-                  } else if (window.electron && window.electron.ipcRenderer) {
+                  if (window.electron?.ipcRenderer) {
                     window.electron.ipcRenderer.send('app-minimize');
                   }
                 }}
@@ -1833,15 +1825,7 @@ const SalesPage = () => {
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"
                 onClick={() => {
-                  // Check if running in Electron
-                  if (window && window.require) {
-                    try {
-                      const { ipcRenderer } = window.require('electron');
-                      ipcRenderer.send('toggle-fullscreen');
-                    } catch (error) {
-                      console.error('Error toggling fullscreen:', error);
-                    }
-                  } else if (window.electron && window.electron.ipcRenderer) {
+                  if (window.electron?.ipcRenderer) {
                     window.electron.ipcRenderer.send('toggle-fullscreen');
                   }
                 }}
@@ -1859,16 +1843,9 @@ const SalesPage = () => {
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"
                 onClick={() => {
-                  // Check if running in Electron
-                  if (window && window.require) {
-                    try {
-                      const { ipcRenderer } = window.require('electron');
-                      ipcRenderer.send('app-closing');
-                    } catch (error) {
-                      console.error('Error closing app:', error);
-                    }
+                  if (window.electron?.ipcRenderer) {
+                    window.electron.ipcRenderer.send('app-closing');
                   } else {
-                    // If not in Electron, just logout
                     logout();
                     navigate('/login');
                   }
@@ -2280,16 +2257,9 @@ const SalesPage = () => {
                     className="fw-bold btn-3d" 
                       style={{ padding: '1.2rem', fontSize: '1.3rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                     onClick={() => {
-                      // Check if running in Electron
-                      if (window && window.require) {
-                        try {
-                          const { ipcRenderer } = window.require('electron');
-                          ipcRenderer.send('app-closing');
-                        } catch (error) {
-                          console.error('Error closing app:', error);
-                        }
+                      if (window.electron?.ipcRenderer) {
+                        window.electron.ipcRenderer.send('app-closing');
                       } else {
-                        // If not in Electron, just logout
                         logout();
                         navigate('/login');
                       }

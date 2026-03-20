@@ -12,14 +12,13 @@ contextBridge.exposeInMainWorld('electron', {
       }
     },
     on: (channel, func) => {
-      const validChannels = ['cart-updated'];
+      const validChannels = ['cart-updated', 'app-closing', 'fullscreen-exited'];
       if (validChannels.includes(channel)) {
-        // Deliberately strip event as it includes `sender`
         ipcRenderer.on(channel, (event, ...args) => func(...args));
       }
     },
     removeListener: (channel, func) => {
-      const validChannels = ['cart-updated'];
+      const validChannels = ['cart-updated', 'app-closing', 'fullscreen-exited'];
       if (validChannels.includes(channel)) {
         ipcRenderer.removeListener(channel, func);
       }

@@ -258,15 +258,7 @@ const Layout = ({ children }) => {
               <button
                 className="btn btn-outline-light d-flex align-items-center hover-lift btn-3d-nav ms-3"
                 onClick={() => {
-                  // Check if running in Electron
-                  if (window && window.require) {
-                    try {
-                      const { ipcRenderer } = window.require('electron');
-                      ipcRenderer.send('app-minimize');
-                    } catch (error) {
-                      console.error('Error minimizing app:', error);
-                    }
-                  } else if (window.electron && window.electron.ipcRenderer) {
+                  if (window.electron?.ipcRenderer) {
                     window.electron.ipcRenderer.send('app-minimize');
                   }
                 }}
@@ -286,15 +278,7 @@ const Layout = ({ children }) => {
               <button
                 className="btn btn-outline-light d-flex align-items-center hover-lift btn-3d-nav ms-3"
                 onClick={() => {
-                  // Check if running in Electron
-                  if (window && window.require) {
-                    try {
-                      const { ipcRenderer } = window.require('electron');
-                      ipcRenderer.send('toggle-fullscreen');
-                    } catch (error) {
-                      console.error('Error toggling fullscreen:', error);
-                    }
-                  } else if (window.electron && window.electron.ipcRenderer) {
+                  if (window.electron?.ipcRenderer) {
                     window.electron.ipcRenderer.send('toggle-fullscreen');
                   }
                 }}
@@ -314,28 +298,9 @@ const Layout = ({ children }) => {
               <button
                 className="btn btn-outline-light d-flex align-items-center hover-lift btn-3d-nav ms-3"
                 onClick={() => {
-                  console.log('Power button clicked - attempting to close app');
-                  
-                  // Check if running in Electron
-                  if (window && window.require) {
-                    try {
-                      const { ipcRenderer } = window.require('electron');
-                      console.log('Sending app-closing signal to main process');
-                      ipcRenderer.send('app-closing');
-                      
-                      // Add a small delay to ensure the message is sent
-                      setTimeout(() => {
-                        console.log('Force closing app if still running');
-                        window.close();
-                      }, 100);
-                    } catch (error) {
-                      console.error('Error closing app:', error);
-                      // Fallback: try to close the window
-                      window.close();
-                    }
+                  if (window.electron?.ipcRenderer) {
+                    window.electron.ipcRenderer.send('app-closing');
                   } else {
-                    console.log('Not in Electron environment, closing window');
-                    // If not in Electron, close the window
                     window.close();
                   }
                 }}

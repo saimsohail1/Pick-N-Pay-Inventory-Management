@@ -7,29 +7,24 @@ const FullscreenIndicator = () => {
   const { addTimeout } = useTimeoutManager();
 
   useEffect(() => {
-    // Check if we're running in Electron
-    const isElectron = window && window.require;
     let timeoutId;
-    
-    if (isElectron) {
-      const { ipcRenderer } = window.require('electron');
-      
+
+    if (window.electron?.ipcRenderer) {
       const handleFullscreenExited = () => {
         setShowIndicator(true);
-        // Hide indicator after 3 seconds
         timeoutId = addTimeout(() => setShowIndicator(false), 3000);
       };
-      
-      ipcRenderer.on('fullscreen-exited', handleFullscreenExited);
-      
+
+      window.electron.ipcRenderer.on('fullscreen-exited', handleFullscreenExited);
+
       return () => {
         if (timeoutId) {
           clearTimeout(timeoutId);
         }
-        ipcRenderer.removeListener('fullscreen-exited', handleFullscreenExited);
+        window.electron.ipcRenderer.removeListener('fullscreen-exited', handleFullscreenExited);
       };
     }
-  }, []);
+  }, [addTimeout]);
 
   if (!showIndicator) return null;
 

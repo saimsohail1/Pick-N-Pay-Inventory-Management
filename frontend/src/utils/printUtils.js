@@ -131,12 +131,8 @@ export const printContent = (content, title = 'Print Document', options = {}) =>
 export const printWithElectron = (content, title = 'Print Document') => {
   return new Promise((resolve, reject) => {
     try {
-      // Check if running in Electron
-      if (window.require && window.require('electron')) {
-        const { ipcRenderer } = window.require('electron');
-        
-        // Send print request to main process
-        ipcRenderer.invoke('print-content', { content, title })
+      if (window.electron?.ipcRenderer) {
+        window.electron.ipcRenderer.invoke('print-content', { content, title })
           .then((result) => {
             if (result.success) {
               resolve(true);

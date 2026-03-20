@@ -1,5 +1,5 @@
 const { app, BrowserWindow, ipcMain, screen } = require('electron');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const isDev = require('electron-is-dev');
 const path = require('path');
 const fs = require('fs');
@@ -99,18 +99,59 @@ function startBackend() {
 }
 
 /**
- * Stop backend gracefully
+ * Kill any process holding the backend port (cleanup from previous crash)
+ */
+function killOrphanedBackend(port) {
+  try {
+    if (process.platform === 'win32') {
+      const out = execSync(`netstat -ano | findstr :${port} | findstr LISTENING`, { encoding: 'utf8', timeout: 5000 });
+      const pid = out.trim().split(/\s+/).pop();
+      if (pid && pid !== '0') {
+        execSync(`taskkill /PID ${pid} /F`, { timeout: 5000 });
+        console.log(`🧹 Killed orphaned process ${pid} on port ${port}`);
+      }
+    } else {
+      const pid = execSync(`lsof -ti:${port}`, { encoding: 'utf8', timeout: 5000 }).trim();
+      if (pid) {
+        execSync(`kill -9 ${pid}`, { timeout: 5000 });
+        console.log(`🧹 Killed orphaned process ${pid} on port ${port}`);
+      }
+    }
+  } catch (e) {
+    // No process on port — expected on clean start
+  }
+}
+
+/**
+ * Stop backend gracefully, waiting for it to exit
  */
 function stopBackend() {
-  if (backendProcess) {
-    try {
-      backendProcess.kill('SIGTERM');
-      console.log('🛑 Backend stopped');
-    } catch (err) {
-      console.error('❌ Error stopping backend:', err);
-    }
+  return new Promise((resolve) => {
+    if (!backendProcess) return resolve();
+
+    const proc = backendProcess;
     backendProcess = null;
-  }
+
+    const forceKillTimer = setTimeout(() => {
+      try { proc.kill('SIGKILL'); } catch (e) {}
+      console.log('🛑 Backend force-killed after timeout');
+      resolve();
+    }, 5000);
+
+    proc.on('exit', () => {
+      clearTimeout(forceKillTimer);
+      console.log('🛑 Backend stopped gracefully');
+      resolve();
+    });
+
+    try {
+      proc.kill('SIGTERM');
+    } catch (err) {
+      clearTimeout(forceKillTimer);
+      console.error('❌ Error stopping backend:', err);
+      resolve();
+    }
+  });
 }
 
 /**
@@ -300,35 +341,24 @@ function createCustomerDisplayWindow() {
 /**
  * IPC listener for renderer "app-closing"
  */
-ipcMain.on('app-closing', () => {
+ipcMain.on('app-closing', async () => {
   console.log('📩 Received app-closing from renderer');
-  
+
   app.isQuitting = true;
 
-  // Force close customer display window first
   if (customerDisplayWindow && !customerDisplayWindow.isDestroyed()) {
-    console.log('🔄 Force closing customer display window...');
-    // Remove the close event listener that prevents closing
     customerDisplayWindow.removeAllListeners('close');
-    // Force destroy the window
     customerDisplayWindow.destroy();
     customerDisplayWindow = null;
   }
 
-  // Stop backend
-  stopBackend();
+  await stopBackend();
 
-  // Close main window
   if (mainWindow && !mainWindow.isDestroyed()) {
-    console.log('🔄 Closing main window...');
     mainWindow.close();
   }
-  
-  // Quit app after a short delay to ensure windows close
-  setTimeout(() => {
-    console.log('🔄 Quitting application...');
-    app.exit(0);
-  }, 300);
+
+  app.exit(0);
 });
 
 /**
@@ -555,6 +585,7 @@ ipcMain.handle('get-serial-ports', async () => {
 });
 
 app.whenReady().then(() => {
+  killOrphanedBackend(8080);
   startBackend();
   createWindow();
   setTimeout(() => {
@@ -562,7 +593,7 @@ app.whenReady().then(() => {
   }, 1000);
 });
 
-app.on('before-quit', stopBackend);
+app.on('before-quit', () => { stopBackend(); });
 
 app.on('window-all-closed', () => {
   app.exit(0);

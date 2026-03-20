@@ -50,19 +50,10 @@ const LoginPage = () => {
   };
 
   const handleCloseApp = () => {
-    // Check if running in Electron
-    if (window && window.require) {
-      try {
-        const { ipcRenderer } = window.require('electron');
-        ipcRenderer.send('app-closing');
-      } catch (error) {
-        console.error('Error closing app:', error);
-      }
-    } else {
-      // If not in Electron, just navigate away or close window
-      if (window.close) {
-        window.close();
-      }
+    if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.send('app-closing');
+    } else if (window.close) {
+      window.close();
     }
   };
 

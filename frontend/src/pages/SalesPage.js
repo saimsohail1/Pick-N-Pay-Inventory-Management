@@ -527,6 +527,36 @@ const SalesPage = () => {
     return isNaN(total) ? 0 : Math.max(0, total);
   };
 
+  // Push cart to main process so the customer display window stays in sync (Electron only).
+  useEffect(() => {
+    if (!window.electron?.ipcRenderer?.send) return;
+    const subtotal =
+      !cart || cart.length === 0
+        ? 0
+        : cart.reduce((sum, item) => {
+            const price = item?.totalPrice ?? 0;
+            return sum + (isNaN(price) ? 0 : price);
+          }, 0);
+    let discountAmount = 0;
+    if (appliedDiscount && subtotal > 0) {
+      if (appliedDiscount.type === 'percentage') {
+        discountAmount = (subtotal * (appliedDiscount.value || 0)) / 100;
+      } else {
+        discountAmount = Math.min(appliedDiscount.value || 0, subtotal);
+      }
+      if (isNaN(discountAmount)) discountAmount = 0;
+    }
+    const total = isNaN(subtotal - discountAmount)
+      ? 0
+      : Math.max(0, subtotal - discountAmount);
+    window.electron.ipcRenderer.send('cart-updated', {
+      cart,
+      subtotal,
+      discountAmount,
+      total,
+    });
+  }, [cart, appliedDiscount]);
+
   const handleDiscountSelect = (discount) => {
     setAppliedDiscount(discount);
     setDiscountDialogOpen(false);

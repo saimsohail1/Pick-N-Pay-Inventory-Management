@@ -367,17 +367,42 @@ const SalesHistory = () => {
   };
 
   return (
-    <div style={{ backgroundColor: '#1a1a1a', minHeight: '100vh' }}>
-      <Card className="shadow-sm" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-        <Card.Header style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>
+    <div style={{
+      backgroundColor: '#1a1a1a',
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }}>
+      <Card
+        className="shadow-sm"
+        style={{
+          backgroundColor: '#1a1a1a',
+          border: '1px solid #2a2a2a',
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <Card.Header style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff', flexShrink: 0 }}>
           <h1 className="mb-0 fw-bold" style={{ color: '#ffffff', fontSize: '1.75rem' }}>
             <i className="bi bi-graph-up me-2" style={{ color: '#ffffff' }}></i>
             Sales History
           </h1>
         </Card.Header>
-        <Card.Body className="p-0">
+        <Card.Body
+          className="p-0"
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+        >
       {/* Filters */}
-          <div className="p-3 border-bottom" style={{ backgroundColor: '#2a2a2a' }}>
+          <div className="p-3 border-bottom" style={{ backgroundColor: '#2a2a2a', flexShrink: 0 }}>
               <div className="row g-3">
                 {isAdminUser && (
                   <div className="col-md-4">
@@ -448,28 +473,21 @@ const SalesHistory = () => {
       </div>
 
       {/* Error */}
-          {error && <Alert variant="danger" className="m-3" style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>{error}</Alert>}
+          {error && <Alert variant="danger" className="m-3" style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff', flexShrink: 0 }}>{error}</Alert>}
 
-      {/* Loading */}
-          {loading && <div className="text-center p-3"><Spinner animation="border" style={{ color: '#ffffff' }} /></div>}
-
-
-      {/* No Sales Message */}
-      {!loading && displayedSales.length === 0 && (
-            <div className="text-center py-5" style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
-              <i className="bi bi-inbox" style={{ fontSize: '4rem', color: '#aaaaaa' }}></i>
-              <h5 className="mt-3 mb-2" style={{ color: '#aaaaaa' }}>No Sales Found</h5>
-              <p className="mb-0" style={{ color: '#aaaaaa' }}>
-              {sales.length === 0
-                ? "No sales transactions found for the selected date and user."
-                : `No ${paymentFilter === 'CASH' ? 'cash' : 'card'} transactions for the selected date and user.`}
-            </p>
-        </div>
-      )}
-
-      {/* Table */}
-          <div className="p-3" style={{ backgroundColor: '#2a2a2a' }}>
-            <div className="d-flex justify-content-between align-items-center mb-3">
+      {/* Transactions section: toolbar stays fixed, inner area scrolls */}
+          <div
+            className="p-3"
+            style={{
+              backgroundColor: '#2a2a2a',
+              flex: 1,
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
+            <div className="d-flex justify-content-between align-items-center mb-3" style={{ flexShrink: 0 }}>
               <h6 className="mb-0" style={{ color: '#ffffff' }}>
               <i className="bi bi-list-ul me-2"></i>
               Sales Transactions
@@ -514,9 +532,42 @@ const SalesHistory = () => {
                 </small>
               </div>
             </div>
-          <div className="table-responsive">
+          <div
+            className="table-responsive"
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              overflowX: 'auto',
+              backgroundColor: '#2a2a2a'
+            }}
+          >
+            {loading ? (
+              <div className="d-flex justify-content-center align-items-center" style={{ height: '100%', minHeight: '200px' }}>
+                <Spinner animation="border" style={{ color: '#ffffff' }} />
+              </div>
+            ) : displayedSales.length === 0 ? (
+              <div className="d-flex flex-column justify-content-center align-items-center text-center py-5" style={{ height: '100%', minHeight: '200px', color: '#ffffff' }}>
+                <i className="bi bi-inbox" style={{ fontSize: '4rem', color: '#aaaaaa' }}></i>
+                <h5 className="mt-3 mb-2" style={{ color: '#aaaaaa' }}>No Sales Found</h5>
+                <p className="mb-0" style={{ color: '#aaaaaa' }}>
+                  {sales.length === 0
+                    ? "No sales transactions found for the selected date and user."
+                    : `No ${paymentFilter === 'CASH' ? 'cash' : 'card'} transactions for the selected date and user.`}
+                </p>
+              </div>
+            ) : (
             <Table hover className="mb-0">
-              <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+              <thead
+                style={{
+                  backgroundColor: '#2a2a2a',
+                  color: '#ffffff',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 2,
+                  boxShadow: 'inset 0 -1px 0 #333333'
+                }}
+              >
                 <tr>
                   {isAdminUser && (
                     <th className="border-0 py-3 px-4 fw-semibold text-center" style={{ color: '#ffffff', width: '50px' }}>
@@ -641,6 +692,7 @@ const SalesHistory = () => {
                 ))}
               </tbody>
             </Table>
+            )}
           </div>
         </div>
         </Card.Body>

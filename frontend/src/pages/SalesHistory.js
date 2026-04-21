@@ -12,9 +12,15 @@ const SalesHistory = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  // Use LOCAL date components, never UTC (toISOString would shift across DST).
+  const todayLocalISO = (() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  })();
+  const [selectedDate, setSelectedDate] = useState(todayLocalISO);
   const [selectedUserId, setSelectedUserId] = useState("");
   const isAdminUser = user?.role === "ADMIN";
 
@@ -25,6 +31,14 @@ const SalesHistory = () => {
   const [deleting, setDeleting] = useState(false);
   const [removingItem, setRemovingItem] = useState(false);
   const [companySettings, setCompanySettings] = useState({ companyName: "ADAMS GREEN", address: '' });
+
+  // Payment method filter: "ALL" | "CASH" | "CARD"
+  const [paymentFilter, setPaymentFilter] = useState("ALL");
+
+  // Admin-only multi-select / bulk delete
+  const [selectedSaleIds, setSelectedSaleIds] = useState([]);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Helper function to format date as DD/MM/YYYY
   const formatDate = (dateStr) => {
@@ -46,16 +60,15 @@ const SalesHistory = () => {
     let isMounted = true;
     try {
       let response;
-      
-      // Create date range for the selected date (start and end of day)
-      const selectedDate = new Date(date);
-      const startDate = new Date(selectedDate);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(selectedDate);
-      endDate.setHours(23, 59, 59, 999);
-      
-      const startDateISO = startDate.toISOString();
-      const endDateISO = endDate.toISOString();
+
+      // Build the day window as LOCAL wall-clock ISO (no timezone suffix).
+      // The backend binds these to `LocalDateTime` (no TZ) and stores `sale_date`
+      // as local wall-clock, so we MUST NOT go through UTC here — doing so
+      // shifts the window by the offset (±1h in Irish summer / BST) and causes
+      // Sales History to show the wrong day's transactions.
+      // `date` arrives as "YYYY-MM-DD" from the <input type="date"> control.
+      const startDateISO = `${date}T00:00:00.000`;
+      const endDateISO = `${date}T23:59:59.999`;
       
       if (isAdminUser && userId && userId !== "") {
         // Admin viewing specific user's sales for selected date
@@ -283,6 +296,70 @@ const SalesHistory = () => {
 
   const formatTime = (date) => format(new Date(date), "HH:mm");
 
+  // Derived: sales filtered by the selected payment method
+  const displayedSales = Array.isArray(sales)
+    ? (paymentFilter === "ALL"
+        ? sales
+        : sales.filter((s) => (s.paymentMethod || "").toUpperCase() === paymentFilter))
+    : [];
+
+  // Reset selection whenever the underlying list / filters change
+  useEffect(() => {
+    setSelectedSaleIds((prev) => prev.filter((id) => displayedSales.some((s) => s.id === id)));
+  }, [sales, paymentFilter, selectedDate, selectedUserId]);
+
+  const isSaleSelected = (id) => selectedSaleIds.includes(id);
+
+  const toggleSaleSelection = (id) => {
+    setSelectedSaleIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const allDisplayedSelected =
+    displayedSales.length > 0 && displayedSales.every((s) => selectedSaleIds.includes(s.id));
+
+  const toggleSelectAll = () => {
+    if (allDisplayedSelected) {
+      setSelectedSaleIds([]);
+    } else {
+      setSelectedSaleIds(displayedSales.map((s) => s.id));
+    }
+  };
+
+  const openBulkDeleteDialog = () => {
+    if (selectedSaleIds.length === 0) return;
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const cancelBulkDelete = () => {
+    if (bulkDeleting) return;
+    setBulkDeleteDialogOpen(false);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedSaleIds.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const results = await Promise.allSettled(
+        selectedSaleIds.map((id) => salesAPI.delete(id))
+      );
+      const failed = results.filter((r) => r.status === "rejected");
+      if (failed.length > 0) {
+        console.error("[SalesHistory] bulk delete partial failures", failed);
+        setError(`Failed to delete ${failed.length} of ${selectedSaleIds.length} sales`);
+      }
+      setSelectedSaleIds([]);
+      setBulkDeleteDialogOpen(false);
+      await fetchSales(selectedDate, selectedUserId);
+    } catch (err) {
+      console.error("[SalesHistory] bulk delete failed", err);
+      setError("Failed to delete selected sales");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const getPaymentMethodBadge = (method) => {
     if (!method) return "-";
     const isCash = method === 'CASH';
@@ -359,6 +436,22 @@ const SalesHistory = () => {
                     style={{ borderRadius: '10px', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                   />
           </div>
+                <div className="col-md-4">
+                  <label className="form-label fw-semibold" style={{ color: '#ffffff' }}>
+                    <i className="bi bi-credit-card me-1"></i>
+                    Payment Method
+                  </label>
+                  <Form.Select
+                    value={paymentFilter}
+                    onChange={(e) => setPaymentFilter(e.target.value)}
+                    className="form-select-lg"
+                    style={{ borderRadius: '10px', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
+                  >
+                    <option value="ALL">All Payments</option>
+                    <option value="CASH">Cash</option>
+                    <option value="CARD">Card</option>
+                  </Form.Select>
+                </div>
         </div>
       </div>
 
@@ -370,12 +463,14 @@ const SalesHistory = () => {
 
 
       {/* No Sales Message */}
-      {!loading && sales.length === 0 && (
+      {!loading && displayedSales.length === 0 && (
             <div className="text-center py-5" style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
               <i className="bi bi-inbox" style={{ fontSize: '4rem', color: '#aaaaaa' }}></i>
               <h5 className="mt-3 mb-2" style={{ color: '#aaaaaa' }}>No Sales Found</h5>
               <p className="mb-0" style={{ color: '#aaaaaa' }}>
-              No sales transactions found for the selected date and user.
+              {sales.length === 0
+                ? "No sales transactions found for the selected date and user."
+                : `No ${paymentFilter === 'CASH' ? 'cash' : 'card'} transactions for the selected date and user.`}
             </p>
         </div>
       )}
@@ -386,8 +481,29 @@ const SalesHistory = () => {
               <h6 className="mb-0" style={{ color: '#ffffff' }}>
               <i className="bi bi-list-ul me-2"></i>
               Sales Transactions
+              {paymentFilter !== "ALL" && (
+                <span className="ms-2 badge rounded-pill px-3 py-2 fw-semibold" style={{ backgroundColor: '#3a3a3a', color: '#ffffff', fontSize: '0.75rem' }}>
+                  <i className={`bi ${paymentFilter === 'CASH' ? 'bi-cash' : 'bi-credit-card'} me-1`}></i>
+                  {paymentFilter}
+                </span>
+              )}
             </h6>
-              <div className="text-end">
+              <div className="d-flex align-items-center gap-3">
+                {isAdminUser && selectedSaleIds.length > 0 && (
+                  <Button
+                    onClick={openBulkDeleteDialog}
+                    disabled={bulkDeleting}
+                    style={{
+                      backgroundColor: '#3a3a3a',
+                      border: '1px solid #ffffff',
+                      color: '#ffffff',
+                      borderRadius: '8px'
+                    }}
+                  >
+                    <i className="bi bi-trash me-1"></i>
+                    Delete Selected ({selectedSaleIds.length})
+                  </Button>
+                )}
                 <small style={{ color: '#aaaaaa' }}>
                   <i className="bi bi-calendar3 me-1"></i>
                   {formatDate(selectedDate)}
@@ -410,6 +526,17 @@ const SalesHistory = () => {
             <Table hover className="mb-0">
               <thead style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                 <tr>
+                  {isAdminUser && (
+                    <th className="border-0 py-3 px-4 fw-semibold text-center" style={{ color: '#ffffff', width: '50px' }}>
+                      <Form.Check
+                        type="checkbox"
+                        checked={allDisplayedSelected}
+                        onChange={toggleSelectAll}
+                        disabled={displayedSales.length === 0}
+                        title="Select all"
+                      />
+                    </th>
+                  )}
                   <th className="border-0 py-3 px-4 fw-semibold" style={{ color: '#ffffff' }}>#</th>
                   <th className="border-0 py-3 px-4 fw-semibold" style={{ color: '#ffffff' }}>
                     <i className="bi bi-clock me-1"></i>
@@ -434,8 +561,18 @@ const SalesHistory = () => {
                 </tr>
               </thead>
               <tbody>
-                {Array.isArray(sales) && sales.map((sale, index) => (
+                {displayedSales.map((sale, index) => (
                   <tr key={sale.id} className="border-bottom" style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+                    {isAdminUser && (
+                      <td className="py-3 px-4 text-center">
+                        <Form.Check
+                          type="checkbox"
+                          checked={isSaleSelected(sale.id)}
+                          onChange={() => toggleSaleSelection(sale.id)}
+                          title="Select sale"
+                        />
+                      </td>
+                    )}
                     <td className="py-3 px-4">
                       <span className="badge rounded-pill px-3 py-2 fw-semibold" style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
                         {index + 1}
@@ -692,6 +829,42 @@ const SalesHistory = () => {
           <Button onClick={cancelDeleteSale} style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>Cancel</Button>
           <Button onClick={confirmDeleteSale} disabled={deleting} style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
             Delete
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Bulk Delete Modal (admin only) */}
+      <Modal show={bulkDeleteDialogOpen} onHide={cancelBulkDelete}>
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a', color: '#ffffff' }}>
+          <Modal.Title style={{ color: '#ffffff' }}>
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            Delete Selected Sales
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          <div style={{ color: '#ffffff' }}>
+            Are you sure you want to delete <strong>{selectedSaleIds.length}</strong> selected sale{selectedSaleIds.length === 1 ? '' : 's'}?
+            <div className="mt-2" style={{ color: '#aaaaaa', fontSize: '0.9rem' }}>
+              This action cannot be undone.
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #2a2a2a' }}>
+          <Button onClick={cancelBulkDelete} disabled={bulkDeleting} style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
+            Cancel
+          </Button>
+          <Button onClick={confirmBulkDelete} disabled={bulkDeleting} style={{ backgroundColor: '#3a3a3a', border: '1px solid #ffffff', color: '#ffffff' }}>
+            {bulkDeleting ? (
+              <>
+                <Spinner size="sm" animation="border" className="me-2" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-trash me-1"></i>
+                Delete {selectedSaleIds.length}
+              </>
+            )}
           </Button>
         </Modal.Footer>
       </Modal>

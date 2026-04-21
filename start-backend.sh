@@ -30,5 +30,9 @@ PROFILE=${1:-dev}
 
 echo "Starting with profile: $PROFILE"
 
-# Start the Spring Boot application
-mvn spring-boot:run -Dspring-boot.run.profiles=$PROFILE
+# Start the Spring Boot application.
+# -Duser.timezone=Europe/Dublin forces LocalDateTime.now() to use Dublin
+# wall-clock time even if the OS locale/timezone is set to something else.
+mvn spring-boot:run \
+    -Dspring-boot.run.profiles=$PROFILE \
+    -Dspring-boot.run.jvmArguments="-Duser.timezone=Europe/Dublin"

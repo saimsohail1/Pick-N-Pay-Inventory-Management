@@ -414,8 +414,8 @@ public class SaleService {
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay = date.atTime(23, 59, 59);
 
-        // Get user-specific sales
-        List<Sale> userSales = saleRepository.findSalesByUserIdAndDateRange(userId, startOfDay, endOfDay);
+        // Get user-specific sales (eager-fetch salePayments so SPLIT cash/card amounts are included)
+        List<Sale> userSales = saleRepository.findSalesByUserIdAndDateRangeWithPayments(userId, startOfDay, endOfDay);
         
         // Calculate totals
         Long totalSales = (long) userSales.size();
@@ -440,6 +440,19 @@ public class SaleService {
                 .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
                 .map(Sale::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Fold split payments into their respective cash/card totals
+        for (Sale sale : userSales) {
+            if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null && !sale.getSalePayments().isEmpty()) {
+                for (SalePayment payment : sale.getSalePayments()) {
+                    if (payment.getPaymentMethod() == PaymentMethod.CASH) {
+                        cashAmount = cashAmount.add(payment.getAmount());
+                    } else if (payment.getPaymentMethod() == PaymentMethod.CARD) {
+                        cardAmount = cardAmount.add(payment.getAmount());
+                    }
+                }
+            }
+        }
 
         // Calculate VAT totals and breakdown by rate for user sales
         BigDecimal totalVatAmount = BigDecimal.ZERO;
@@ -525,8 +538,8 @@ public class SaleService {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
-        // Get user-specific sales for the date range
-        List<Sale> userSales = saleRepository.findSalesByUserIdAndDateRange(userId, startDateTime, endDateTime);
+        // Get user-specific sales for the date range (eager-fetch salePayments so SPLIT cash/card amounts are included)
+        List<Sale> userSales = saleRepository.findSalesByUserIdAndDateRangeWithPayments(userId, startDateTime, endDateTime);
         
         // Calculate totals
         Long totalSales = (long) userSales.size();
@@ -551,6 +564,19 @@ public class SaleService {
                 .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
                 .map(Sale::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Fold split payments into their respective cash/card totals
+        for (Sale sale : userSales) {
+            if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null && !sale.getSalePayments().isEmpty()) {
+                for (SalePayment payment : sale.getSalePayments()) {
+                    if (payment.getPaymentMethod() == PaymentMethod.CASH) {
+                        cashAmount = cashAmount.add(payment.getAmount());
+                    } else if (payment.getPaymentMethod() == PaymentMethod.CARD) {
+                        cardAmount = cardAmount.add(payment.getAmount());
+                    }
+                }
+            }
+        }
 
         // Calculate VAT totals and breakdown by rate for user sales
         BigDecimal totalVatAmount = BigDecimal.ZERO;
@@ -636,8 +662,8 @@ public class SaleService {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
-        // Get all sales for the date range (admin view)
-        List<Sale> allSales = saleRepository.findSalesByDateRange(startDateTime, endDateTime);
+        // Get all sales for the date range (admin view) - eager-fetch salePayments so SPLIT cash/card amounts are included
+        List<Sale> allSales = saleRepository.findSalesByDateRangeWithPayments(startDateTime, endDateTime);
         
         // Calculate totals
         Long totalSales = (long) allSales.size();
@@ -662,6 +688,19 @@ public class SaleService {
                 .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
                 .map(Sale::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Fold split payments into their respective cash/card totals
+        for (Sale sale : allSales) {
+            if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null && !sale.getSalePayments().isEmpty()) {
+                for (SalePayment payment : sale.getSalePayments()) {
+                    if (payment.getPaymentMethod() == PaymentMethod.CASH) {
+                        cashAmount = cashAmount.add(payment.getAmount());
+                    } else if (payment.getPaymentMethod() == PaymentMethod.CARD) {
+                        cardAmount = cardAmount.add(payment.getAmount());
+                    }
+                }
+            }
+        }
 
         // Calculate VAT totals and breakdown by rate for all sales
         BigDecimal totalVatAmount = BigDecimal.ZERO;

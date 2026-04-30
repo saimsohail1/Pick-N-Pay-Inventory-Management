@@ -1,5 +1,7 @@
 package com.picknpay.repository;
 
+import com.picknpay.dto.CategorySummaryDTO;
+import com.picknpay.dto.VatSummaryDTO;
 import com.picknpay.entity.Sale;
 import com.picknpay.entity.PaymentMethod;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,23 +26,103 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     @Query("SELECT DISTINCT s FROM Sale s LEFT JOIN FETCH s.salePayments WHERE s.saleDate BETWEEN :startDate AND :endDate ORDER BY s.saleDate DESC")
     List<Sale> findSalesByDateRangeWithPayments(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
     
-    // Optimized report query: eagerly fetch saleItems + item + category (avoids N+1)
-    @Query("SELECT DISTINCT s FROM Sale s " +
-           "LEFT JOIN FETCH s.saleItems si " +
-           "LEFT JOIN FETCH si.item i " +
-           "LEFT JOIN FETCH i.category " +
-           "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
-           "ORDER BY s.saleDate DESC")
-    List<Sale> findSalesForReport(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+    // ─────────────────────────────────────────────────────────────────────────
+    // Aggregated report queries (no entity load) — used by Z-Report.
+    // These run GROUP BY on PostgreSQL and return at most a few dozen rows
+    // total instead of pulling every sale + sale_item + item into memory.
+    // ─────────────────────────────────────────────────────────────────────────
 
-    // Optimized report query for a specific user
-    @Query("SELECT DISTINCT s FROM Sale s " +
-           "LEFT JOIN FETCH s.saleItems si " +
-           "LEFT JOIN FETCH si.item i " +
-           "LEFT JOIN FETCH i.category " +
+    // Payment-method summary: returns one row per PaymentMethod with
+    // [paymentMethod, count, sumTotal]. Always at most ~3 rows (CASH/CARD/SPLIT).
+    @Query("SELECT s.paymentMethod, COUNT(s), COALESCE(SUM(s.totalAmount), 0) " +
+           "FROM Sale s " +
+           "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
+           "GROUP BY s.paymentMethod")
+    List<Object[]> aggregatePaymentMethods(@Param("startDate") LocalDateTime startDate,
+                                           @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT s.paymentMethod, COUNT(s), COALESCE(SUM(s.totalAmount), 0) " +
+           "FROM Sale s " +
            "WHERE s.user.id = :userId AND s.saleDate BETWEEN :startDate AND :endDate " +
-           "ORDER BY s.saleDate DESC")
-    List<Sale> findSalesForReportByUser(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+           "GROUP BY s.paymentMethod")
+    List<Object[]> aggregatePaymentMethodsByUser(@Param("userId") Long userId,
+                                                 @Param("startDate") LocalDateTime startDate,
+                                                 @Param("endDate") LocalDateTime endDate);
+
+    // Split-payment breakdown: amounts for sales whose top-level method is SPLIT,
+    // grouped by the inner sale_payments.payment_method. Always at most 2 rows.
+    @Query("SELECT sp.paymentMethod, COALESCE(SUM(sp.amount), 0) " +
+           "FROM SalePayment sp " +
+           "WHERE sp.sale.paymentMethod = com.picknpay.entity.PaymentMethod.SPLIT " +
+           "  AND sp.sale.saleDate BETWEEN :startDate AND :endDate " +
+           "GROUP BY sp.paymentMethod")
+    List<Object[]> aggregateSplitPayments(@Param("startDate") LocalDateTime startDate,
+                                          @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT sp.paymentMethod, COALESCE(SUM(sp.amount), 0) " +
+           "FROM SalePayment sp " +
+           "WHERE sp.sale.paymentMethod = com.picknpay.entity.PaymentMethod.SPLIT " +
+           "  AND sp.sale.user.id = :userId " +
+           "  AND sp.sale.saleDate BETWEEN :startDate AND :endDate " +
+           "GROUP BY sp.paymentMethod")
+    List<Object[]> aggregateSplitPaymentsByUser(@Param("userId") Long userId,
+                                                @Param("startDate") LocalDateTime startDate,
+                                                @Param("endDate") LocalDateTime endDate);
+
+    // VAT breakdown: one row per distinct vat_rate. Returns ~3 rows in practice.
+    @Query("SELECT new com.picknpay.dto.VatSummaryDTO(" +
+           "  si.vatRate, " +
+           "  COALESCE(SUM(si.totalPrice), 0), " +
+           "  COALESCE(SUM(si.vatAmount), 0), " +
+           "  COALESCE(SUM(si.priceExcludingVat), 0)) " +
+           "FROM SaleItem si " +
+           "WHERE si.sale.saleDate BETWEEN :startDate AND :endDate " +
+           "GROUP BY si.vatRate " +
+           "ORDER BY si.vatRate ASC")
+    List<VatSummaryDTO> aggregateVatBreakdown(@Param("startDate") LocalDateTime startDate,
+                                              @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT new com.picknpay.dto.VatSummaryDTO(" +
+           "  si.vatRate, " +
+           "  COALESCE(SUM(si.totalPrice), 0), " +
+           "  COALESCE(SUM(si.vatAmount), 0), " +
+           "  COALESCE(SUM(si.priceExcludingVat), 0)) " +
+           "FROM SaleItem si " +
+           "WHERE si.sale.user.id = :userId AND si.sale.saleDate BETWEEN :startDate AND :endDate " +
+           "GROUP BY si.vatRate " +
+           "ORDER BY si.vatRate ASC")
+    List<VatSummaryDTO> aggregateVatBreakdownByUser(@Param("userId") Long userId,
+                                                    @Param("startDate") LocalDateTime startDate,
+                                                    @Param("endDate") LocalDateTime endDate);
+
+    // Category breakdown: one row per category (NULL category = Quick Sale).
+    // Returns ~30 rows for the whole inventory at most.
+    @Query("SELECT new com.picknpay.dto.CategorySummaryDTO(" +
+           "  c.name, " +
+           "  COALESCE(SUM(si.totalPrice), 0), " +
+           "  COALESCE(SUM(si.quantity), 0)) " +
+           "FROM SaleItem si " +
+           "LEFT JOIN si.item i " +
+           "LEFT JOIN i.category c " +
+           "WHERE si.sale.saleDate BETWEEN :startDate AND :endDate " +
+           "GROUP BY c.name " +
+           "ORDER BY SUM(si.totalPrice) DESC")
+    List<CategorySummaryDTO> aggregateCategoryBreakdown(@Param("startDate") LocalDateTime startDate,
+                                                       @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT new com.picknpay.dto.CategorySummaryDTO(" +
+           "  c.name, " +
+           "  COALESCE(SUM(si.totalPrice), 0), " +
+           "  COALESCE(SUM(si.quantity), 0)) " +
+           "FROM SaleItem si " +
+           "LEFT JOIN si.item i " +
+           "LEFT JOIN i.category c " +
+           "WHERE si.sale.user.id = :userId AND si.sale.saleDate BETWEEN :startDate AND :endDate " +
+           "GROUP BY c.name " +
+           "ORDER BY SUM(si.totalPrice) DESC")
+    List<CategorySummaryDTO> aggregateCategoryBreakdownByUser(@Param("userId") Long userId,
+                                                              @Param("startDate") LocalDateTime startDate,
+                                                              @Param("endDate") LocalDateTime endDate);
 
     // Get sales by user ID and date range
     @Query("SELECT s FROM Sale s WHERE s.user.id = :userId AND s.saleDate BETWEEN :startDate AND :endDate ORDER BY s.saleDate DESC")

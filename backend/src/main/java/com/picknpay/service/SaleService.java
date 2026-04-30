@@ -26,8 +26,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.ArrayList;
 
 @Service
@@ -285,500 +283,144 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public DailyReportDTO getDailyReport(LocalDate date) {
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.atTime(23, 59, 59);
-
-        List<Sale> allSales = saleRepository.findSalesForReport(startOfDay, endOfDay);
-
-        Long totalSales = (long) allSales.size();
-        BigDecimal totalAmount = allSales.stream()
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        Long cashSales = allSales.stream()
-                .filter(s -> s.getPaymentMethod() == PaymentMethod.CASH)
-                .count();
-        BigDecimal cashAmount = allSales.stream()
-                .filter(s -> s.getPaymentMethod() == PaymentMethod.CASH)
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        Long cardSales = allSales.stream()
-                .filter(s -> s.getPaymentMethod() == PaymentMethod.CARD)
-                .count();
-        BigDecimal cardAmount = allSales.stream()
-                .filter(s -> s.getPaymentMethod() == PaymentMethod.CARD)
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Add split payment amounts to cash and card totals
-        for (Sale sale : allSales) {
-            if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null && !sale.getSalePayments().isEmpty()) {
-                for (SalePayment payment : sale.getSalePayments()) {
-                    if (payment.getPaymentMethod() == PaymentMethod.CASH) {
-                        cashAmount = cashAmount.add(payment.getAmount());
-                    } else if (payment.getPaymentMethod() == PaymentMethod.CARD) {
-                        cardAmount = cardAmount.add(payment.getAmount());
-                    }
-                }
-            }
-        }
-
-        // Calculate VAT totals and breakdown by rate (using already fetched allSales)
-        BigDecimal totalVatAmount = BigDecimal.ZERO;
-        BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
-        Map<BigDecimal, VatSummaryDTO> vatMap = new HashMap<>();
-        for (Sale sale : allSales) {
-            for (SaleItem item : sale.getSaleItems()) {
-                if (item.getVatAmount() != null) {
-                    totalVatAmount = totalVatAmount.add(item.getVatAmount());
-                }
-                if (item.getPriceExcludingVat() != null) {
-                    totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
-                }
-                
-                // Group by VAT rate for breakdown
-                if (item.getVatRate() != null) {
-                    BigDecimal vatRate = item.getVatRate();
-                    VatSummaryDTO vatSummary = vatMap.getOrDefault(vatRate, 
-                        new VatSummaryDTO(vatRate, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
-                    
-                    // Gross = totalPrice (including VAT)
-                    vatSummary.setGross(vatSummary.getGross().add(item.getTotalPrice()));
-                    
-                    // VAT amount
-                    if (item.getVatAmount() != null) {
-                        vatSummary.setVatAmount(vatSummary.getVatAmount().add(item.getVatAmount()));
-                    }
-                    
-                    // Net = priceExcludingVat
-                    if (item.getPriceExcludingVat() != null) {
-                        vatSummary.setNet(vatSummary.getNet().add(item.getPriceExcludingVat()));
-                    }
-                    
-                    vatMap.put(vatRate, vatSummary);
-                }
-            }
-        }
-        
-        // Convert VAT map to sorted list (by VAT rate ascending)
-        List<VatSummaryDTO> vatBreakdown = new ArrayList<>(vatMap.values());
-        vatBreakdown.sort((a, b) -> a.getVatRate().compareTo(b.getVatRate()));
-        
-        // Calculate category summaries for all sales
-        Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
-        Long totalCategoryCount = 0L; // Track total count as we accumulate
-        
-        for (Sale sale : allSales) {
-            for (SaleItem saleItem : sale.getSaleItems()) {
-                String categoryName;
-                if (saleItem.getItem() != null && saleItem.getItem().getCategory() != null) {
-                    categoryName = saleItem.getItem().getCategory().getName();
-                } else {
-                    categoryName = "Quick Sale"; // For quick sales without category
-                }
-                
-                CategorySummaryDTO categorySummary = categoryMap.getOrDefault(categoryName, 
-                    new CategorySummaryDTO(categoryName, BigDecimal.ZERO, 0L));
-                
-                categorySummary.setTotal(categorySummary.getTotal().add(saleItem.getTotalPrice()));
-                categorySummary.setCount(categorySummary.getCount() + saleItem.getQuantity());
-                
-                categoryMap.put(categoryName, categorySummary);
-                
-                // Accumulate total count directly from sale items
-                totalCategoryCount += saleItem.getQuantity();
-            }
-        }
-        
-        // Convert map to list and add total
-        List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
-        categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
-        
-        // Add total row with the accumulated count
-        categories.add(new CategorySummaryDTO("Total", totalAmount, totalCategoryCount));
-        
-        DailyReportDTO report = new DailyReportDTO(date, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
-        report.setTotalVatAmount(totalVatAmount);
-        report.setTotalAmountExcludingVat(totalAmountExcludingVat);
-        report.setCategories(categories);
-        report.setVatBreakdown(vatBreakdown);
-        
-        return report;
+        return buildReport(date, date, null);
     }
     
     @Transactional(readOnly = true)
     public DailyReportDTO getDailyReportByUser(LocalDate date, Long userId) {
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.atTime(23, 59, 59);
-
-        List<Sale> userSales = saleRepository.findSalesForReportByUser(userId, startOfDay, endOfDay);
-        
-        // Calculate totals
-        Long totalSales = (long) userSales.size();
-        BigDecimal totalAmount = userSales.stream()
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Calculate cash sales
-        Long cashSales = userSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CASH)
-                .count();
-        BigDecimal cashAmount = userSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CASH)
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Calculate card sales
-        Long cardSales = userSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
-                .count();
-        BigDecimal cardAmount = userSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Fold split payments into their respective cash/card totals
-        for (Sale sale : userSales) {
-            if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null && !sale.getSalePayments().isEmpty()) {
-                for (SalePayment payment : sale.getSalePayments()) {
-                    if (payment.getPaymentMethod() == PaymentMethod.CASH) {
-                        cashAmount = cashAmount.add(payment.getAmount());
-                    } else if (payment.getPaymentMethod() == PaymentMethod.CARD) {
-                        cardAmount = cardAmount.add(payment.getAmount());
-                    }
-                }
-            }
-        }
-
-        // Calculate VAT totals and breakdown by rate for user sales
-        BigDecimal totalVatAmount = BigDecimal.ZERO;
-        BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
-        Map<BigDecimal, VatSummaryDTO> vatMap = new HashMap<>();
-        
-        for (Sale sale : userSales) {
-            for (SaleItem item : sale.getSaleItems()) {
-                if (item.getVatAmount() != null) {
-                    totalVatAmount = totalVatAmount.add(item.getVatAmount());
-                }
-                if (item.getPriceExcludingVat() != null) {
-                    totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
-                }
-                
-                // Group by VAT rate for breakdown
-                if (item.getVatRate() != null) {
-                    BigDecimal vatRate = item.getVatRate();
-                    VatSummaryDTO vatSummary = vatMap.getOrDefault(vatRate, 
-                        new VatSummaryDTO(vatRate, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
-                    
-                    vatSummary.setGross(vatSummary.getGross().add(item.getTotalPrice()));
-                    if (item.getVatAmount() != null) {
-                        vatSummary.setVatAmount(vatSummary.getVatAmount().add(item.getVatAmount()));
-                    }
-                    if (item.getPriceExcludingVat() != null) {
-                        vatSummary.setNet(vatSummary.getNet().add(item.getPriceExcludingVat()));
-                    }
-                    
-                    vatMap.put(vatRate, vatSummary);
-                }
-            }
-        }
-        
-        // Convert VAT map to sorted list (by VAT rate ascending)
-        List<VatSummaryDTO> vatBreakdown = new ArrayList<>(vatMap.values());
-        vatBreakdown.sort((a, b) -> a.getVatRate().compareTo(b.getVatRate()));
-        
-        // Calculate category summaries
-        Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
-        
-        for (Sale sale : userSales) {
-            for (SaleItem saleItem : sale.getSaleItems()) {
-                String categoryName;
-                if (saleItem.getItem() != null && saleItem.getItem().getCategory() != null) {
-                    categoryName = saleItem.getItem().getCategory().getName();
-                } else {
-                    categoryName = "Quick Sale"; // For quick sales without category
-                }
-                
-                CategorySummaryDTO categorySummary = categoryMap.getOrDefault(categoryName, 
-                    new CategorySummaryDTO(categoryName, BigDecimal.ZERO, 0L));
-                
-                categorySummary.setTotal(categorySummary.getTotal().add(saleItem.getTotalPrice()));
-                categorySummary.setCount(categorySummary.getCount() + saleItem.getQuantity());
-                
-                categoryMap.put(categoryName, categorySummary);
-            }
-        }
-        
-        // Convert map to list and add total
-        List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
-        categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
-        
-        // Calculate total count as sum of all category counts (not number of transactions)
-        Long totalCategoryCount = categories.stream()
-                .mapToLong(CategorySummaryDTO::getCount)
-                .sum();
-        
-        // Add total row
-        categories.add(new CategorySummaryDTO("Total", totalAmount, totalCategoryCount));
-        
-        DailyReportDTO report = new DailyReportDTO(date, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
-        report.setTotalVatAmount(totalVatAmount);
-        report.setTotalAmountExcludingVat(totalAmountExcludingVat);
-        report.setCategories(categories);
-        report.setVatBreakdown(vatBreakdown);
-        
-        return report;
+        return buildReport(date, date, userId);
     }
     
     @Transactional(readOnly = true)
     public DailyReportDTO getDailyReportByUserAndDateRange(LocalDate startDate, LocalDate endDate, Long userId) {
-        LocalDateTime startDateTime = startDate.atStartOfDay();
-        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
-
-        List<Sale> userSales = saleRepository.findSalesForReportByUser(userId, startDateTime, endDateTime);
-        
-        // Calculate totals
-        Long totalSales = (long) userSales.size();
-        BigDecimal totalAmount = userSales.stream()
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Calculate cash sales
-        Long cashSales = userSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CASH)
-                .count();
-        BigDecimal cashAmount = userSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CASH)
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Calculate card sales
-        Long cardSales = userSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
-                .count();
-        BigDecimal cardAmount = userSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Fold split payments into their respective cash/card totals
-        for (Sale sale : userSales) {
-            if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null && !sale.getSalePayments().isEmpty()) {
-                for (SalePayment payment : sale.getSalePayments()) {
-                    if (payment.getPaymentMethod() == PaymentMethod.CASH) {
-                        cashAmount = cashAmount.add(payment.getAmount());
-                    } else if (payment.getPaymentMethod() == PaymentMethod.CARD) {
-                        cardAmount = cardAmount.add(payment.getAmount());
-                    }
-                }
-            }
-        }
-
-        // Calculate VAT totals and breakdown by rate for user sales
-        BigDecimal totalVatAmount = BigDecimal.ZERO;
-        BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
-        Map<BigDecimal, VatSummaryDTO> vatMap = new HashMap<>();
-        
-        for (Sale sale : userSales) {
-            for (SaleItem item : sale.getSaleItems()) {
-                if (item.getVatAmount() != null) {
-                    totalVatAmount = totalVatAmount.add(item.getVatAmount());
-                }
-                if (item.getPriceExcludingVat() != null) {
-                    totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
-                }
-                
-                // Group by VAT rate for breakdown
-                if (item.getVatRate() != null) {
-                    BigDecimal vatRate = item.getVatRate();
-                    VatSummaryDTO vatSummary = vatMap.getOrDefault(vatRate, 
-                        new VatSummaryDTO(vatRate, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
-                    
-                    vatSummary.setGross(vatSummary.getGross().add(item.getTotalPrice()));
-                    if (item.getVatAmount() != null) {
-                        vatSummary.setVatAmount(vatSummary.getVatAmount().add(item.getVatAmount()));
-                    }
-                    if (item.getPriceExcludingVat() != null) {
-                        vatSummary.setNet(vatSummary.getNet().add(item.getPriceExcludingVat()));
-                    }
-                    
-                    vatMap.put(vatRate, vatSummary);
-                }
-            }
-        }
-        
-        // Convert VAT map to sorted list (by VAT rate ascending)
-        List<VatSummaryDTO> vatBreakdown = new ArrayList<>(vatMap.values());
-        vatBreakdown.sort((a, b) -> a.getVatRate().compareTo(b.getVatRate()));
-        
-        // Calculate category summaries
-        Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
-        
-        for (Sale sale : userSales) {
-            for (SaleItem saleItem : sale.getSaleItems()) {
-                String categoryName;
-                if (saleItem.getItem() != null && saleItem.getItem().getCategory() != null) {
-                    categoryName = saleItem.getItem().getCategory().getName();
-                } else {
-                    categoryName = "Quick Sale"; // For quick sales without category
-                }
-                
-                CategorySummaryDTO categorySummary = categoryMap.getOrDefault(categoryName, 
-                    new CategorySummaryDTO(categoryName, BigDecimal.ZERO, 0L));
-                
-                categorySummary.setTotal(categorySummary.getTotal().add(saleItem.getTotalPrice()));
-                categorySummary.setCount(categorySummary.getCount() + saleItem.getQuantity());
-                
-                categoryMap.put(categoryName, categorySummary);
-            }
-        }
-        
-        // Convert map to list and add total
-        List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
-        categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
-        
-        // Calculate total count as sum of all category counts (not number of transactions)
-        Long totalCategoryCount = categories.stream()
-                .mapToLong(CategorySummaryDTO::getCount)
-                .sum();
-        
-        // Add total row
-        categories.add(new CategorySummaryDTO("Total", totalAmount, totalCategoryCount));
-        
-        DailyReportDTO report = new DailyReportDTO(startDate, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
-        report.setTotalVatAmount(totalVatAmount);
-        report.setTotalAmountExcludingVat(totalAmountExcludingVat);
-        report.setCategories(categories);
-        report.setVatBreakdown(vatBreakdown);
-        
-        return report;
+        return buildReport(startDate, endDate, userId);
     }
     
     @Transactional(readOnly = true)
     public DailyReportDTO getDailyReportByDateRangeForAdmin(LocalDate startDate, LocalDate endDate) {
-        LocalDateTime startDateTime = startDate.atStartOfDay();
-        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+        return buildReport(startDate, endDate, null);
+    }
 
-        List<Sale> allSales = saleRepository.findSalesForReport(startDateTime, endDateTime);
-        
-        // Calculate totals
-        Long totalSales = (long) allSales.size();
-        BigDecimal totalAmount = allSales.stream()
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    /**
+     * Build a Z-Report using SQL aggregation queries (not entity loading).
+     *
+     * Previously this method loaded every sale + sale_item + item entity
+     * for the entire range into memory and aggregated in Java, which on
+     * wide ranges could exceed the JVM heap (OOM).
+     *
+     * This implementation pushes all aggregation down to PostgreSQL and
+     * reads back at most a few dozen rows total.
+     *
+     * userId == null  ⇒ admin / all users
+     * userId != null  ⇒ scoped to that user
+     */
+    private DailyReportDTO buildReport(LocalDate startDate, LocalDate endDate, Long userId) {
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end   = endDate.atTime(23, 59, 59);
 
-        // Calculate cash sales
-        Long cashSales = allSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CASH)
-                .count();
-        BigDecimal cashAmount = allSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CASH)
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 1) Payment-method summary: ~3 rows (CASH / CARD / SPLIT).
+        List<Object[]> paymentRows = (userId == null)
+                ? saleRepository.aggregatePaymentMethods(start, end)
+                : saleRepository.aggregatePaymentMethodsByUser(userId, start, end);
 
-        // Calculate card sales
-        Long cardSales = allSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
-                .count();
-        BigDecimal cardAmount = allSales.stream()
-                .filter(sale -> sale.getPaymentMethod() == PaymentMethod.CARD)
-                .map(Sale::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long totalSales = 0L;
+        long cashSales  = 0L;
+        long cardSales  = 0L;
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal cashAmount  = BigDecimal.ZERO;
+        BigDecimal cardAmount  = BigDecimal.ZERO;
 
-        // Fold split payments into their respective cash/card totals
-        for (Sale sale : allSales) {
-            if (sale.getPaymentMethod() == PaymentMethod.SPLIT && sale.getSalePayments() != null && !sale.getSalePayments().isEmpty()) {
-                for (SalePayment payment : sale.getSalePayments()) {
-                    if (payment.getPaymentMethod() == PaymentMethod.CASH) {
-                        cashAmount = cashAmount.add(payment.getAmount());
-                    } else if (payment.getPaymentMethod() == PaymentMethod.CARD) {
-                        cardAmount = cardAmount.add(payment.getAmount());
-                    }
-                }
+        for (Object[] row : paymentRows) {
+            PaymentMethod pm = toPaymentMethod(row[0]);
+            long count       = ((Number) row[1]).longValue();
+            BigDecimal sum   = toBigDecimal(row[2]);
+
+            totalSales  += count;
+            totalAmount  = totalAmount.add(sum);
+
+            if (pm == PaymentMethod.CASH) {
+                cashSales  = count;
+                cashAmount = cashAmount.add(sum);
+            } else if (pm == PaymentMethod.CARD) {
+                cardSales  = count;
+                cardAmount = cardAmount.add(sum);
+            }
+            // SPLIT counts are intentionally not folded into cash/cardSales —
+            // those track the number of pure-cash and pure-card transactions.
+        }
+
+        // 2) Split-payment breakdown: fold cash/card portions of SPLIT sales
+        //    into the cash/card amounts (counts unchanged).
+        List<Object[]> splitRows = (userId == null)
+                ? saleRepository.aggregateSplitPayments(start, end)
+                : saleRepository.aggregateSplitPaymentsByUser(userId, start, end);
+
+        for (Object[] row : splitRows) {
+            PaymentMethod pm = toPaymentMethod(row[0]);
+            BigDecimal sum   = toBigDecimal(row[1]);
+            if (pm == PaymentMethod.CASH) {
+                cashAmount = cashAmount.add(sum);
+            } else if (pm == PaymentMethod.CARD) {
+                cardAmount = cardAmount.add(sum);
             }
         }
 
-        // Calculate VAT totals and breakdown by rate for all sales
+        // 3) VAT breakdown by rate (one row per distinct VAT rate).
+        List<VatSummaryDTO> vatBreakdown = (userId == null)
+                ? saleRepository.aggregateVatBreakdown(start, end)
+                : saleRepository.aggregateVatBreakdownByUser(userId, start, end);
+
         BigDecimal totalVatAmount = BigDecimal.ZERO;
         BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
-        Map<BigDecimal, VatSummaryDTO> vatMap = new HashMap<>();
-        
-        for (Sale sale : allSales) {
-            for (SaleItem item : sale.getSaleItems()) {
-                if (item.getVatAmount() != null) {
-                    totalVatAmount = totalVatAmount.add(item.getVatAmount());
-                }
-                if (item.getPriceExcludingVat() != null) {
-                    totalAmountExcludingVat = totalAmountExcludingVat.add(item.getPriceExcludingVat());
-                }
-                
-                // Group by VAT rate for breakdown
-                if (item.getVatRate() != null) {
-                    BigDecimal vatRate = item.getVatRate();
-                    VatSummaryDTO vatSummary = vatMap.getOrDefault(vatRate, 
-                        new VatSummaryDTO(vatRate, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
-                    
-                    vatSummary.setGross(vatSummary.getGross().add(item.getTotalPrice()));
-                    if (item.getVatAmount() != null) {
-                        vatSummary.setVatAmount(vatSummary.getVatAmount().add(item.getVatAmount()));
-                    }
-                    if (item.getPriceExcludingVat() != null) {
-                        vatSummary.setNet(vatSummary.getNet().add(item.getPriceExcludingVat()));
-                    }
-                    
-                    vatMap.put(vatRate, vatSummary);
-                }
+        for (VatSummaryDTO v : vatBreakdown) {
+            if (v.getVatAmount() != null) {
+                totalVatAmount = totalVatAmount.add(v.getVatAmount());
+            }
+            if (v.getNet() != null) {
+                totalAmountExcludingVat = totalAmountExcludingVat.add(v.getNet());
             }
         }
-        
-        // Convert VAT map to sorted list (by VAT rate ascending)
-        List<VatSummaryDTO> vatBreakdown = new ArrayList<>(vatMap.values());
-        vatBreakdown.sort((a, b) -> a.getVatRate().compareTo(b.getVatRate()));
-        
-        // Calculate category summaries
-        Map<String, CategorySummaryDTO> categoryMap = new HashMap<>();
-        
-        for (Sale sale : allSales) {
-            for (SaleItem saleItem : sale.getSaleItems()) {
-                String categoryName;
-                if (saleItem.getItem() != null && saleItem.getItem().getCategory() != null) {
-                    categoryName = saleItem.getItem().getCategory().getName();
-                } else {
-                    categoryName = "Quick Sale"; // For quick sales without category
-                }
-                
-                CategorySummaryDTO categorySummary = categoryMap.getOrDefault(categoryName, 
-                    new CategorySummaryDTO(categoryName, BigDecimal.ZERO, 0L));
-                
-                categorySummary.setTotal(categorySummary.getTotal().add(saleItem.getTotalPrice()));
-                categorySummary.setCount(categorySummary.getCount() + saleItem.getQuantity());
-                
-                categoryMap.put(categoryName, categorySummary);
-            }
+
+        // 4) Category breakdown. NULL category (Quick Sale or item without
+        //    category) is renamed; a final "Total" row is appended for the
+        //    frontend.
+        List<CategorySummaryDTO> rawCategories = (userId == null)
+                ? saleRepository.aggregateCategoryBreakdown(start, end)
+                : saleRepository.aggregateCategoryBreakdownByUser(userId, start, end);
+
+        List<CategorySummaryDTO> categories = new ArrayList<>(rawCategories.size() + 1);
+        long totalCategoryCount = 0L;
+        for (CategorySummaryDTO c : rawCategories) {
+            if (c.getName() == null) c.setName("Quick Sale");
+            if (c.getCount() != null) totalCategoryCount += c.getCount();
+            categories.add(c);
         }
-        
-        // Convert map to list and add total
-        List<CategorySummaryDTO> categories = new ArrayList<>(categoryMap.values());
-        categories.sort((a, b) -> b.getTotal().compareTo(a.getTotal())); // Sort by total descending
-        
-        // Calculate total count as sum of all category counts (not number of transactions)
-        Long totalCategoryCount = categories.stream()
-                .mapToLong(CategorySummaryDTO::getCount)
-                .sum();
-        
-        // Add total row
         categories.add(new CategorySummaryDTO("Total", totalAmount, totalCategoryCount));
-        
-        DailyReportDTO report = new DailyReportDTO(startDate, totalSales, totalAmount, cashSales, cashAmount, cardSales, cardAmount);
+
+        DailyReportDTO report = new DailyReportDTO(
+                startDate, totalSales, totalAmount,
+                cashSales, cashAmount,
+                cardSales, cardAmount);
         report.setTotalVatAmount(totalVatAmount);
         report.setTotalAmountExcludingVat(totalAmountExcludingVat);
         report.setCategories(categories);
         report.setVatBreakdown(vatBreakdown);
-        
         return report;
     }
-    
+
+    private static PaymentMethod toPaymentMethod(Object o) {
+        if (o == null) return null;
+        if (o instanceof PaymentMethod) return (PaymentMethod) o;
+        return PaymentMethod.valueOf(o.toString());
+    }
+
+    private static BigDecimal toBigDecimal(Object o) {
+        if (o == null) return BigDecimal.ZERO;
+        if (o instanceof BigDecimal) return (BigDecimal) o;
+        if (o instanceof Number) return BigDecimal.valueOf(((Number) o).doubleValue());
+        return new BigDecimal(o.toString());
+    }
+
     public SaleDTO updateSale(Long id, SaleDTO saleDTO) {
         Sale existingSale = saleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sale not found with id: " + id));

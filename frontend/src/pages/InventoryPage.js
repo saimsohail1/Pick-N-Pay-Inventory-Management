@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Row,
   Col,
@@ -29,11 +29,11 @@ const InventoryPage = () => {
   const [sortBy, setSortBy] = useState('id'); // Default sort by id
   const [sortOrder, setSortOrder] = useState('desc'); // 'desc' for descending (newest first)
   
-  // Pagination state
+  // Pagination state — fully client-side now: we fetch every item once and
+  // filter/sort/paginate locally so the filters operate on the *full*
+  // inventory rather than just the items currently on screen.
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize] = useState(100); // 100 items per page
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
   const [filters, setFilters] = useState({
     stockFilter: 'all', // 'all', 'low', 'out', 'medium', 'normal'
     expiryFilter: 'all', // 'all', 'expired', 'expiring', 'valid'
@@ -58,23 +58,17 @@ const InventoryPage = () => {
       setLoading(true);
       try {
         const [itemsResponse, categoriesResponse] = await Promise.all([
-          itemsAPI.getAllPaginated(currentPage, pageSize, sortBy, sortOrder),
+          itemsAPI.getAll(),
           categoriesAPI.getAll()
         ]);
-        
-        // Handle paginated response
-        if (itemsResponse.data.content) {
-          setItems(itemsResponse.data.content);
-          setTotalPages(itemsResponse.data.totalPages);
-          setTotalElements(itemsResponse.data.totalElements);
-        } else {
-          // Fallback for non-paginated response
-        setItems(itemsResponse.data);
-          if (Array.isArray(itemsResponse.data)) {
-            setTotalElements(itemsResponse.data.length);
-          }
-        }
-        
+
+        // /api/items returns a plain array (no Spring Page wrapper), but be
+        // defensive in case the controller is changed to a paged response.
+        const itemsData = Array.isArray(itemsResponse.data)
+          ? itemsResponse.data
+          : (itemsResponse.data?.content || []);
+        setItems(itemsData);
+
         setCategories(categoriesResponse.data);
       } catch (err) {
         setError('Failed to fetch data');
@@ -83,25 +77,19 @@ const InventoryPage = () => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
-  }, [currentPage, pageSize, sortBy, sortOrder]);
+  }, []);
 
 
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const response = await itemsAPI.getAllPaginated(currentPage, pageSize, sortBy, sortOrder);
-      
-      // Handle paginated response
-      if (response.data.content) {
-        setItems(response.data.content);
-        setTotalPages(response.data.totalPages);
-        setTotalElements(response.data.totalElements);
-      } else {
-        // Fallback for non-paginated response
-      setItems(response.data);
-      }
+      const response = await itemsAPI.getAll();
+      const itemsData = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.content || []);
+      setItems(itemsData);
     } catch (err) {
       setError('Failed to fetch items');
     } finally {
@@ -382,8 +370,9 @@ const InventoryPage = () => {
     }, 500);
   };
 
-  // Filter and sort items based on current settings
-  const getFilteredAndSortedItems = () => {
+  // Filter + sort the *entire* inventory (memoised so we don't redo this on
+  // every render — only when items, search, filters or sort change).
+  const filteredAndSortedItems = useMemo(() => {
     let filteredItems = [...items];
 
     // Apply search filter (barcode or name)
@@ -409,25 +398,25 @@ const InventoryPage = () => {
 
     // Apply expiry filters
     if (filters.expiryFilter === 'expired') {
-      filteredItems = filteredItems.filter(item => 
+      filteredItems = filteredItems.filter(item =>
         item.generalExpiryDate && new Date(item.generalExpiryDate) < new Date()
       );
     } else if (filters.expiryFilter === 'expiring') {
       const oneWeekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      filteredItems = filteredItems.filter(item => 
-        item.generalExpiryDate && 
-        new Date(item.generalExpiryDate) >= new Date() && 
+      filteredItems = filteredItems.filter(item =>
+        item.generalExpiryDate &&
+        new Date(item.generalExpiryDate) >= new Date() &&
         new Date(item.generalExpiryDate) <= oneWeekFromNow
       );
     } else if (filters.expiryFilter === 'valid') {
-      filteredItems = filteredItems.filter(item => 
+      filteredItems = filteredItems.filter(item =>
         !item.generalExpiryDate || new Date(item.generalExpiryDate) > new Date()
       );
     }
 
     // Apply category filter
     if (filters.categoryFilter !== 'all') {
-      filteredItems = filteredItems.filter(item => 
+      filteredItems = filteredItems.filter(item =>
         item.categoryId === parseInt(filters.categoryFilter)
       );
     }
@@ -435,15 +424,15 @@ const InventoryPage = () => {
     // Sort filtered items
     return filteredItems.sort((a, b) => {
       let aValue, bValue;
-      
+
       switch (sortBy) {
         case 'stockQuantity':
           aValue = a.stockQuantity;
           bValue = b.stockQuantity;
           break;
         case 'name':
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
+          aValue = (a.name || '').toLowerCase();
+          bValue = (b.name || '').toLowerCase();
           break;
         case 'price':
           aValue = a.price;
@@ -456,14 +445,31 @@ const InventoryPage = () => {
         default:
           return 0;
       }
-      
+
       if (sortOrder === 'asc') {
         return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
       } else {
         return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
       }
     });
-  };
+  }, [items, searchTerm, filters, sortBy, sortOrder]);
+
+  // Derived pagination values (over the *filtered* list, not the DB total).
+  const totalElements = filteredAndSortedItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
+  const displayedItems = useMemo(
+    () => filteredAndSortedItems.slice(currentPage * pageSize, (currentPage + 1) * pageSize),
+    [filteredAndSortedItems, currentPage, pageSize]
+  );
+
+  // If a filter/search shrinks the result set so the current page no longer
+  // exists (e.g. you were on page 5 and the filter only has 2 pages), snap
+  // back to the last available page.
+  useEffect(() => {
+    if (currentPage > totalPages - 1) {
+      setCurrentPage(0);
+    }
+  }, [totalPages, currentPage]);
 
   const handleSort = (column) => {
     if (sortBy === column) {
@@ -475,7 +481,7 @@ const InventoryPage = () => {
     // Reset to first page when sorting changes
     setCurrentPage(0);
   };
-  
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
     // Scroll to top when page changes
@@ -494,7 +500,8 @@ const InventoryPage = () => {
     );
   }
 
-  // Calculate low stock count from current page items
+  // Calculate low stock count from the *full* inventory (not just the
+  // current page slice) so the header badge is always accurate.
   const lowStockCount = items.filter(item => item.stockQuantity <= 10).length;
 
   return (
@@ -587,11 +594,11 @@ const InventoryPage = () => {
           <div className="d-flex gap-2 align-items-center">
             <Button className="btn-3d" disabled style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
               <i className="bi bi-box me-2"></i>
-              Items on Page: {items.length}
+              Items on Page: {displayedItems.length}
             </Button>
             <Button className="btn-3d" disabled style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
               <i className="bi bi-archive me-2"></i>
-              Total Items: {totalElements}
+              Total Items: {items.length}
             </Button>
             <Button className="btn-3d" disabled style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
               <i className="bi bi-exclamation-triangle me-2"></i>
@@ -697,7 +704,7 @@ const InventoryPage = () => {
                 <div className="d-flex align-items-center justify-content-between">
                   <small className="text-muted">
                     <i className="bi bi-funnel me-1"></i>
-                    Showing {getFilteredAndSortedItems().length} of {items.length} items
+                    Showing {filteredAndSortedItems.length} of {items.length} items
                     {searchTerm && ` (Search: "${searchTerm}")`}
                     {filters.stockFilter !== 'all' && ` (Stock: ${filters.stockFilter})`}
                     {filters.expiryFilter !== 'all' && ` (Expiry: ${filters.expiryFilter})`}
@@ -763,20 +770,20 @@ const InventoryPage = () => {
               </tr>
             </thead>
             <tbody>
-              {getFilteredAndSortedItems().length === 0 ? (
+              {displayedItems.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-5">
+                  <td colSpan={9} className="text-center py-5">
                     <div style={{ color: '#aaaaaa' }}>
                       <i className="bi bi-inbox" style={{ fontSize: '3rem', display: 'block', marginBottom: '1rem' }}></i>
                       <p className="mb-0">No items found matching the current filters.</p>
                       {filters.stockFilter === 'out' && (
-                        <p className="mt-2 small">Try selecting "All Items" to see all items including out-of-stock.</p>
+                        <p className="mt-2 small">Try selecting &quot;All Items&quot; to see all items including out-of-stock.</p>
                       )}
                     </div>
                   </td>
                 </tr>
               ) : (
-                getFilteredAndSortedItems().map((item) => (
+                displayedItems.map((item) => (
                 <tr key={item.id}>
                   <td className="fw-bold">{item.name}</td>
                   <td>
@@ -869,8 +876,7 @@ const InventoryPage = () => {
                     </div>
                   </td>
                 </tr>
-              ))
-              )}
+              )))}
             </tbody>
           </Table>
           
@@ -878,7 +884,9 @@ const InventoryPage = () => {
           {totalPages > 1 && (
             <div className="d-flex justify-content-between align-items-center p-3 border-top">
               <div className="text-muted">
-                Showing {currentPage * pageSize + 1} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} items
+                {totalElements === 0
+                  ? 'No items match the current filters'
+                  : `Showing ${currentPage * pageSize + 1} to ${Math.min((currentPage + 1) * pageSize, totalElements)} of ${totalElements} items`}
               </div>
               <Pagination className="mb-0">
                 <Pagination.First 

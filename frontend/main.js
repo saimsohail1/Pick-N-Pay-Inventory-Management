@@ -74,7 +74,17 @@ function startBackend() {
   console.log("👉 Launching backend from:", jarPath);
   console.log("📂 JAR exists?", fs.existsSync(jarPath));
 
-  backendProcess = spawn('java', ['-Xmx512m', '-jar', jarPath], {
+  // -Xmx2g: heap large enough to hold a wide-range Z-Report (sales + sale_items
+  //         + items + categories) without OOM at production data volumes.
+  // -Xms512m: pre-allocate so startup isn't paying for repeated heap growth.
+  // HeapDumpOnOutOfMemoryError: if it ever still OOMs, drop a hprof we can inspect.
+  backendProcess = spawn('java', [
+    '-Xms512m',
+    '-Xmx2g',
+    '-XX:+HeapDumpOnOutOfMemoryError',
+    '-XX:HeapDumpPath=' + path.join(app.getPath('userData'), 'logs'),
+    '-jar', jarPath
+  ], {
     cwd: path.dirname(jarPath),
     detached: false,
     stdio: ['ignore', 'pipe', 'pipe'], // ✅ capture logs (prevents Windows freeze)

@@ -24,6 +24,24 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     @Query("SELECT DISTINCT s FROM Sale s LEFT JOIN FETCH s.salePayments WHERE s.saleDate BETWEEN :startDate AND :endDate ORDER BY s.saleDate DESC")
     List<Sale> findSalesByDateRangeWithPayments(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
     
+    // Optimized report query: eagerly fetch saleItems + item + category (avoids N+1)
+    @Query("SELECT DISTINCT s FROM Sale s " +
+           "LEFT JOIN FETCH s.saleItems si " +
+           "LEFT JOIN FETCH si.item i " +
+           "LEFT JOIN FETCH i.category " +
+           "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
+           "ORDER BY s.saleDate DESC")
+    List<Sale> findSalesForReport(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    // Optimized report query for a specific user
+    @Query("SELECT DISTINCT s FROM Sale s " +
+           "LEFT JOIN FETCH s.saleItems si " +
+           "LEFT JOIN FETCH si.item i " +
+           "LEFT JOIN FETCH i.category " +
+           "WHERE s.user.id = :userId AND s.saleDate BETWEEN :startDate AND :endDate " +
+           "ORDER BY s.saleDate DESC")
+    List<Sale> findSalesForReportByUser(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
     // Get sales by user ID and date range
     @Query("SELECT s FROM Sale s WHERE s.user.id = :userId AND s.saleDate BETWEEN :startDate AND :endDate ORDER BY s.saleDate DESC")
     List<Sale> findSalesByUserIdAndDateRange(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);

@@ -283,11 +283,12 @@ public class SaleService {
         }
     }
 
+    @Transactional(readOnly = true)
     public DailyReportDTO getDailyReport(LocalDate date) {
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay = date.atTime(23, 59, 59);
 
-        List<Sale> allSales = saleRepository.findSalesByDateRangeWithPayments(startOfDay, endOfDay);
+        List<Sale> allSales = saleRepository.findSalesForReport(startOfDay, endOfDay);
 
         Long totalSales = (long) allSales.size();
         BigDecimal totalAmount = allSales.stream()
@@ -406,12 +407,12 @@ public class SaleService {
         return report;
     }
     
+    @Transactional(readOnly = true)
     public DailyReportDTO getDailyReportByUser(LocalDate date, Long userId) {
         LocalDateTime startOfDay = date.atStartOfDay();
         LocalDateTime endOfDay = date.atTime(23, 59, 59);
 
-        // Get user-specific sales (eager-fetch salePayments so SPLIT cash/card amounts are included)
-        List<Sale> userSales = saleRepository.findSalesByUserIdAndDateRangeWithPayments(userId, startOfDay, endOfDay);
+        List<Sale> userSales = saleRepository.findSalesForReportByUser(userId, startOfDay, endOfDay);
         
         // Calculate totals
         Long totalSales = (long) userSales.size();
@@ -530,12 +531,12 @@ public class SaleService {
         return report;
     }
     
+    @Transactional(readOnly = true)
     public DailyReportDTO getDailyReportByUserAndDateRange(LocalDate startDate, LocalDate endDate, Long userId) {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
-        // Get user-specific sales for the date range (eager-fetch salePayments so SPLIT cash/card amounts are included)
-        List<Sale> userSales = saleRepository.findSalesByUserIdAndDateRangeWithPayments(userId, startDateTime, endDateTime);
+        List<Sale> userSales = saleRepository.findSalesForReportByUser(userId, startDateTime, endDateTime);
         
         // Calculate totals
         Long totalSales = (long) userSales.size();
@@ -654,12 +655,12 @@ public class SaleService {
         return report;
     }
     
+    @Transactional(readOnly = true)
     public DailyReportDTO getDailyReportByDateRangeForAdmin(LocalDate startDate, LocalDate endDate) {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
-        // Get all sales for the date range (admin view) - eager-fetch salePayments so SPLIT cash/card amounts are included
-        List<Sale> allSales = saleRepository.findSalesByDateRangeWithPayments(startDateTime, endDateTime);
+        List<Sale> allSales = saleRepository.findSalesForReport(startDateTime, endDateTime);
         
         // Calculate totals
         Long totalSales = (long) allSales.size();

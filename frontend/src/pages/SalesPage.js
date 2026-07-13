@@ -31,6 +31,7 @@ const SalesPage = () => {
   const [categories, setCategories] = useState([]);
   const [companyName, setCompanyName] = useState("Inventory System");
   const [companyAddress, setCompanyAddress] = useState('');
+  const [isB2bMode, setIsB2bMode] = useState(false);
   const [lastSale, setLastSale] = useState(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -263,6 +264,7 @@ const SalesPage = () => {
       const response = await companySettingsAPI.get();
       setCompanyName(response.data.companyName || "Inventory System");
       setCompanyAddress(response.data.address || '');
+      setIsB2bMode(response.data.includeVatInReports === false);
     } catch (error) {
       console.error('Failed to fetch company name:', error);
       // Keep default name if fetch fails
@@ -1648,6 +1650,13 @@ const SalesPage = () => {
     setCheckoutDialogOpen(true);
   };
 
+  const cartCellStyle = isB2bMode
+    ? { fontSize: '0.82rem', padding: '0.2rem 0.35rem', lineHeight: 1.2 }
+    : { fontSize: '1rem', padding: '0.6rem' };
+  const cartHeaderStyle = isB2bMode
+    ? { fontSize: '0.82rem', padding: '0.25rem 0.35rem' }
+    : { fontSize: '1rem', padding: '0.6rem' };
+
   return (
     <div 
       className="sales-page-container" 
@@ -2117,41 +2126,47 @@ const SalesPage = () => {
                   <Table striped hover className="mb-0" size="sm">
                       <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                         <tr>
-                          <th style={{ width: '6%', fontSize: '1rem', padding: '0.6rem' }}>ID</th>
-                          <th style={{ width: '35%', fontSize: '1rem', padding: '0.6rem' }}>Item</th>
-                          <th className="text-end" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Price</th>
-                          <th className="text-center" style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>Quantity</th>
-                          <th className="text-end" style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>Discount</th>
-                          <th className="text-center" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>VAT</th>
-                          <th className="text-end" style={{ width: '13%', fontSize: '1rem', padding: '0.6rem' }}>Total</th>
+                          <th style={{ width: isB2bMode ? '5%' : '6%', ...cartHeaderStyle }}>#</th>
+                          <th style={{ width: isB2bMode ? '48%' : '35%', ...cartHeaderStyle }}>Item</th>
+                          <th className="text-end" style={{ width: isB2bMode ? '12%' : '10%', ...cartHeaderStyle }}>{isB2bMode ? 'Rate' : 'Price'}</th>
+                          <th className="text-center" style={{ width: isB2bMode ? '10%' : '8%', ...cartHeaderStyle }}>Qty</th>
+                          {!isB2bMode && (
+                            <th className="text-end" style={{ width: '8%', ...cartHeaderStyle }}>Discount</th>
+                          )}
+                          {!isB2bMode && (
+                            <th className="text-center" style={{ width: '10%', ...cartHeaderStyle }}>VAT</th>
+                          )}
+                          <th className="text-end" style={{ width: isB2bMode ? '15%' : '13%', ...cartHeaderStyle }}>Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {cart.map((item, index) => (
                         <tr 
-                          key={index} 
+                          key={item.id} 
                           onClick={() => handleCartItemClick(item)}
                           className={`cart-item-row ${selectedCartItem && selectedCartItem.id === item.id ? 'cart-item-selected' : ''}`}
                           style={{ cursor: 'pointer', backgroundColor: '#2a2a2a', color: '#ffffff' }}
                         >
-                            <td style={{ fontSize: '1rem', padding: '0.6rem' }}>{index + 1}</td>
-                            <td style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            <td style={cartCellStyle}>{index + 1}</td>
+                            <td style={cartCellStyle}>
                             <div>
-                                <strong style={{ fontSize: '1.1rem' }}>{item.itemName}</strong>
-                                {item.itemBarcode && item.itemBarcode !== 'N/A' && (
+                                <strong style={{ fontSize: isB2bMode ? '0.85rem' : '1.1rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isB2bMode ? 'nowrap' : 'normal' }}>
+                                  {isB2bMode ? `${item.quantity}x ${item.itemName}` : item.itemName}
+                                </strong>
+                                {!isB2bMode && item.itemBarcode && item.itemBarcode !== 'N/A' && (
                                   <small className="d-block" style={{ fontSize: '0.8rem', color: '#aaaaaa' }}>
                                     <i className="bi bi-upc" style={{ fontSize: '0.7rem' }}></i> {item.itemBarcode}
                                 </small>
                               )}
-                                {item.discountApplied && (
+                                {!isB2bMode && item.discountApplied && (
                                   <small className="d-block" style={{ fontSize: '0.8rem', color: '#ffffff' }}>
                                     <i className="bi bi-percent" style={{ fontSize: '0.7rem' }}></i> Discount Applied
                                 </small>
                               )}
                             </div>
                           </td>
-                            <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
-                              {item.discountApplied ? (
+                            <td className="text-end" style={cartCellStyle}>
+                              {item.discountApplied && !isB2bMode ? (
                                 <div>
                                   <div className="text-decoration-line-through" style={{ fontSize: '0.9rem', color: '#aaaaaa' }}>
                                     €{item.originalPrice.toFixed(2)}
@@ -2164,10 +2179,11 @@ const SalesPage = () => {
                                 <span>€{item.unitPrice.toFixed(2)}</span>
                               )}
                             </td>
-                            <td className="text-center" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            <td className="text-center" style={cartCellStyle}>
                               <span className="fw-bold">{item.quantity}</span>
                             </td>
-                            <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            {!isB2bMode && (
+                            <td className="text-end" style={cartCellStyle}>
                               <Form.Control
                                 type="text"
                                 size="sm"
@@ -2178,7 +2194,9 @@ const SalesPage = () => {
                                 style={{ width: '60px', fontSize: '0.9rem', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                               />
                             </td>
-                            <td className="text-center" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            )}
+                            {!isB2bMode && (
+                            <td className="text-center" style={cartCellStyle}>
                               <Form.Select
                                 size="sm"
                                 value={item.vatRate != null ? item.vatRate : 23.00}
@@ -2191,7 +2209,8 @@ const SalesPage = () => {
                                 <option value="23">23%</option>
                               </Form.Select>
                             </td>
-                            <td className="text-end fw-bold" style={{ fontSize: '1rem', padding: '0.6rem' }}>€{item.totalPrice.toFixed(2)}</td>
+                            )}
+                            <td className="text-end fw-bold" style={cartCellStyle}>€{item.totalPrice.toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>

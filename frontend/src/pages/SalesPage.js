@@ -46,6 +46,7 @@ const SalesPage = () => {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const barcodeInputRef = useRef(null);
+  const barcodeProcessingRef = useRef(false);
   const paymentInProgressRef = useRef(false);
   const cashPaymentTimeoutRef = useRef(null);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
@@ -163,26 +164,6 @@ const SalesPage = () => {
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
       registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen,
       splitPaymentDialogOpen, outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
-
-  useEffect(() => {
-    // Focus on barcode input when component mounts
-    const handleKeyDown = (event) => {
-      // Only process if a barcode scanner is likely being used (e.g., Enter key)
-      if (event.key === 'Enter' && barcodeInput) {
-        event.preventDefault(); // Prevent form submission
-        processBarcode(barcodeInput);
-        setBarcodeInput(''); // Clear input after processing
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [barcodeInput]);
-
-
 
   useEffect(() => {
     if (selectedItemId) {
@@ -392,6 +373,38 @@ const SalesPage = () => {
         return [saleItem, ...currentCart];
       }
     });
+  };
+
+  const handleBarcodeSubmit = async () => {
+    if (barcodeProcessingRef.current || loading || paymentInProgressRef.current) {
+      return;
+    }
+    // Ignore scanner Enter while payment dialogs are open (prevents accidental CARD/CASH).
+    if (checkoutDialogOpen || cashConfirmDialogOpen || splitPaymentDialogOpen) {
+      return;
+    }
+
+    const barcode = (barcodeInputRef.current?.value || barcodeInput || '').trim();
+    if (!barcode) {
+      return;
+    }
+
+    barcodeProcessingRef.current = true;
+    setBarcodeInput('');
+    if (barcodeInputRef.current) {
+      barcodeInputRef.current.value = '';
+    }
+
+    try {
+      await processBarcode(barcode);
+    } finally {
+      barcodeProcessingRef.current = false;
+      setTimeout(() => {
+        if (barcodeInputRef.current && !checkoutDialogOpen) {
+          barcodeInputRef.current.focus();
+        }
+      }, 100);
+    }
   };
 
   const processBarcode = async (barcode) => {
@@ -2540,16 +2553,10 @@ const SalesPage = () => {
                   placeholder="Scan or enter barcode"
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      processBarcode(barcodeInput);
-                      setBarcodeInput('');
-                      // Refocus after processing
-                      setTimeout(() => {
-                        if (barcodeInputRef.current) {
-                          barcodeInputRef.current.focus();
-                        }
-                      }, 100);
+                      e.preventDefault();
+                      handleBarcodeSubmit();
                     }
                   }}
                   autoFocus
@@ -2896,7 +2903,19 @@ const SalesPage = () => {
       />
 
       {/* Unified Payment Dialog */}
-      <Modal show={checkoutDialogOpen} onHide={handleCloseCheckoutDialog} centered size="xl" style={{ maxWidth: '90vw', width: '1200px', transform: 'translateX(8%)' }}>
+      <Modal
+        show={checkoutDialogOpen}
+        onHide={handleCloseCheckoutDialog}
+        centered
+        size="xl"
+        style={{ maxWidth: '90vw', width: '1200px', transform: 'translateX(8%)' }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+      >
         <Modal.Body className="p-0" style={{ backgroundColor: '#1a1a1a' }}>
           <div className="row g-0">
             {/* Top Section - Transaction Summary */}
@@ -3058,7 +3077,7 @@ const SalesPage = () => {
                       handleConfirmCheckout('CARD');
                       setCheckoutDialogOpen(false);
                     }}
-              disabled={loading}
+              disabled={loading || paymentInProgressRef.current}
                     style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
             >
                     CARD €{calculateTotal().toFixed(2)}

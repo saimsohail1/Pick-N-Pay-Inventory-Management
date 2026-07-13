@@ -236,7 +236,8 @@ public class ItemService {
             item.setVatRate(new BigDecimal("0.00"));
         }
         
-        item.setBatchId(dto.getBatchId());
+        String batchId = dto.getBatchId();
+        item.setBatchId(batchId != null && !batchId.trim().isEmpty() ? batchId.trim() : null);
         item.setGeneralExpiryDate(dto.getGeneralExpiryDate());
         return item;
     }

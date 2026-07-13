@@ -17,6 +17,25 @@ import { itemsAPI, categoriesAPI } from '../services/api';
 import EditItemDialog from '../components/EditItemDialog';
 import JsBarcode from 'jsbarcode';
 
+const toItemPayload = (formData) => {
+  const categoryId = formData.categoryId;
+  const parsedCategoryId = categoryId != null && String(categoryId).trim() !== ''
+    ? parseInt(String(categoryId), 10)
+    : null;
+
+  return {
+    name: formData.name?.trim(),
+    description: formData.description?.trim() || null,
+    price: parseFloat(formData.price),
+    stockQuantity: parseInt(formData.stockQuantity, 10),
+    barcode: formData.barcode?.trim() || null,
+    vatRate: parseFloat(formData.vatRate),
+    categoryId: Number.isNaN(parsedCategoryId) ? null : parsedCategoryId,
+    batchId: formData.batchId?.trim() || null,
+    generalExpiryDate: formData.generalExpiryDate?.trim() || null
+  };
+};
+
 const InventoryPage = () => {
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -143,13 +162,7 @@ const InventoryPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const itemData = {
-        ...formData,
-        price: parseFloat(formData.price),
-        stockQuantity: parseInt(formData.stockQuantity),
-        vatRate: parseFloat(formData.vatRate),
-        categoryId: formData.categoryId && formData.categoryId.trim() !== '' ? formData.categoryId : null
-      };
+      const itemData = toItemPayload(formData);
 
       if (editingItem) {
         await itemsAPI.update(editingItem.id, itemData);
@@ -178,7 +191,10 @@ const InventoryPage = () => {
       setCurrentPage(0);
       fetchItems();
     } catch (err) {
-      const errorMessage = err.response?.data || 'Failed to save item';
+      const data = err.response?.data;
+      const errorMessage = typeof data === 'string'
+        ? data
+        : data?.message || err.message || 'Failed to save item';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -195,12 +211,7 @@ const InventoryPage = () => {
     
     setLoading(true);
     try {
-      const itemData = {
-        ...formData,
-        price: parseFloat(formData.price),
-        stockQuantity: parseInt(formData.stockQuantity),
-        vatRate: parseFloat(formData.vatRate)
-      };
+      const itemData = toItemPayload(formData);
 
       await itemsAPI.update(editingItem.id, itemData);
       setSuccess('Item updated successfully');

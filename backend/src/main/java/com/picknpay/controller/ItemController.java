@@ -83,7 +83,8 @@ public class ItemController {
             ItemDTO createdItem = itemService.createItem(itemDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdItem);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            if (e.getMessage().contains("barcode") || e.getMessage().contains("duplicate")) {
+            String message = e.getMessage();
+            if (message != null && (message.contains("barcode") || message.contains("duplicate"))) {
                 return ResponseEntity.badRequest().body("Error: An item with this barcode already exists. Please use a different barcode.");
             }
             return ResponseEntity.badRequest().body("Error: Data integrity violation. Please check your input.");

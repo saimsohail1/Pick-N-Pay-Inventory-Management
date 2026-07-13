@@ -1,5 +1,7 @@
 package com.picknpay.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.picknpay.config.EmptyStringToNullLocalDateDeserializer;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -33,6 +35,8 @@ public class ItemDTO {
     private BigDecimal vatRate = new BigDecimal("23.00"); // Default 23% VAT
     
     private String batchId;
+
+    @JsonDeserialize(using = EmptyStringToNullLocalDateDeserializer.class)
     private LocalDate generalExpiryDate;
     
     // Constructors

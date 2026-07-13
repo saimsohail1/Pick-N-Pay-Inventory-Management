@@ -20,11 +20,11 @@
 -- ============================================
 
 -- Create database if it doesn't exist
-SELECT 'CREATE DATABASE picknpay_inventory'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'picknpay_inventory')\gexec
+SELECT 'CREATE DATABASE inventory_database'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'inventory_database')\gexec
 
 -- Connect to the database
-\c picknpay_inventory;
+\c inventory_database;
 
 -- ============================================
 -- 2. DROP EXISTING TABLES (if they exist)
@@ -261,7 +261,7 @@ CREATE TRIGGER update_attendances_updated_at BEFORE UPDATE ON attendances FOR EA
 -- ============================================
 
 -- Grant all privileges to postgres user
-GRANT ALL PRIVILEGES ON DATABASE picknpay_inventory TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE inventory_database TO postgres;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;
 
@@ -294,7 +294,7 @@ BEGIN
     RAISE NOTICE '============================================';
     RAISE NOTICE 'PickNPay Database Setup Complete!';
     RAISE NOTICE '============================================';
-    RAISE NOTICE 'Database: picknpay_inventory';
+    RAISE NOTICE 'Database: inventory_database';
     RAISE NOTICE 'Admin User:';
     RAISE NOTICE '  Username: admin';
     RAISE NOTICE '  Password: admin123';

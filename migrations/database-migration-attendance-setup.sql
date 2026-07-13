@@ -12,7 +12,7 @@
 -- ============================================
 
 -- Connect to the database
-\c picknpay_inventory;
+\c inventory_database;
 
 -- ============================================
 -- 1. ADD HOURLY_PAY_RATE TO USERS TABLE

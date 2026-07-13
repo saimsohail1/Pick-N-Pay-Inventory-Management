@@ -41,12 +41,12 @@ If you're setting up a new database, use the main `database-setup.sql` file in t
 
 1. Connect to your PostgreSQL database:
    ```bash
-   psql -U postgres -d picknpay_inventory
+   psql -U postgres -d inventory_database
    ```
 
 2. Run the migration script:
    ```bash
-   psql -U postgres -d picknpay_inventory -f migrations/database-migration-<name>.sql
+   psql -U postgres -d inventory_database -f migrations/database-migration-<name>.sql
    ```
 
    Or from within psql:

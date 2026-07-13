@@ -3,7 +3,7 @@
 -- Run this to check if the column exists
 -- ============================================
 
-\c picknpay_inventory;
+\c inventory_database;
 
 -- Check if column exists
 SELECT 

@@ -71,10 +71,10 @@ fi
 
 # Test 6: Check if database exists
 echo "6. Checking database setup..."
-if psql -U postgres -lqt | cut -d \| -f 1 | grep -qw picknpay_inventory; then
-    print_status 0 "Database 'picknpay_inventory' exists"
+if psql -U postgres -lqt | cut -d \| -f 1 | grep -qw inventory_database; then
+    print_status 0 "Database 'inventory_database' exists"
 else
-    print_status 1 "Database 'picknpay_inventory' does not exist"
+    print_status 1 "Database 'inventory_database' does not exist"
     print_warning "Run: psql -U postgres -f database-setup.sql"
 fi
 

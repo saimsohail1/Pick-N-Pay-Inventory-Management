@@ -10,7 +10,7 @@
 -- ============================================
 
 -- Connect to the database
-\c picknpay_inventory;
+\c inventory_database;
 
 -- ============================================
 -- 1. ADD VAT_RATE COLUMN TO CATEGORIES TABLE

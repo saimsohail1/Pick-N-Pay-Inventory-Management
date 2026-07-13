@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { authStorage } from '../utils/authStorage';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -14,7 +15,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = authStorage.getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -46,8 +47,7 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      authStorage.clear();
       window.location.hash = '#/login';
     }
     return Promise.reject(error);

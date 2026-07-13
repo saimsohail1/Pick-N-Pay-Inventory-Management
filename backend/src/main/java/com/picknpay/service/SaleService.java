@@ -17,6 +17,7 @@ import com.picknpay.repository.SaleRepository;
 import com.picknpay.repository.SaleItemRepository;
 import com.picknpay.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +44,9 @@ public class SaleService {
     
     @Autowired
     private SaleItemRepository saleItemRepository;
+
+    @Value("${app.b2b-mode:false}")
+    private boolean b2bMode;
     
     public List<SaleDTO> getAllSales() {
         return saleRepository.findAllByOrderBySaleDateDesc().stream()
@@ -365,19 +369,21 @@ public class SaleService {
             }
         }
 
-        // 3) VAT breakdown by rate (one row per distinct VAT rate).
-        List<VatSummaryDTO> vatBreakdown = (userId == null)
-                ? saleRepository.aggregateVatBreakdown(start, end)
-                : saleRepository.aggregateVatBreakdownByUser(userId, start, end);
-
+        // 3) VAT breakdown by rate (skipped in B2B mode — quotations don't need VAT on Z-reports).
+        List<VatSummaryDTO> vatBreakdown = new ArrayList<>();
         BigDecimal totalVatAmount = BigDecimal.ZERO;
         BigDecimal totalAmountExcludingVat = BigDecimal.ZERO;
-        for (VatSummaryDTO v : vatBreakdown) {
-            if (v.getVatAmount() != null) {
-                totalVatAmount = totalVatAmount.add(v.getVatAmount());
-            }
-            if (v.getNet() != null) {
-                totalAmountExcludingVat = totalAmountExcludingVat.add(v.getNet());
+        if (!b2bMode) {
+            vatBreakdown = (userId == null)
+                    ? saleRepository.aggregateVatBreakdown(start, end)
+                    : saleRepository.aggregateVatBreakdownByUser(userId, start, end);
+            for (VatSummaryDTO v : vatBreakdown) {
+                if (v.getVatAmount() != null) {
+                    totalVatAmount = totalVatAmount.add(v.getVatAmount());
+                }
+                if (v.getNet() != null) {
+                    totalAmountExcludingVat = totalAmountExcludingVat.add(v.getNet());
+                }
             }
         }
 
@@ -405,6 +411,7 @@ public class SaleService {
         report.setTotalAmountExcludingVat(totalAmountExcludingVat);
         report.setCategories(categories);
         report.setVatBreakdown(vatBreakdown);
+        report.setIncludeVatInReports(!b2bMode);
         return report;
     }
 

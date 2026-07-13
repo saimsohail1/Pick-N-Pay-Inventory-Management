@@ -14,6 +14,12 @@ public class CompanySettingsDTO {
     @Size(max = 500, message = "Address must not exceed 500 characters")
     private String address;
 
+    @Size(max = 2000, message = "Quotation footer must not exceed 2000 characters")
+    private String quotationFooterText;
+
+    /** Read-only: driven by app.b2b-mode — not stored in the database. */
+    private boolean includeVatInReports = true;
+
     // Constructors
     public CompanySettingsDTO() {}
 
@@ -55,5 +61,21 @@ public class CompanySettingsDTO {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getQuotationFooterText() {
+        return quotationFooterText;
+    }
+
+    public void setQuotationFooterText(String quotationFooterText) {
+        this.quotationFooterText = quotationFooterText;
+    }
+
+    public boolean isIncludeVatInReports() {
+        return includeVatInReports;
+    }
+
+    public void setIncludeVatInReports(boolean includeVatInReports) {
+        this.includeVatInReports = includeVatInReports;
     }
 }

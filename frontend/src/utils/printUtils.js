@@ -10,13 +10,15 @@
  * @param {string} companyAddress - Company address
  * @param {string} printerName - Optional printer name
  * @param {string} cashierName - Optional cashier name (overrides sale.user?.username)
+ * @param {boolean} includeVatInReports - When false (B2B), receipt shows total only
  */
-export const printReceiptRaw = async (sale, companyName = "ADAMS GREEN", companyAddress = '', printerName = null, cashierName = null) => {
+export const printReceiptRaw = async (sale, companyName = "Inventory System", companyAddress = '', printerName = null, cashierName = null, includeVatInReports = true, quotationFooterText = null) => {
   // Always use directPrint (browser's window.print) - this is what worked in the original version
   // The IPC handler is just a passthrough, so we use the browser's native printing
   console.log('🖨️ Printing receipt using browser print (window.print)');
-  const receiptContent = createReceiptHTML(sale, companyName, companyAddress, cashierName);
-  return directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
+  const receiptContent = createReceiptHTML(sale, companyName, companyAddress, cashierName, includeVatInReports, quotationFooterText);
+  const printTitle = includeVatInReports ? `Receipt - Sale #${sale.id}` : `Quotation #${sale.id}`;
+  return directPrint(receiptContent, printTitle);
 };
 
 /**
@@ -154,13 +156,177 @@ export const printWithElectron = (content, title = 'Print Document') => {
 };
 
 /**
+ * Default quotation footer when none is configured in Company Settings.
+ */
+export const DEFAULT_QUOTATION_FOOTER = `All sales are final. No returns or exchanges.
+Damages/Shortages must be reported within 24 hours.
+Vape products strictly 18+
+Wholesale customers only
+This estimation will retain in our system for 15 days.`;
+
+const getQuotationFooterLines = (quotationFooterText) => {
+  const source = (quotationFooterText && quotationFooterText.trim())
+    ? quotationFooterText
+    : DEFAULT_QUOTATION_FOOTER;
+  return source.split('\n').map((line) => line.trim()).filter(Boolean);
+};
+
+/**
+ * B2B quotation layout (matches wholesale quotation style — no VAT on print).
+ */
+const createQuotationHTML = (sale, companyName, companyAddress, cashierName, quotationFooterText) => {
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const mins = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${mins}`;
+  };
+
+  const money = (value) => `€${parseFloat(value || 0).toFixed(2)}`;
+  const operator = (cashierName || sale.user?.username || 'Staff').toUpperCase();
+  const ref = String(sale.id || 0).padStart(8, '0');
+  const items = sale.saleItems || [];
+  const itemQtyTotal = items.reduce((sum, item) => sum + (parseInt(item.quantity, 10) || 0), 0);
+  const subTotal = items.reduce((sum, item) => sum + parseFloat(item.totalPrice || 0), 0);
+  const grandTotal = parseFloat(sale.totalAmount || subTotal);
+
+  const itemRows = items.map((item) => {
+    const qty = parseInt(item.quantity, 10) || 1;
+    const rate = parseFloat(item.unitPrice || 0);
+    const total = parseFloat(item.totalPrice || 0);
+    const name = (item.itemName || 'Item').trim();
+    return `
+      <tr>
+        <td class="col-item">${qty}x ${name}</td>
+        <td class="col-rate">${money(rate)}</td>
+        <td class="col-total">${money(total)}</td>
+      </tr>`;
+  }).join('');
+
+  const paymentMethod = (sale.paymentMethod || 'CASH').toString().toUpperCase();
+  let paymentHtml = '';
+  if (sale.paymentSplits && sale.paymentSplits.length > 0) {
+    paymentHtml = sale.paymentSplits.map((p) => {
+      const label = (p.paymentMethod || 'PAYMENT').toString();
+      const nice = label.charAt(0) + label.slice(1).toLowerCase();
+      return `<div class="summary-row"><span>${nice}</span><span>${money(p.amount)}</span></div>`;
+    }).join('');
+  } else {
+    const nice = paymentMethod.charAt(0) + paymentMethod.slice(1).toLowerCase();
+    paymentHtml = `<div class="summary-row"><span>${nice}</span><span>${money(grandTotal)}</span></div>`;
+  }
+
+  const changeDue = parseFloat(sale.changeDue || 0);
+  const changeHtml = paymentMethod === 'CASH' || (sale.paymentSplits || []).some((p) => (p.paymentMethod || '').toUpperCase() === 'CASH')
+    ? `<div class="summary-row"><span>Change Given</span><span>${money(changeDue)}</span></div>`
+    : '';
+
+  const footerLines = getQuotationFooterLines(quotationFooterText);
+  const escapeHtml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const policiesHtml = footerLines.map((line) => `<div>${escapeHtml(line)}</div>`).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Quotation #${sale.id}</title>
+      <style>
+        @media print {
+          @page { size: 80mm auto; margin: 0; }
+          body { margin: 0; padding: 4mm; width: 72mm; }
+        }
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 11px;
+          line-height: 1.25;
+          margin: 0;
+          padding: 4mm;
+          width: 72mm;
+          color: #000;
+          font-weight: 600;
+        }
+        .top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
+        .title { font-size: 15px; font-weight: 700; }
+        .operator { font-size: 13px; font-weight: 700; text-align: right; max-width: 45%; word-break: break-word; }
+        .disclaimer { font-size: 10px; margin-bottom: 6px; }
+        .meta-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 8px; }
+        .company { text-align: center; font-size: 10px; margin-bottom: 6px; }
+        table.items { width: 100%; border-collapse: collapse; font-size: 10px; }
+        table.items thead th { text-align: left; border-bottom: 1px solid #000; padding: 2px 0; font-size: 10px; }
+        table.items thead th.col-rate,
+        table.items thead th.col-total { text-align: right; }
+        table.items td { vertical-align: top; padding: 2px 0; }
+        table.items .col-item { width: 58%; word-break: break-word; padding-right: 4px; }
+        table.items .col-rate { width: 20%; text-align: right; white-space: nowrap; }
+        table.items .col-total { width: 22%; text-align: right; white-space: nowrap; }
+        .qty-count { text-align: right; font-size: 10px; margin: 6px 0 2px; }
+        .summary-row { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
+        .summary-row.grand { font-weight: 700; font-size: 12px; margin-top: 4px; }
+        .datetime { text-align: center; font-size: 11px; margin: 10px 0 6px; }
+        .ref-code { text-align: center; font-family: 'Courier New', monospace; font-size: 14px; letter-spacing: 2px; margin: 6px 0; }
+        .policies { font-size: 9px; line-height: 1.35; margin-top: 8px; text-align: center; }
+        .policies div { margin: 2px 0; }
+        * { color: #000 !important; }
+      </style>
+    </head>
+    <body>
+      <div class="top-row">
+        <div class="title">Quotation</div>
+        <div class="operator">${operator}</div>
+      </div>
+      <div class="disclaimer">This is not a VAT Invoice</div>
+      <div class="meta-row">
+        <span>${ref}</span>
+        <span>Till ID 1</span>
+      </div>
+      ${companyName ? `<div class="company">${companyName}${companyAddress ? ` — ${companyAddress}` : ''}</div>` : ''}
+
+      <table class="items">
+        <thead>
+          <tr>
+            <th class="col-item">Item</th>
+            <th class="col-rate">Rate</th>
+            <th class="col-total">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemRows}
+        </tbody>
+      </table>
+
+      <div class="qty-count">${itemQtyTotal}</div>
+      <div class="summary-row"><span>Sub Total</span><span>${money(subTotal)}</span></div>
+      <div class="summary-row grand"><span>Grand Total</span><span>${money(grandTotal)}</span></div>
+      ${paymentHtml}
+      ${changeHtml}
+
+      <div class="datetime">${formatDate(sale.saleDate)}</div>
+      <div class="ref-code">${ref}</div>
+
+      <div class="policies">
+        ${policiesHtml}
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
  * Create optimized receipt HTML for thermal printers
  * @param {Object} sale - Sale data
  * @param {string} companyName - Company name
  * @param {string} companyAddress - Company address
  * @returns {string} HTML content
  */
-export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddress = '', cashierName = null) => {
+export const createReceiptHTML = (sale, companyName = "Inventory System", companyAddress = '', cashierName = null, includeVatInReports = true, quotationFooterText = null) => {
+  if (!includeVatInReports) {
+    return createQuotationHTML(sale, companyName, companyAddress, cashierName, quotationFooterText);
+  }
+
   // Helper function to format date as DD/MM/YYYY
   const formatReceiptDate = (dateStr) => {
     if (!dateStr) return '';
@@ -172,33 +338,51 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
     return `${day}/${month}/${year}`;
   };
 
-  const subtotalExcludingVat = sale.saleItems.reduce((sum, item) => 
-    sum + parseFloat(item.priceExcludingVat || 0), 0
-  );
-  const totalVat = sale.saleItems.reduce((sum, item) => 
-    sum + parseFloat(item.vatAmount || 0), 0
-  );
-  
-  // Calculate average VAT percentage (weighted by amount)
-  // Formula: (Total VAT / Total Excluding VAT) * 100
+  let subtotalExcludingVat = 0;
+  let totalVat = 0;
   let averageVatRate = 0;
-  if (subtotalExcludingVat > 0) {
-    averageVatRate = (totalVat / subtotalExcludingVat) * 100;
-  } else if (sale.saleItems.length > 0) {
-    // Fallback: simple average of VAT rates if no excluding VAT data
-    const sumOfRates = sale.saleItems.reduce((sum, item) => 
-      sum + parseFloat(item.vatRate || 23), 0
+  if (includeVatInReports) {
+    subtotalExcludingVat = sale.saleItems.reduce((sum, item) =>
+      sum + parseFloat(item.priceExcludingVat || 0), 0
     );
-    averageVatRate = sumOfRates / sale.saleItems.length;
-  } else {
-    averageVatRate = 23; // Default fallback
+    totalVat = sale.saleItems.reduce((sum, item) =>
+      sum + parseFloat(item.vatAmount || 0), 0
+    );
+    if (subtotalExcludingVat > 0) {
+      averageVatRate = (totalVat / subtotalExcludingVat) * 100;
+    } else if (sale.saleItems.length > 0) {
+      const sumOfRates = sale.saleItems.reduce((sum, item) =>
+        sum + parseFloat(item.vatRate || 23), 0
+      );
+      averageVatRate = sumOfRates / sale.saleItems.length;
+    } else {
+      averageVatRate = 23;
+    }
   }
+
+  const vatSummaryHtml = includeVatInReports ? `
+      <div class="item">
+        <span>Subtotal (excl. VAT):</span>
+        <span>€${subtotalExcludingVat.toFixed(2)}</span>
+      </div>
+      <div class="item">
+        <span>VAT (${Math.round(averageVatRate)}%):</span>
+        <span>€${totalVat.toFixed(2)}</span>
+      </div>` : '';
+
+  const vatNumberHtml = includeVatInReports ? `
+      <div class="vat-info">
+        <div class="center">VAT No: ${sale.vatNumber || 'N/A'}</div>
+      </div>` : '';
+
+  const documentTitle = includeVatInReports ? `Receipt - Sale #${sale.id}` : `Quotation #${sale.id}`;
+  const receiptLabel = includeVatInReports ? 'SALE RECEIPT' : 'QUOTATION';
 
   return `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Receipt - Sale #${sale.id}</title>
+      <title>${documentTitle}</title>
       <style>
         @media print {
           @page { 
@@ -246,7 +430,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       <div class="header">
         <div class="center company-name">${companyName.toUpperCase()}</div>
         ${companyAddress ? `<div class="center company-address">${companyAddress}</div>` : ''}
-        <div class="center">SALE RECEIPT</div>
+        <div class="center">${receiptLabel}</div>
         <div class="center">Date: ${formatReceiptDate(sale.saleDate)}</div>
         <div class="center">Time: ${new Date(sale.saleDate).toLocaleTimeString()}</div>
         <div class="center">Sale ID: ${sale.id}</div>
@@ -264,14 +448,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       
       <div class="divider"></div>
       
-      <div class="item">
-        <span>Subtotal (excl. VAT):</span>
-        <span>€${subtotalExcludingVat.toFixed(2)}</span>
-      </div>
-      <div class="item">
-        <span>VAT (${Math.round(averageVatRate)}%):</span>
-        <span>€${totalVat.toFixed(2)}</span>
-      </div>
+      ${vatSummaryHtml}
       <div class="total">
         <div class="item">
           <span><strong>TOTAL:</strong></span>
@@ -279,9 +456,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         </div>
       </div>
       
-      <div class="vat-info">
-        <div class="center">VAT No: ${sale.vatNumber || 'N/A'}</div>
-      </div>
+      ${vatNumberHtml}
       
       <div class="divider"></div>
       
@@ -301,7 +476,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
  * @param {string} startDate - Report start date
  * @returns {string} HTML content
  */
-export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", startDate, companyAddress = '', companyPhone = '') => {
+export const createZReportHTML = (reportData, companyName = "Inventory System", startDate, companyAddress = '', companyPhone = '') => {
   // Format date as DD/MM/YYYY or handle date range string
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -327,7 +502,9 @@ export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", start
     return formatSingleDate(dateStr);
   };
 
-  // Process VAT breakdown from backend
+  const includeVatInReports = reportData.includeVatInReports !== false;
+
+  // Process VAT breakdown from backend (skipped in B2B / quotation mode)
   let vatRows = [];
   let totalGross = 0;
   let totalVat = 0;
@@ -335,7 +512,7 @@ export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", start
   let weightedVatSum = 0;
   let totalGrossForAvg = 0;
   
-  if (reportData.vatBreakdown && reportData.vatBreakdown.length > 0) {
+  if (includeVatInReports && reportData.vatBreakdown && reportData.vatBreakdown.length > 0) {
     // Use backend-provided VAT breakdown
     vatRows = reportData.vatBreakdown.map(vat => {
       const gross = parseFloat(vat.gross || 0);
@@ -358,7 +535,7 @@ export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", start
         net: net
       };
     });
-  } else if (reportData.vatInfo) {
+  } else if (includeVatInReports && reportData.vatInfo) {
     // Fallback to old format if breakdown not available
     const gross = parseFloat(reportData.vatInfo.totalAmountIncludingVat || 0);
     const vat = parseFloat(reportData.vatInfo.totalVatAmount || 0);
@@ -611,6 +788,7 @@ export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", start
         </table>
       </div>
       
+      ${includeVatInReports ? `
       <div class="divider"></div>
       
       <div class="section">
@@ -656,6 +834,7 @@ export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", start
           </tbody>
         </table>
       </div>
+      ` : ''}
     </body>
     </html>
   `;
@@ -668,7 +847,7 @@ export const createZReportHTML = (reportData, companyName = "ADAMS GREEN", start
  * @param {string} dateRange - Date range
  * @returns {string} HTML content
  */
-export const createSalesHistoryHTML = (sales, companyName = "ADAMS GREEN", dateRange = '') => {
+export const createSalesHistoryHTML = (sales, companyName = "Inventory System", dateRange = '') => {
   const totalAmount = sales.reduce((sum, sale) => sum + parseFloat(sale.totalAmount || 0), 0);
   
   return `

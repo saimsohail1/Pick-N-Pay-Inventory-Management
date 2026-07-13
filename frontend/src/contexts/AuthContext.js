@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { cancelAllRequests } from '../services/api';
+import { authStorage } from '../utils/authStorage';
 
 const isElectron = !!(window && window.electron);
 
@@ -20,22 +21,23 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(() => {
     cancelAllRequests();
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    authStorage.clear();
     setUser(null);
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    // Drop any login persisted by older versions (localStorage survives restarts).
+    authStorage.clearLegacy();
+
+    const token = authStorage.getToken();
+    const userData = authStorage.getUser();
     
     if (token && userData) {
       try {
         setUser(JSON.parse(userData));
       } catch (error) {
         console.error('Error parsing user data:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        authStorage.clear();
       }
     }
     setLoading(false);
@@ -46,6 +48,7 @@ export const AuthProvider = ({ children }) => {
       const handleAppClosing = () => {
         console.log('App is closing, logging out user...');
         logout();
+        window.electron.ipcRenderer.send('app-closing');
       };
 
       window.electron.ipcRenderer.on('app-closing', handleAppClosing);
@@ -70,8 +73,8 @@ export const AuthProvider = ({ children }) => {
       if (response.data && response.data.success) {
         const userData = response.data.user;
         
-        localStorage.setItem('token', response.data.token || 'authenticated');
-        localStorage.setItem('user', JSON.stringify(userData));
+        authStorage.setToken(response.data.token || 'authenticated');
+        authStorage.setUser(JSON.stringify(userData));
         
         setUser(userData);
         return { success: true };

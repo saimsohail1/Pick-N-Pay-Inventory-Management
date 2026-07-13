@@ -157,7 +157,7 @@ public class UserService {
     public void initializeDefaultUsers() {
         // Create default admin user if no users exist
         if (userRepository.count() == 0) {
-            User adminUser = new User("admin", "admin@picknpay.com", passwordEncoder.encode("admin123"), "System Administrator", UserRole.ADMIN);
+            User adminUser = new User("admin", "admin@local", passwordEncoder.encode("admin123"), "System Administrator", UserRole.ADMIN);
             adminUser.setCreatedAt(LocalDateTime.now());
             adminUser.setUpdatedAt(LocalDateTime.now());
             userRepository.save(adminUser);

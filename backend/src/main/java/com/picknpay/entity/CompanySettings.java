@@ -17,6 +17,10 @@ public class CompanySettings {
     @Column(name = "address", columnDefinition = "TEXT")
     private String address;
 
+    /** One policy line per row — printed at the bottom of B2B quotations. */
+    @Column(name = "quotation_footer_text", columnDefinition = "TEXT")
+    private String quotationFooterText;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -64,6 +68,15 @@ public class CompanySettings {
 
     public void setAddress(String address) {
         this.address = address;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public String getQuotationFooterText() {
+        return quotationFooterText;
+    }
+
+    public void setQuotationFooterText(String quotationFooterText) {
+        this.quotationFooterText = quotationFooterText;
         this.updatedAt = LocalDateTime.now();
     }
 

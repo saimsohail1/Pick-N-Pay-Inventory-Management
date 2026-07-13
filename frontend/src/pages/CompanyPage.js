@@ -5,18 +5,21 @@ import {
 } from 'react-bootstrap';
 import { useForm, Controller } from 'react-hook-form';
 import { companySettingsAPI } from '../services/api';
+import { DEFAULT_QUOTATION_FOOTER } from '../utils/printUtils';
 
 const CompanyPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [isB2bMode, setIsB2bMode] = useState(false);
   const { addTimeout } = useTimeoutManager();
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: {
       companyName: '',
-      address: ''
+      address: '',
+      quotationFooterText: ''
     }
   });
 
@@ -29,9 +32,11 @@ const CompanyPage = () => {
     setError(null);
     try {
       const response = await companySettingsAPI.get();
+      setIsB2bMode(response.data.includeVatInReports === false);
       reset({
         companyName: response.data.companyName,
-        address: response.data.address || ''
+        address: response.data.address || '',
+        quotationFooterText: response.data.quotationFooterText || ''
       });
     } catch (err) {
       setError('Failed to load company settings.');
@@ -157,6 +162,36 @@ const CompanyPage = () => {
                     This address will be displayed on reports and receipts.
                   </Form.Text>
                 </Form.Group>
+
+                {isB2bMode && (
+                  <Form.Group className="mb-4">
+                    <Form.Label className="fw-bold">Quotation Footer Text</Form.Label>
+                    <Controller
+                      name="quotationFooterText"
+                      control={control}
+                      rules={{
+                        maxLength: { value: 2000, message: 'Footer text must be less than 2000 characters' }
+                      }}
+                      render={({ field }) => (
+                        <Form.Control
+                          as="textarea"
+                          rows={6}
+                          placeholder={DEFAULT_QUOTATION_FOOTER}
+                          {...field}
+                          isInvalid={!!errors.quotationFooterText}
+                          className="form-control-lg"
+                          style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333', color: '#ffffff' }}
+                        />
+                      )}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {errors.quotationFooterText && errors.quotationFooterText.message}
+                    </Form.Control.Feedback>
+                    <Form.Text style={{ color: '#aaaaaa' }}>
+                      One line per row. Printed at the bottom of B2B quotation receipts. Leave blank to use the default policy text shown in the placeholder.
+                    </Form.Text>
+                  </Form.Group>
+                )}
 
                 <div className="d-grid">
                   <Button

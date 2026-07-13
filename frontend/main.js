@@ -398,7 +398,7 @@ ipcMain.on('toggle-fullscreen', () => {
  */
 ipcMain.handle('open-till', async (event, options = {}) => {
   try {
-    const companyName = options.companyName || 'ADAMS GREEN';
+    const companyName = options.companyName || 'Inventory System';
     const companyAddress = options.companyAddress || '';
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -603,7 +603,18 @@ app.whenReady().then(() => {
   }, 1000);
 });
 
-app.on('before-quit', () => { stopBackend(); });
+app.on('before-quit', async () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    try {
+      await mainWindow.webContents.executeJavaScript(
+        "sessionStorage.clear(); localStorage.removeItem('token'); localStorage.removeItem('user');"
+      );
+    } catch (err) {
+      console.error('Failed to clear auth storage on quit:', err);
+    }
+  }
+  stopBackend();
+});
 
 app.on('window-all-closed', () => {
   app.exit(0);

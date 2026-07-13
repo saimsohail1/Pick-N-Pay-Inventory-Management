@@ -16,13 +16,14 @@ const DailyReport = () => {
       totalAmountExcludingVat: 0,
       totalAmountIncludingVat: 0
     },
-    vatBreakdown: []
+    vatBreakdown: [],
+    includeVatInReports: true
   });
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
-  const [companySettings, setCompanySettings] = useState({ companyName: "ADAMS GREEN", address: '' });
+  const [companySettings, setCompanySettings] = useState({ companyName: "Inventory System", address: '' });
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const [usersLoaded, setUsersLoaded] = useState(false);
@@ -155,7 +156,8 @@ const DailyReport = () => {
           totalAmountExcludingVat,
           totalAmountIncludingVat: totalAmount
         },
-        vatBreakdown: vatBreakdown
+        vatBreakdown: vatBreakdown,
+        includeVatInReports: dailyReport.includeVatInReports !== false
       });
 
     } catch (err) {
@@ -227,7 +229,7 @@ const DailyReport = () => {
       const settingsData = response.data || response;
       if (settingsData) {
         setCompanySettings({
-          companyName: settingsData.companyName || "ADAMS GREEN",
+          companyName: settingsData.companyName || "Inventory System",
           address: settingsData.address || ''
         });
         console.log('Company settings fetched:', settingsData);
@@ -253,7 +255,7 @@ const DailyReport = () => {
     const dateRangeText = startDate === endDate ? startDate : `${startDate}_to_${endDate}`;
     const lines = [];
 
-    lines.push(`Z Report - ${companySettings.companyName || 'ADAMS GREEN'}`);
+    lines.push(`Z Report - ${companySettings.companyName || 'Inventory System'}`);
     lines.push(`Period: ${formatDateRange()}`);
     lines.push(`Generated: ${new Date().toLocaleString()}`);
     lines.push('');
@@ -272,7 +274,7 @@ const DailyReport = () => {
     });
     lines.push('');
 
-    if (reportData.vatBreakdown && reportData.vatBreakdown.length > 0) {
+    if (reportData.includeVatInReports && reportData.vatBreakdown && reportData.vatBreakdown.length > 0) {
       lines.push('VAT Summary');
       lines.push('VAT %,Gross,VAT,Net');
       let totalGross = 0, totalVat = 0, totalNet = 0;
@@ -307,7 +309,7 @@ const DailyReport = () => {
         const settingsData = response.data || response;
         if (settingsData) {
           currentCompanySettings = {
-            companyName: settingsData.companyName || "ADAMS GREEN",
+            companyName: settingsData.companyName || "Inventory System",
             address: settingsData.address || ''
           };
         }
@@ -319,7 +321,7 @@ const DailyReport = () => {
       const dateRangeText = startDate === endDate ? startDate : `${startDate} to ${endDate}`;
       const reportContent = createZReportHTML(
         reportData, 
-        currentCompanySettings.companyName || 'ADAMS GREEN', 
+        currentCompanySettings.companyName || 'Inventory System', 
         dateRangeText,
         currentCompanySettings.address || '',
         '' // Phone field removed as it doesn't exist in CompanySettings
@@ -356,7 +358,7 @@ const DailyReport = () => {
 
       {/* Print Header */}
       <div className="print-header text-center py-3">
-        <h2>ADAMS GREEN Daily Report</h2>
+        <h2>{companySettings.companyName || 'Inventory System'} Daily Report</h2>
         <p>Period: {formatDateRange()}</p>
         <p>Generated: {new Date().toLocaleString()}</p>
       </div>
@@ -509,7 +511,7 @@ const DailyReport = () => {
           )}
 
               {/* VAT Breakdown Table */}
-              {reportData && reportData.vatBreakdown && reportData.vatBreakdown.length > 0 && (
+              {reportData.includeVatInReports && reportData.vatBreakdown && reportData.vatBreakdown.length > 0 && (
                 <div className="mb-4 p-4 rounded" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '8px' }}>
                   <h5 className="mb-3" style={{ color: '#ffffff' }}>VAT Summary</h5>
                   <Table striped bordered hover className="mb-0">
@@ -578,7 +580,7 @@ const DailyReport = () => {
               )}
 
           {/* VAT Summary Section (Fallback if no breakdown) */}
-          {reportData && reportData.vatInfo && (!reportData.vatBreakdown || reportData.vatBreakdown.length === 0) && (
+          {reportData.includeVatInReports && reportData.vatInfo && (!reportData.vatBreakdown || reportData.vatBreakdown.length === 0) && (
             <div className="col-md-6 mb-4">
               <div className="card h-100" style={{ backgroundColor: '#2a2a2a', border: '1px solid #333333' }}>
                 <div className="card-header" style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333', color: '#ffffff' }}>

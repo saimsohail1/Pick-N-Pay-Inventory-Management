@@ -29,8 +29,10 @@ const SalesPage = () => {
   const [cart, setCart] = useState([]);
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [companyName, setCompanyName] = useState("ADAMS GREEN");
+  const [companyName, setCompanyName] = useState("Inventory System");
   const [companyAddress, setCompanyAddress] = useState('');
+  const [isB2bMode, setIsB2bMode] = useState(false);
+  const [cartFilter, setCartFilter] = useState('');
   const [lastSale, setLastSale] = useState(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -257,8 +259,9 @@ const SalesPage = () => {
   const fetchCompanyName = async () => {
     try {
       const response = await companySettingsAPI.get();
-      setCompanyName(response.data.companyName || "ADAMS GREEN");
+      setCompanyName(response.data.companyName || "Inventory System");
       setCompanyAddress(response.data.address || '');
+      setIsB2bMode(response.data.includeVatInReports === false);
     } catch (error) {
       console.error('Failed to fetch company name:', error);
       // Keep default name if fetch fails
@@ -280,12 +283,14 @@ const SalesPage = () => {
         const settingsData = response.data || response;
         if (settingsData) {
           currentCompanySettings = {
-            companyName: settingsData.companyName || "ADAMS GREEN",
+            companyName: settingsData.companyName || "Inventory System",
             address: settingsData.address || '',
             vatNumber: settingsData.vatNumber || '',
             phone: settingsData.phone || '',
             website: settingsData.website || '',
-            eircode: settingsData.eircode || ''
+            eircode: settingsData.eircode || '',
+            includeVatInReports: settingsData.includeVatInReports !== false,
+            quotationFooterText: settingsData.quotationFooterText || ''
           };
         }
       } catch (err) {
@@ -303,10 +308,8 @@ const SalesPage = () => {
             currentCompanySettings.address,
             null, // printerName
             null, // cashierName
-            currentCompanySettings.vatNumber,
-            currentCompanySettings.phone, // phone
-            currentCompanySettings.website, // website
-            currentCompanySettings.eircode // eircode
+            currentCompanySettings.includeVatInReports !== false,
+            currentCompanySettings.quotationFooterText || null
           );
           setSuccess('Receipt printed successfully!');
           setTimeout(() => setSuccess(null), 3000);
@@ -784,8 +787,12 @@ const SalesPage = () => {
 
       const response = await salesAPI.create(saleData);
       
-      // Store the last sale for printing
-      setLastSale(response.data);
+      // Store the last sale for printing (include change for quotation receipt)
+      setLastSale({
+        ...response.data,
+        changeDue: saleData.changeDue,
+        cashAmount: saleData.cashAmount
+      });
       
       setCart([]);
       setCashAmount('');
@@ -793,6 +800,7 @@ const SalesPage = () => {
       setSelectedCartItem(null); // Clear selected item after sale
       setCustomDiscountAmount('');
       setSuccess('Cash payment completed successfully!');
+      await fetchItems();
       addTimeout(() => setSuccess(null), 3000);
       // Refocus barcode input after payment
       setTimeout(() => {
@@ -883,6 +891,7 @@ const SalesPage = () => {
       setCustomDiscountAmount('');
       setSelectedCartItem(null); // Clear selected item after sale
       setSuccess('Card payment completed successfully!');
+      await fetchItems();
       addTimeout(() => setSuccess(null), 3000);
       // Refocus barcode input after payment
       setTimeout(() => {
@@ -1022,6 +1031,7 @@ const SalesPage = () => {
       setSelectedCartItem(null); // Clear selected item after sale
       setCustomDiscountAmount('');
       setSuccess('Split payment completed successfully!');
+      await fetchItems();
       addTimeout(() => setSuccess(null), 3000);
       // Refocus barcode input after payment
       setTimeout(() => {
@@ -1374,6 +1384,7 @@ const SalesPage = () => {
 
       setCart(updatedCart);
       setEditItemDialogOpen(false);
+      await fetchItems();
       setSuccess(`Updated ${formData.name || itemToEdit.itemName} in database (DB stock: ${parseInt(formData.stockQuantity)}). Cart quantity unchanged (${itemToEdit.cartQuantity || itemToEdit.quantity}).`);
     addTimeout(() => setSuccess(null), 3000);
       
@@ -1600,6 +1611,20 @@ const SalesPage = () => {
     setShowHeldTransactions(false);
     setCheckoutDialogOpen(true);
   };
+
+  const cartSearchQuery = cartFilter.trim().toLowerCase();
+  const displayedCart = (isB2bMode && cartSearchQuery)
+    ? cart.filter((item) =>
+        (item.itemName || '').toLowerCase().includes(cartSearchQuery) ||
+        (item.itemBarcode || '').toLowerCase().includes(cartSearchQuery)
+      )
+    : cart;
+  const cartCellStyle = isB2bMode
+    ? { fontSize: '0.82rem', padding: '0.2rem 0.35rem', lineHeight: 1.2 }
+    : { fontSize: '1rem', padding: '0.6rem' };
+  const cartHeaderStyle = isB2bMode
+    ? { fontSize: '0.82rem', padding: '0.25rem 0.35rem' }
+    : { fontSize: '1rem', padding: '0.6rem' };
 
   return (
     <div 
@@ -2060,6 +2085,18 @@ const SalesPage = () => {
                 borderRadius: '8px', 
                 color: '#ffffff' 
               }}>
+              {isB2bMode && cart.length > 5 && (
+                <div className="mb-2 px-1">
+                  <Form.Control
+                    type="text"
+                    size="sm"
+                    placeholder="Search cart by name or barcode..."
+                    value={cartFilter}
+                    onChange={(e) => setCartFilter(e.target.value)}
+                    style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff', fontSize: '0.85rem' }}
+                  />
+                </div>
+              )}
               {cart.length === 0 ? (
                   <div className="text-center py-2">
                     <i className="bi bi-cart fs-3" style={{ color: '#aaaaaa' }}></i>
@@ -2070,41 +2107,47 @@ const SalesPage = () => {
                   <Table striped hover className="mb-0" size="sm">
                       <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                         <tr>
-                          <th style={{ width: '6%', fontSize: '1rem', padding: '0.6rem' }}>ID</th>
-                          <th style={{ width: '35%', fontSize: '1rem', padding: '0.6rem' }}>Item</th>
-                          <th className="text-end" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Price</th>
-                          <th className="text-center" style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>Quantity</th>
-                          <th className="text-end" style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>Discount</th>
-                          <th className="text-center" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>VAT</th>
-                          <th className="text-end" style={{ width: '13%', fontSize: '1rem', padding: '0.6rem' }}>Total</th>
+                          <th style={{ width: isB2bMode ? '5%' : '6%', ...cartHeaderStyle }}>#</th>
+                          <th style={{ width: isB2bMode ? '48%' : '35%', ...cartHeaderStyle }}>Item</th>
+                          <th className="text-end" style={{ width: isB2bMode ? '12%' : '10%', ...cartHeaderStyle }}>{isB2bMode ? 'Rate' : 'Price'}</th>
+                          <th className="text-center" style={{ width: isB2bMode ? '10%' : '8%', ...cartHeaderStyle }}>Qty</th>
+                          {!isB2bMode && (
+                            <th className="text-end" style={{ width: '8%', ...cartHeaderStyle }}>Discount</th>
+                          )}
+                          {!isB2bMode && (
+                            <th className="text-center" style={{ width: '10%', ...cartHeaderStyle }}>VAT</th>
+                          )}
+                          <th className="text-end" style={{ width: isB2bMode ? '15%' : '13%', ...cartHeaderStyle }}>Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {cart.map((item, index) => (
+                      {displayedCart.map((item, index) => (
                         <tr 
-                          key={index} 
+                          key={item.id} 
                           onClick={() => handleCartItemClick(item)}
                           className={`cart-item-row ${selectedCartItem && selectedCartItem.id === item.id ? 'cart-item-selected' : ''}`}
                           style={{ cursor: 'pointer', backgroundColor: '#2a2a2a', color: '#ffffff' }}
                         >
-                            <td style={{ fontSize: '1rem', padding: '0.6rem' }}>{index + 1}</td>
-                            <td style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            <td style={cartCellStyle}>{index + 1}</td>
+                            <td style={cartCellStyle}>
                             <div>
-                                <strong style={{ fontSize: '1.1rem' }}>{item.itemName}</strong>
-                                {item.itemBarcode && item.itemBarcode !== 'N/A' && (
+                                <strong style={{ fontSize: isB2bMode ? '0.85rem' : '1.1rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isB2bMode ? 'nowrap' : 'normal' }}>
+                                  {isB2bMode ? `${item.quantity}x ${item.itemName}` : item.itemName}
+                                </strong>
+                                {!isB2bMode && item.itemBarcode && item.itemBarcode !== 'N/A' && (
                                   <small className="d-block" style={{ fontSize: '0.8rem', color: '#aaaaaa' }}>
                                     <i className="bi bi-upc" style={{ fontSize: '0.7rem' }}></i> {item.itemBarcode}
                                 </small>
                               )}
-                                {item.discountApplied && (
+                                {!isB2bMode && item.discountApplied && (
                                   <small className="d-block" style={{ fontSize: '0.8rem', color: '#ffffff' }}>
                                     <i className="bi bi-percent" style={{ fontSize: '0.7rem' }}></i> Discount Applied
                                 </small>
                               )}
                             </div>
                           </td>
-                            <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
-                              {item.discountApplied ? (
+                            <td className="text-end" style={cartCellStyle}>
+                              {item.discountApplied && !isB2bMode ? (
                                 <div>
                                   <div className="text-decoration-line-through" style={{ fontSize: '0.9rem', color: '#aaaaaa' }}>
                                     €{item.originalPrice.toFixed(2)}
@@ -2117,10 +2160,11 @@ const SalesPage = () => {
                                 <span>€{item.unitPrice.toFixed(2)}</span>
                               )}
                             </td>
-                            <td className="text-center" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            <td className="text-center" style={cartCellStyle}>
                               <span className="fw-bold">{item.quantity}</span>
                             </td>
-                            <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            {!isB2bMode && (
+                            <td className="text-end" style={cartCellStyle}>
                               <Form.Control
                                 type="text"
                                 size="sm"
@@ -2131,7 +2175,9 @@ const SalesPage = () => {
                                 style={{ width: '60px', fontSize: '0.9rem', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                               />
                             </td>
-                            <td className="text-center" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                            )}
+                            {!isB2bMode && (
+                            <td className="text-center" style={cartCellStyle}>
                               <Form.Select
                                 size="sm"
                                 value={item.vatRate != null ? item.vatRate : 23.00}
@@ -2144,9 +2190,17 @@ const SalesPage = () => {
                                 <option value="23">23%</option>
                               </Form.Select>
                             </td>
-                            <td className="text-end fw-bold" style={{ fontSize: '1rem', padding: '0.6rem' }}>€{item.totalPrice.toFixed(2)}</td>
+                            )}
+                            <td className="text-end fw-bold" style={cartCellStyle}>€{item.totalPrice.toFixed(2)}</td>
                           </tr>
                         ))}
+                      {isB2bMode && displayedCart.length === 0 && cart.length > 0 && (
+                        <tr>
+                          <td colSpan={5} className="text-center py-2" style={{ color: '#aaaaaa', fontSize: '0.85rem' }}>
+                            No cart lines match your search.
+                          </td>
+                        </tr>
+                      )}
                       </tbody>
                     </Table>
                   </div>
@@ -2212,7 +2266,8 @@ const SalesPage = () => {
                   STOCK
                 </Button>
                   <Button size="lg" className="btn-3d" onClick={() => {
-                    setCart([]); 
+                    setCart([]);
+                    setCartFilter('');
                     setAppliedDiscount(null); 
                     setCustomDiscountAmount(''); 
                     setSelectedCartItem(null);
@@ -2235,7 +2290,7 @@ const SalesPage = () => {
                     style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     <i className="bi bi-printer me-2"></i>
-                    PRINT LAST SALE
+                    {isB2bMode ? 'PRINT QUOTATION' : 'PRINT LAST SALE'}
                   </Button>
                 )}
                 </div>
@@ -2258,7 +2313,7 @@ const SalesPage = () => {
                   )}
                 </div>
                 <div className="text-end">
-                  <h4 className="mb-0 fw-bold" style={{ fontSize: '1.8rem' }}>Total: €{calculateTotal().toFixed(2)}</h4>
+                  <h4 className="mb-0 fw-bold" style={{ fontSize: '1.8rem' }}>{isB2bMode ? 'Grand Total' : 'Total'}: €{calculateTotal().toFixed(2)}</h4>
                 </div>
               </div>
             </div>
@@ -2318,7 +2373,7 @@ const SalesPage = () => {
                   <div className="d-flex flex-column gap-2" style={{ width: '40%' }}>
                     <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={handleCheckout} disabled={loading}>
                       {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
-                      Checkout
+                      {isB2bMode ? 'Complete Order' : 'Checkout'}
                     </Button>
                     <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={handleHoldTransaction}>
                       <i className="bi bi-pause-circle me-2"></i>

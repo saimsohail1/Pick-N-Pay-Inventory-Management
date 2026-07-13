@@ -30,7 +30,7 @@ const SalesHistory = () => {
   const [saleToDelete, setSaleToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [removingItem, setRemovingItem] = useState(false);
-  const [companySettings, setCompanySettings] = useState({ companyName: "ADAMS GREEN", address: '' });
+  const [companySettings, setCompanySettings] = useState({ companyName: "Inventory System", address: '' });
 
   // Payment method filter: "ALL" | "CASH" | "CARD"
   const [paymentFilter, setPaymentFilter] = useState("ALL");
@@ -123,7 +123,7 @@ const SalesHistory = () => {
       const settingsData = response.data || response;
       if (settingsData) {
         setCompanySettings({
-          companyName: settingsData.companyName || "ADAMS GREEN",
+          companyName: settingsData.companyName || "Inventory System",
           address: settingsData.address || ''
         });
       }
@@ -249,8 +249,10 @@ const SalesHistory = () => {
         const settingsData = response.data || response;
         if (settingsData) {
           currentCompanySettings = {
-            companyName: settingsData.companyName || "ADAMS GREEN",
-            address: settingsData.address || ''
+            companyName: settingsData.companyName || "Inventory System",
+            address: settingsData.address || '',
+            includeVatInReports: settingsData.includeVatInReports !== false,
+            quotationFooterText: settingsData.quotationFooterText || ''
           };
         }
     } catch (err) {
@@ -265,11 +267,13 @@ const SalesHistory = () => {
           // Use logged-in user's name as cashier when printing from SalesHistory
           const cashierName = user?.username || null;
           await printReceiptRaw(
-        sale, 
-        currentCompanySettings.companyName, 
+            sale,
+            currentCompanySettings.companyName,
             currentCompanySettings.address,
             null, // printerName
-            cashierName // cashierName - overrides sale.user?.username
+            cashierName, // cashierName - overrides sale.user?.username
+            currentCompanySettings.includeVatInReports !== false,
+            currentCompanySettings.quotationFooterText || null
           );
           return;
         } catch (rawPrintError) {

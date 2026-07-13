@@ -75,7 +75,10 @@ jspm_packages/
 *.db
 *.sqlite
 
-# Temporary files
+# Python cache
+__pycache__/
+*.pyc
+
 *.tmp
 *.temp
 

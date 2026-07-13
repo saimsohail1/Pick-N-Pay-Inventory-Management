@@ -61,7 +61,7 @@ CREATE TABLE users (
 -- Create company_settings table
 CREATE TABLE company_settings (
     id BIGSERIAL PRIMARY KEY,
-    company_name VARCHAR(100) NOT NULL DEFAULT 'ADAMS GREEN',
+    company_name VARCHAR(100) NOT NULL DEFAULT 'Inventory System',
     address TEXT,
     phone VARCHAR(20),
     email VARCHAR(100),
@@ -219,19 +219,13 @@ CREATE INDEX idx_attendances_user_date ON attendances(user_id, attendance_date);
 
 -- Insert admin user with BCrypt encoded password for "admin123"
 INSERT INTO users (username, email, password, full_name, role, is_active) VALUES
-('admin', 'admin@picknpay.com', '$2a$10$Zsk8XbjYk3FiVDKjrCKu.O9KrtQ1985FD2Qw4FsdMWt4GjCSIB5j6', 'System Administrator', 'ADMIN', true);
+('admin', 'admin@local', '$2a$10$Zsk8XbjYk3FiVDKjrCKu.O9KrtQ1985FD2Qw4FsdMWt4GjCSIB5j6', 'System Administrator', 'ADMIN', true);
 
 -- Insert company settings
 INSERT INTO company_settings (company_name, address, phone, email, tax_number) VALUES
-('ADAMS GREEN', 
-'123 Main Street, Dublin, Ireland', 
-'+353-1-234-5678', 
-'info@picknpay.com', 
-'IE123456789');
+('Inventory System', NULL, NULL, NULL, NULL);
 
--- Insert Quick Sale category only
-INSERT INTO categories (name, description, is_active, display_on_pos, vat_rate) VALUES
-('Quick Sale', 'Quick sale items without specific category', true, true, 23.00);
+-- Catalog loaded separately via data/import-retail-items-vape-shop.sql
 
 -- ============================================
 -- 6. CREATE TRIGGERS FOR AUTOMATIC TIMESTAMPS
@@ -298,7 +292,7 @@ BEGIN
     RAISE NOTICE 'Admin User:';
     RAISE NOTICE '  Username: admin';
     RAISE NOTICE '  Password: admin123';
-    RAISE NOTICE '  Email: admin@picknpay.com';
+    RAISE NOTICE '  Email: admin@local';
     RAISE NOTICE '============================================';
     RAISE NOTICE 'Features Included:';
     RAISE NOTICE '- User management (ADMIN/USER roles)';

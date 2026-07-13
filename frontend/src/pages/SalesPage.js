@@ -31,8 +31,6 @@ const SalesPage = () => {
   const [categories, setCategories] = useState([]);
   const [companyName, setCompanyName] = useState("Inventory System");
   const [companyAddress, setCompanyAddress] = useState('');
-  const [isB2bMode, setIsB2bMode] = useState(false);
-  const [cartFilter, setCartFilter] = useState('');
   const [lastSale, setLastSale] = useState(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -44,9 +42,12 @@ const SalesPage = () => {
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
   const [quickPrice, setQuickPrice] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
+  const [itemSearchResults, setItemSearchResults] = useState([]);
+  const [itemSearchLoading, setItemSearchLoading] = useState(false);
+  const itemSearchRef = useRef(null);
   const [isScanning, setIsScanning] = useState(false);
   const barcodeInputRef = useRef(null);
-  const barcodeProcessingRef = useRef(false);
   const paymentInProgressRef = useRef(false);
   const cashPaymentTimeoutRef = useRef(null);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
@@ -166,6 +167,26 @@ const SalesPage = () => {
       splitPaymentDialogOpen, outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
   useEffect(() => {
+    // Focus on barcode input when component mounts
+    const handleKeyDown = (event) => {
+      // Only process if a barcode scanner is likely being used (e.g., Enter key)
+      if (event.key === 'Enter' && barcodeInput) {
+        event.preventDefault(); // Prevent form submission
+        processBarcode(barcodeInput);
+        setBarcodeInput(''); // Clear input after processing
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [barcodeInput]);
+
+
+
+  useEffect(() => {
     if (selectedItemId) {
       const selectedItem = items.find(item => item.id === parseInt(selectedItemId));
       if (selectedItem) {
@@ -242,7 +263,6 @@ const SalesPage = () => {
       const response = await companySettingsAPI.get();
       setCompanyName(response.data.companyName || "Inventory System");
       setCompanyAddress(response.data.address || '');
-      setIsB2bMode(response.data.includeVatInReports === false);
     } catch (error) {
       console.error('Failed to fetch company name:', error);
       // Keep default name if fetch fails
@@ -266,10 +286,6 @@ const SalesPage = () => {
           currentCompanySettings = {
             companyName: settingsData.companyName || "Inventory System",
             address: settingsData.address || '',
-            vatNumber: settingsData.vatNumber || '',
-            phone: settingsData.phone || '',
-            website: settingsData.website || '',
-            eircode: settingsData.eircode || '',
             includeVatInReports: settingsData.includeVatInReports !== false,
             quotationFooterText: settingsData.quotationFooterText || ''
           };
@@ -287,8 +303,8 @@ const SalesPage = () => {
             lastSale,
             currentCompanySettings.companyName,
             currentCompanySettings.address,
-            null, // printerName
-            null, // cashierName
+            null,
+            null,
             currentCompanySettings.includeVatInReports !== false,
             currentCompanySettings.quotationFooterText || null
           );
@@ -375,66 +391,81 @@ const SalesPage = () => {
     });
   };
 
-  const handleBarcodeSubmit = async () => {
-    if (barcodeProcessingRef.current || loading || paymentInProgressRef.current) {
-      return;
-    }
-    // Ignore scanner Enter while payment dialogs are open (prevents accidental CARD/CASH).
-    if (checkoutDialogOpen || cashConfirmDialogOpen || splitPaymentDialogOpen) {
-      return;
-    }
-
-    const barcode = (barcodeInputRef.current?.value || barcodeInput || '').trim();
-    if (!barcode) {
-      return;
-    }
-
-    barcodeProcessingRef.current = true;
-    setBarcodeInput('');
-    if (barcodeInputRef.current) {
-      barcodeInputRef.current.value = '';
-    }
-
-    try {
-      await processBarcode(barcode);
-    } finally {
-      barcodeProcessingRef.current = false;
-      setTimeout(() => {
-        if (barcodeInputRef.current && !checkoutDialogOpen) {
-          barcodeInputRef.current.focus();
-        }
-      }, 100);
-    }
+  const addItemFromInventory = (item) => {
+    const newCartItem = {
+      id: Date.now() + Math.random(),
+      itemId: item.id,
+      itemName: item.name,
+      itemBarcode: item.barcode,
+      quantity: 1,
+      unitPrice: item.price,
+      totalPrice: item.price,
+      vatRate: item.vatRate != null ? item.vatRate : 23.00
+    };
+    addOrUpdateCartItem(newCartItem);
+    setScannerOpen(false);
+    setSimpleScannerOpen(false);
+    setSuccess(`Item "${item.name}" added to cart.`);
+    setTimeout(() => setSuccess(null), 2000);
   };
 
   const processBarcode = async (barcode) => {
     try {
       const response = await itemsAPI.getByBarcode(barcode);
-      const item = response.data;
-
-      // Allow adding out-of-stock items to cart (user can edit quantity)
-        const newCartItem = {
-        id: Date.now() + Math.random(),
-          itemId: item.id,
-          itemName: item.name,
-          itemBarcode: item.barcode,
-          quantity: 1,
-          unitPrice: item.price,
-          totalPrice: item.price,
-          vatRate: item.vatRate != null ? item.vatRate : 23.00 // Add VAT rate from item (0 is valid)
-        };
-
-      addOrUpdateCartItem(newCartItem);
-
-      setScannerOpen(false);
-      setSimpleScannerOpen(false);
-      setSuccess(`Item "${item.name}" added to cart.`);
-      setTimeout(() => setSuccess(null), 2000);
+      addItemFromInventory(response.data);
     } catch (err) {
       console.error('Error processing barcode:', err);
-      // Show dialog to register new item
       setScannedBarcode(barcode);
       setItemNotFoundDialogOpen(true);
+    }
+  };
+
+  const handleItemSearch = async () => {
+    const query = itemSearchQuery.trim();
+    if (!query || itemSearchLoading) {
+      return;
+    }
+
+    setItemSearchLoading(true);
+    setItemSearchResults([]);
+
+    try {
+      try {
+        const barcodeResponse = await itemsAPI.getByBarcode(query);
+        addItemFromInventory(barcodeResponse.data);
+        setItemSearchQuery('');
+        return;
+      } catch (_) {
+        // Not an exact barcode — fall through to name search.
+      }
+
+      const searchResponse = await itemsAPI.search(query);
+      const results = searchResponse.data || [];
+
+      if (results.length === 0) {
+        setScannedBarcode(query);
+        setItemNotFoundDialogOpen(true);
+      } else if (results.length === 1) {
+        addItemFromInventory(results[0]);
+        setItemSearchQuery('');
+      } else {
+        setItemSearchResults(results.slice(0, 15));
+      }
+    } catch (err) {
+      console.error('Item search failed:', err);
+      setError('Item search failed. Please try again.');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setItemSearchLoading(false);
+    }
+  };
+
+  const handleSelectSearchResult = (item) => {
+    addItemFromInventory(item);
+    setItemSearchQuery('');
+    setItemSearchResults([]);
+    if (itemSearchRef.current) {
+      itemSearchRef.current.focus();
     }
   };
 
@@ -800,12 +831,8 @@ const SalesPage = () => {
 
       const response = await salesAPI.create(saleData);
       
-      // Store the last sale for printing (include change for quotation receipt)
-      setLastSale({
-        ...response.data,
-        changeDue: saleData.changeDue,
-        cashAmount: saleData.cashAmount
-      });
+      // Store the last sale for printing
+      setLastSale(response.data);
       
       setCart([]);
       setCashAmount('');
@@ -813,7 +840,6 @@ const SalesPage = () => {
       setSelectedCartItem(null); // Clear selected item after sale
       setCustomDiscountAmount('');
       setSuccess('Cash payment completed successfully!');
-      await fetchItems();
       addTimeout(() => setSuccess(null), 3000);
       // Refocus barcode input after payment
       setTimeout(() => {
@@ -904,7 +930,6 @@ const SalesPage = () => {
       setCustomDiscountAmount('');
       setSelectedCartItem(null); // Clear selected item after sale
       setSuccess('Card payment completed successfully!');
-      await fetchItems();
       addTimeout(() => setSuccess(null), 3000);
       // Refocus barcode input after payment
       setTimeout(() => {
@@ -1044,7 +1069,6 @@ const SalesPage = () => {
       setSelectedCartItem(null); // Clear selected item after sale
       setCustomDiscountAmount('');
       setSuccess('Split payment completed successfully!');
-      await fetchItems();
       addTimeout(() => setSuccess(null), 3000);
       // Refocus barcode input after payment
       setTimeout(() => {
@@ -1397,7 +1421,6 @@ const SalesPage = () => {
 
       setCart(updatedCart);
       setEditItemDialogOpen(false);
-      await fetchItems();
       setSuccess(`Updated ${formData.name || itemToEdit.itemName} in database (DB stock: ${parseInt(formData.stockQuantity)}). Cart quantity unchanged (${itemToEdit.cartQuantity || itemToEdit.quantity}).`);
     addTimeout(() => setSuccess(null), 3000);
       
@@ -1624,20 +1647,6 @@ const SalesPage = () => {
     setShowHeldTransactions(false);
     setCheckoutDialogOpen(true);
   };
-
-  const cartSearchQuery = cartFilter.trim().toLowerCase();
-  const displayedCart = (isB2bMode && cartSearchQuery)
-    ? cart.filter((item) =>
-        (item.itemName || '').toLowerCase().includes(cartSearchQuery) ||
-        (item.itemBarcode || '').toLowerCase().includes(cartSearchQuery)
-      )
-    : cart;
-  const cartCellStyle = isB2bMode
-    ? { fontSize: '0.82rem', padding: '0.2rem 0.35rem', lineHeight: 1.2 }
-    : { fontSize: '1rem', padding: '0.6rem' };
-  const cartHeaderStyle = isB2bMode
-    ? { fontSize: '0.82rem', padding: '0.25rem 0.35rem' }
-    : { fontSize: '1rem', padding: '0.6rem' };
 
   return (
     <div 
@@ -2098,18 +2107,6 @@ const SalesPage = () => {
                 borderRadius: '8px', 
                 color: '#ffffff' 
               }}>
-              {isB2bMode && cart.length > 5 && (
-                <div className="mb-2 px-1">
-                  <Form.Control
-                    type="text"
-                    size="sm"
-                    placeholder="Search cart by name or barcode..."
-                    value={cartFilter}
-                    onChange={(e) => setCartFilter(e.target.value)}
-                    style={{ backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff', fontSize: '0.85rem' }}
-                  />
-                </div>
-              )}
               {cart.length === 0 ? (
                   <div className="text-center py-2">
                     <i className="bi bi-cart fs-3" style={{ color: '#aaaaaa' }}></i>
@@ -2120,47 +2117,41 @@ const SalesPage = () => {
                   <Table striped hover className="mb-0" size="sm">
                       <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#2a2a2a', color: '#ffffff' }}>
                         <tr>
-                          <th style={{ width: isB2bMode ? '5%' : '6%', ...cartHeaderStyle }}>#</th>
-                          <th style={{ width: isB2bMode ? '48%' : '35%', ...cartHeaderStyle }}>Item</th>
-                          <th className="text-end" style={{ width: isB2bMode ? '12%' : '10%', ...cartHeaderStyle }}>{isB2bMode ? 'Rate' : 'Price'}</th>
-                          <th className="text-center" style={{ width: isB2bMode ? '10%' : '8%', ...cartHeaderStyle }}>Qty</th>
-                          {!isB2bMode && (
-                            <th className="text-end" style={{ width: '8%', ...cartHeaderStyle }}>Discount</th>
-                          )}
-                          {!isB2bMode && (
-                            <th className="text-center" style={{ width: '10%', ...cartHeaderStyle }}>VAT</th>
-                          )}
-                          <th className="text-end" style={{ width: isB2bMode ? '15%' : '13%', ...cartHeaderStyle }}>Total</th>
+                          <th style={{ width: '6%', fontSize: '1rem', padding: '0.6rem' }}>ID</th>
+                          <th style={{ width: '35%', fontSize: '1rem', padding: '0.6rem' }}>Item</th>
+                          <th className="text-end" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>Price</th>
+                          <th className="text-center" style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>Quantity</th>
+                          <th className="text-end" style={{ width: '8%', fontSize: '1rem', padding: '0.6rem' }}>Discount</th>
+                          <th className="text-center" style={{ width: '10%', fontSize: '1rem', padding: '0.6rem' }}>VAT</th>
+                          <th className="text-end" style={{ width: '13%', fontSize: '1rem', padding: '0.6rem' }}>Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {displayedCart.map((item, index) => (
+                      {cart.map((item, index) => (
                         <tr 
-                          key={item.id} 
+                          key={index} 
                           onClick={() => handleCartItemClick(item)}
                           className={`cart-item-row ${selectedCartItem && selectedCartItem.id === item.id ? 'cart-item-selected' : ''}`}
                           style={{ cursor: 'pointer', backgroundColor: '#2a2a2a', color: '#ffffff' }}
                         >
-                            <td style={cartCellStyle}>{index + 1}</td>
-                            <td style={cartCellStyle}>
+                            <td style={{ fontSize: '1rem', padding: '0.6rem' }}>{index + 1}</td>
+                            <td style={{ fontSize: '1rem', padding: '0.6rem' }}>
                             <div>
-                                <strong style={{ fontSize: isB2bMode ? '0.85rem' : '1.1rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isB2bMode ? 'nowrap' : 'normal' }}>
-                                  {isB2bMode ? `${item.quantity}x ${item.itemName}` : item.itemName}
-                                </strong>
-                                {!isB2bMode && item.itemBarcode && item.itemBarcode !== 'N/A' && (
+                                <strong style={{ fontSize: '1.1rem' }}>{item.itemName}</strong>
+                                {item.itemBarcode && item.itemBarcode !== 'N/A' && (
                                   <small className="d-block" style={{ fontSize: '0.8rem', color: '#aaaaaa' }}>
                                     <i className="bi bi-upc" style={{ fontSize: '0.7rem' }}></i> {item.itemBarcode}
                                 </small>
                               )}
-                                {!isB2bMode && item.discountApplied && (
+                                {item.discountApplied && (
                                   <small className="d-block" style={{ fontSize: '0.8rem', color: '#ffffff' }}>
                                     <i className="bi bi-percent" style={{ fontSize: '0.7rem' }}></i> Discount Applied
                                 </small>
                               )}
                             </div>
                           </td>
-                            <td className="text-end" style={cartCellStyle}>
-                              {item.discountApplied && !isB2bMode ? (
+                            <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
+                              {item.discountApplied ? (
                                 <div>
                                   <div className="text-decoration-line-through" style={{ fontSize: '0.9rem', color: '#aaaaaa' }}>
                                     €{item.originalPrice.toFixed(2)}
@@ -2173,11 +2164,10 @@ const SalesPage = () => {
                                 <span>€{item.unitPrice.toFixed(2)}</span>
                               )}
                             </td>
-                            <td className="text-center" style={cartCellStyle}>
+                            <td className="text-center" style={{ fontSize: '1rem', padding: '0.6rem' }}>
                               <span className="fw-bold">{item.quantity}</span>
                             </td>
-                            {!isB2bMode && (
-                            <td className="text-end" style={cartCellStyle}>
+                            <td className="text-end" style={{ fontSize: '1rem', padding: '0.6rem' }}>
                               <Form.Control
                                 type="text"
                                 size="sm"
@@ -2188,9 +2178,7 @@ const SalesPage = () => {
                                 style={{ width: '60px', fontSize: '0.9rem', backgroundColor: '#3a3a3a', border: '1px solid #4a4a4a', color: '#ffffff' }}
                               />
                             </td>
-                            )}
-                            {!isB2bMode && (
-                            <td className="text-center" style={cartCellStyle}>
+                            <td className="text-center" style={{ fontSize: '1rem', padding: '0.6rem' }}>
                               <Form.Select
                                 size="sm"
                                 value={item.vatRate != null ? item.vatRate : 23.00}
@@ -2203,17 +2191,9 @@ const SalesPage = () => {
                                 <option value="23">23%</option>
                               </Form.Select>
                             </td>
-                            )}
-                            <td className="text-end fw-bold" style={cartCellStyle}>€{item.totalPrice.toFixed(2)}</td>
+                            <td className="text-end fw-bold" style={{ fontSize: '1rem', padding: '0.6rem' }}>€{item.totalPrice.toFixed(2)}</td>
                           </tr>
                         ))}
-                      {isB2bMode && displayedCart.length === 0 && cart.length > 0 && (
-                        <tr>
-                          <td colSpan={5} className="text-center py-2" style={{ color: '#aaaaaa', fontSize: '0.85rem' }}>
-                            No cart lines match your search.
-                          </td>
-                        </tr>
-                      )}
                       </tbody>
                     </Table>
                   </div>
@@ -2279,8 +2259,7 @@ const SalesPage = () => {
                   STOCK
                 </Button>
                   <Button size="lg" className="btn-3d" onClick={() => {
-                    setCart([]);
-                    setCartFilter('');
+                    setCart([]); 
                     setAppliedDiscount(null); 
                     setCustomDiscountAmount(''); 
                     setSelectedCartItem(null);
@@ -2303,7 +2282,7 @@ const SalesPage = () => {
                     style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', minHeight: '45px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     <i className="bi bi-printer me-2"></i>
-                    {isB2bMode ? 'PRINT QUOTATION' : 'PRINT LAST SALE'}
+                    PRINT LAST SALE
                   </Button>
                 )}
                 </div>
@@ -2326,7 +2305,7 @@ const SalesPage = () => {
                   )}
                 </div>
                 <div className="text-end">
-                  <h4 className="mb-0 fw-bold" style={{ fontSize: '1.8rem' }}>{isB2bMode ? 'Grand Total' : 'Total'}: €{calculateTotal().toFixed(2)}</h4>
+                  <h4 className="mb-0 fw-bold" style={{ fontSize: '1.8rem' }}>Total: €{calculateTotal().toFixed(2)}</h4>
                 </div>
               </div>
             </div>
@@ -2386,7 +2365,7 @@ const SalesPage = () => {
                   <div className="d-flex flex-column gap-2" style={{ width: '40%' }}>
                     <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={handleCheckout} disabled={loading}>
                       {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
-                      {isB2bMode ? 'Complete Order' : 'Checkout'}
+                      Checkout
                     </Button>
                     <Button size="lg" className="fw-bold btn-3d" style={{ padding: '1.2rem', fontSize: '1.4rem', minHeight: '70px', backgroundColor: '#3a3a3a', color: '#ffffff' }} onClick={handleHoldTransaction}>
                       <i className="bi bi-pause-circle me-2"></i>
@@ -2553,16 +2532,88 @@ const SalesPage = () => {
                   placeholder="Scan or enter barcode"
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
-                  onKeyDown={(e) => {
+                  onKeyPress={(e) => {
                     if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleBarcodeSubmit();
+                      processBarcode(barcodeInput);
+                      setBarcodeInput('');
+                      // Refocus after processing
+                      setTimeout(() => {
+                        if (barcodeInputRef.current) {
+                          barcodeInputRef.current.focus();
+                        }
+                      }, 100);
                     }
                   }}
                   autoFocus
                   style={{ fontSize: '1rem', borderColor: '#333333', backgroundColor: '#2a2a2a', color: '#ffffff' }}
                 />
               </InputGroup>
+            </div>
+
+            {/* Item search — separate from barcode scanner */}
+            <div className="mb-2" style={{ padding: '0.0rem 0.5rem 0.5rem' }}>
+              <h6 className="fw-bold mb-2 text-center" style={{ color: '#aaaaaa' }}>Search Item (name or barcode)</h6>
+              <InputGroup>
+                <InputGroup.Text style={{ backgroundColor: '#2a2a2a', borderColor: '#333333', color: '#ffffff' }}>
+                  <i className="bi bi-search"></i>
+                </InputGroup.Text>
+                <Form.Control
+                  ref={itemSearchRef}
+                  type="text"
+                  placeholder="Type name or barcode, press Enter"
+                  value={itemSearchQuery}
+                  onChange={(e) => {
+                    setItemSearchQuery(e.target.value);
+                    if (itemSearchResults.length > 0) {
+                      setItemSearchResults([]);
+                    }
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleItemSearch();
+                    }
+                  }}
+                  style={{ fontSize: '0.95rem', borderColor: '#333333', backgroundColor: '#2a2a2a', color: '#ffffff' }}
+                />
+                <Button
+                  variant="outline-light"
+                  onClick={handleItemSearch}
+                  disabled={itemSearchLoading || !itemSearchQuery.trim()}
+                >
+                  {itemSearchLoading ? <Spinner animation="border" size="sm" /> : 'Find'}
+                </Button>
+              </InputGroup>
+              {itemSearchResults.length > 0 && (
+                <div
+                  className="mt-2 rounded border"
+                  style={{
+                    maxHeight: '180px',
+                    overflowY: 'auto',
+                    backgroundColor: '#1f1f1f',
+                    borderColor: '#333333'
+                  }}
+                >
+                  {itemSearchResults.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="w-100 text-start border-0 border-bottom px-3 py-2"
+                      style={{
+                        backgroundColor: 'transparent',
+                        color: '#ffffff',
+                        borderColor: '#333333 !important'
+                      }}
+                      onClick={() => handleSelectSearchResult(item)}
+                    >
+                      <div className="fw-semibold">{item.name}</div>
+                      <small style={{ color: '#aaaaaa' }}>
+                        {item.barcode ? `Barcode: ${item.barcode}` : 'No barcode'} · €{Number(item.price).toFixed(2)} · Stock: {item.stockQuantity}
+                      </small>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Categories / Category Items Navigation */}
@@ -2903,19 +2954,7 @@ const SalesPage = () => {
       />
 
       {/* Unified Payment Dialog */}
-      <Modal
-        show={checkoutDialogOpen}
-        onHide={handleCloseCheckoutDialog}
-        centered
-        size="xl"
-        style={{ maxWidth: '90vw', width: '1200px', transform: 'translateX(8%)' }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            e.stopPropagation();
-          }
-        }}
-      >
+      <Modal show={checkoutDialogOpen} onHide={handleCloseCheckoutDialog} centered size="xl" style={{ maxWidth: '90vw', width: '1200px', transform: 'translateX(8%)' }}>
         <Modal.Body className="p-0" style={{ backgroundColor: '#1a1a1a' }}>
           <div className="row g-0">
             {/* Top Section - Transaction Summary */}
@@ -3077,7 +3116,7 @@ const SalesPage = () => {
                       handleConfirmCheckout('CARD');
                       setCheckoutDialogOpen(false);
                     }}
-              disabled={loading || paymentInProgressRef.current}
+              disabled={loading}
                     style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
             >
                     CARD €{calculateTotal().toFixed(2)}

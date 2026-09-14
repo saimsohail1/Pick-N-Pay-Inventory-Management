@@ -39,9 +39,6 @@ public class Sale {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod;
-
-    @Column(name = "display_order_no")
-    private Integer displayOrderNo;
     
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<SaleItem> saleItems;
@@ -153,13 +150,5 @@ public class Sale {
     
     public void setSalePayments(List<SalePayment> salePayments) {
         this.salePayments = salePayments;
-    }
-
-    public Integer getDisplayOrderNo() {
-        return displayOrderNo;
-    }
-
-    public void setDisplayOrderNo(Integer displayOrderNo) {
-        this.displayOrderNo = displayOrderNo;
     }
 }

@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { salesAPI, usersAPI, companySettingsAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { printSaleAndOrderTicket } from '../utils/printUtils';
+import { withExistingOrderNo } from '../utils/orderTicket';
 
 const SalesHistory = () => {
   const { user } = useAuth();
@@ -272,7 +273,7 @@ const SalesHistory = () => {
           // Use logged-in user's name as cashier when printing from SalesHistory
           const cashierName = user?.username || null;
           await printSaleAndOrderTicket(
-        saleToPrint, 
+        withExistingOrderNo(saleToPrint), 
         currentCompanySettings.companyName, 
             currentCompanySettings.address,
             null, // printerName

@@ -13,7 +13,6 @@ import com.picknpay.entity.SalePayment;
 import com.picknpay.entity.PaymentMethod;
 import com.picknpay.entity.User;
 import com.picknpay.repository.ItemRepository;
-import com.picknpay.repository.OrderTicketCounterRepository;
 import com.picknpay.repository.SaleRepository;
 import com.picknpay.repository.SaleItemRepository;
 import com.picknpay.repository.UserRepository;
@@ -46,9 +45,6 @@ public class SaleService {
     
     @Autowired
     private SaleItemRepository saleItemRepository;
-
-    @Autowired
-    private OrderTicketCounterRepository orderTicketCounterRepository;
     
     public List<SaleDTO> getAllSales() {
         return saleRepository.findAllByOrderBySaleDateDesc().stream()
@@ -176,7 +172,6 @@ public class SaleService {
         }
         
         sale.setTotalAmount(totalAmount);
-        sale.setDisplayOrderNo(orderTicketCounterRepository.allocateNext(LocalDate.now()));
         
         // Handle split payments if payment method is SPLIT
         if (saleDTO.getPaymentMethod() == PaymentMethod.SPLIT && saleDTO.getPaymentSplits() != null && !saleDTO.getPaymentSplits().isEmpty()) {
@@ -211,7 +206,6 @@ public class SaleService {
         dto.setSaleDate(sale.getSaleDate());
         dto.setPaymentMethod(sale.getPaymentMethod());
         dto.setUserId(sale.getUser() != null ? sale.getUser().getId() : null);
-        dto.setDisplayOrderNo(sale.getDisplayOrderNo());
         
         List<SaleItemDTO> saleItemDTOs = sale.getSaleItems().stream()
                 .map(this::convertSaleItemToDTO)

@@ -24,6 +24,7 @@ import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
 import EditItemDialog from '../components/EditItemDialog';
 import JsBarcode from 'jsbarcode';
 import { directPrint, printSaleAndOrderTicket } from '../utils/printUtils';
+import { withExistingOrderNo, withOrderNo } from '../utils/orderTicket';
 
 const SalesPage = () => {
   const [cart, setCart] = useState([]);
@@ -306,9 +307,10 @@ const SalesPage = () => {
   };
 
   const afterSaleSaved = async (sale, successMessage) => {
-    setLastSale(sale);
+    const numbered = withOrderNo(sale);
+    setLastSale(numbered);
     try {
-      await printSaleDocuments(sale);
+      await printSaleDocuments(numbered);
       setSuccess(successMessage);
       addTimeout(() => setSuccess(null), 3000);
     } catch (printErr) {
@@ -327,7 +329,7 @@ const SalesPage = () => {
 
     try {
       if (window.electron && window.electron.ipcRenderer) {
-        await printSaleDocuments(lastSale);
+        await printSaleDocuments(withExistingOrderNo(lastSale));
         setSuccess('Receipt and order ticket printed');
         setTimeout(() => setSuccess(null), 3000);
         return;

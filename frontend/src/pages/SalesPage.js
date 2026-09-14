@@ -23,7 +23,7 @@ import FullscreenIndicator from '../components/FullscreenIndicator';
 import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
 import EditItemDialog from '../components/EditItemDialog';
 import JsBarcode from 'jsbarcode';
-import { directPrint, createReceiptHTML, printReceiptRaw } from '../utils/printUtils';
+import { directPrint, printSaleAndOrderTicket } from '../utils/printUtils';
 
 const SalesPage = () => {
   const [cart, setCart] = useState([]);
@@ -286,56 +286,58 @@ const SalesPage = () => {
     }
   };
   
+  const printSaleDocuments = async (sale) => {
+    if (!(window.electron && window.electron.ipcRenderer)) {
+      return;
+    }
+    let name = companyName;
+    let address = companyAddress;
+    try {
+      const response = await companySettingsAPI.get();
+      const settingsData = response.data || response;
+      if (settingsData) {
+        name = settingsData.companyName || name;
+        address = settingsData.address || address;
+      }
+    } catch (err) {
+      console.error('Failed to fetch company settings for print:', err);
+    }
+    await printSaleAndOrderTicket(sale, name, address, null, user?.username || null);
+  };
+
+  const afterSaleSaved = async (sale, successMessage) => {
+    setLastSale(sale);
+    try {
+      await printSaleDocuments(sale);
+      setSuccess(successMessage);
+      addTimeout(() => setSuccess(null), 3000);
+    } catch (printErr) {
+      console.error('Auto-print failed after sale:', printErr);
+      setError('Sale saved, but printing failed. Use PRINT LAST SALE to reprint both slips.');
+      setTimeout(() => setError(null), 5000);
+    }
+  };
+
   const handlePrintLastSale = async () => {
     if (!lastSale) {
       setError('No recent sale to print');
       setTimeout(() => setError(null), 3000);
       return;
     }
-    
+
     try {
-      // Fetch latest company settings before printing
-      let currentCompanySettings = { companyName: companyName, address: companyAddress };
-      try {
-        const response = await companySettingsAPI.get();
-        const settingsData = response.data || response;
-        if (settingsData) {
-          currentCompanySettings = {
-            companyName: settingsData.companyName || "ADAMS GREEN",
-            address: settingsData.address || ''
-          };
-        }
-      } catch (err) {
-        console.error("Failed to fetch company settings for print:", err);
-        // Use existing state if fetch fails
-      }
-      
-      // ALWAYS use raw ESC/POS printing (bypasses print spooler - NO drawer opening)
       if (window.electron && window.electron.ipcRenderer) {
-        try {
-          console.log('🖨️ Printing receipt using raw ESC/POS (no drawer will open)');
-          await printReceiptRaw(
-            lastSale,
-            currentCompanySettings.companyName,
-            currentCompanySettings.address
-          );
-          setSuccess('Receipt printed successfully!');
-          setTimeout(() => setSuccess(null), 3000);
-          return;
-        } catch (rawPrintError) {
-          console.error('❌ Raw ESC/POS print failed:', rawPrintError);
-          setError(`Print failed: ${rawPrintError.message || 'Please check printer connection'}`);
-          setTimeout(() => setError(null), 5000);
-          return;
-        }
-      } else {
-        // Not in Electron - show error
-        setError('Receipt printing is only available in Electron app');
-        setTimeout(() => setError(null), 5000);
+        await printSaleDocuments(lastSale);
+        setSuccess('Receipt and order ticket printed');
+        setTimeout(() => setSuccess(null), 3000);
+        return;
       }
+      setError('Receipt printing is only available in Electron app');
+      setTimeout(() => setError(null), 5000);
     } catch (error) {
       console.error('Print error:', error);
-      alert('Printing failed. Please check your printer connection and allow popups for this site.');
+      setError(`Print failed: ${error.message || 'Please check printer connection'}`);
+      setTimeout(() => setError(null), 5000);
     }
   };
 
@@ -729,9 +731,7 @@ const SalesPage = () => {
       };
 
       const response = await salesAPI.create(saleData);
-      
-      // Store the last sale for printing
-      setLastSale(response.data);
+      await afterSaleSaved(response.data, 'Cash payment completed — customer and staff slips printing.');
       
       setCart([]);
       setCashAmount('');
@@ -739,8 +739,6 @@ const SalesPage = () => {
       setAppliedDiscount(null); // Clear discount after sale
       setSelectedCartItem(null); // Clear selected item after sale
       setCustomDiscountAmount('');
-      setSuccess('Cash payment completed successfully!');
-      addTimeout(() => setSuccess(null), 3000);
       // Refocus barcode input after payment
       setTimeout(() => {
         if (barcodeInputRef.current) {
@@ -807,16 +805,12 @@ const SalesPage = () => {
       };
 
       const response = await salesAPI.create(saleData);
-      
-      // Store the last sale for printing
-      setLastSale(response.data);
+      await afterSaleSaved(response.data, 'Card payment completed — customer and staff slips printing.');
       
       setCart([]);
       setAppliedDiscount(null); // Clear discount after sale
       setCustomDiscountAmount('');
       setSelectedCartItem(null); // Clear selected item after sale
-      setSuccess('Card payment completed successfully!');
-      addTimeout(() => setSuccess(null), 3000);
       // Refocus barcode input after payment
       setTimeout(() => {
         if (barcodeInputRef.current) {
@@ -940,9 +934,7 @@ const SalesPage = () => {
       };
 
       const response = await salesAPI.create(saleData);
-      
-      // Store the last sale for printing
-      setLastSale(response.data);
+      await afterSaleSaved(response.data, 'Split payment completed — customer and staff slips printing.');
       
       setCart([]);
       setSplitCashAmount('');
@@ -950,8 +942,6 @@ const SalesPage = () => {
       setAppliedDiscount(null);
       setSelectedCartItem(null);
       setCustomDiscountAmount('');
-      setSuccess('Split payment completed successfully!');
-      addTimeout(() => setSuccess(null), 3000);
       // Refocus barcode input after payment
       setTimeout(() => {
         if (barcodeInputRef.current) {
@@ -2290,7 +2280,7 @@ const SalesPage = () => {
                     size="lg" 
                     className="btn-3d"
                     onClick={handlePrintLastSale}
-                    title={`Print last sale #${lastSale.id}`}
+                    title="Reprint customer receipt and staff ticket for the last sale"
                       style={{ fontSize: '1rem', padding: '0.5rem 1rem', minHeight: '40px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     <i className="bi bi-printer me-2"></i>

@@ -28,6 +28,8 @@ public class SaleDTO {
     private Long userId;
     
     private List<SalePaymentDTO> paymentSplits; // For split payments
+
+    private Integer displayOrderNo;
     
     // Constructors
     public SaleDTO() {}
@@ -93,5 +95,13 @@ public class SaleDTO {
     
     public void setPaymentSplits(List<SalePaymentDTO> paymentSplits) {
         this.paymentSplits = paymentSplits;
+    }
+
+    public Integer getDisplayOrderNo() {
+        return displayOrderNo;
+    }
+
+    public void setDisplayOrderNo(Integer displayOrderNo) {
+        this.displayOrderNo = displayOrderNo;
     }
 }

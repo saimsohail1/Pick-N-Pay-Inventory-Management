@@ -3,7 +3,7 @@ import { Table, Button, Form, Alert, Modal, Spinner, Card } from "react-bootstra
 import { format } from "date-fns";
 import { salesAPI, usersAPI, companySettingsAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
-import { directPrint, createReceiptHTML, createSalesHistoryHTML, printReceiptRaw } from '../utils/printUtils';
+import { printSaleAndOrderTicket } from '../utils/printUtils';
 
 const SalesHistory = () => {
   const { user } = useAuth();
@@ -242,7 +242,14 @@ const SalesHistory = () => {
 
   const handlePrintSale = async (sale) => {
     try {
-      // Fetch latest company settings before printing
+      let saleToPrint = sale;
+      try {
+        const full = await salesAPI.getById(sale.id);
+        saleToPrint = full.data || full;
+      } catch (err) {
+        console.error("Failed to refresh sale before print, using list data:", err);
+      }
+
       let currentCompanySettings = companySettings;
       try {
         const response = await companySettingsAPI.get();
@@ -264,8 +271,8 @@ const SalesHistory = () => {
           console.log('🖨️ Printing receipt using raw ESC/POS (no drawer will open)');
           // Use logged-in user's name as cashier when printing from SalesHistory
           const cashierName = user?.username || null;
-          await printReceiptRaw(
-        sale, 
+          await printSaleAndOrderTicket(
+        saleToPrint, 
         currentCompanySettings.companyName, 
             currentCompanySettings.address,
             null, // printerName

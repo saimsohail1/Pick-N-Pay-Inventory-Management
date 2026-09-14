@@ -19,6 +19,85 @@ export const printReceiptRaw = async (sale, companyName = "ADAMS GREEN", company
   return directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
 };
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Kitchen / pickup ticket: large daily order number (1-99) and items only.
+ */
+export const createOrderTicketHTML = (sale) => {
+  const orderNo = sale.displayOrderNo;
+  const when = sale.saleDate ? new Date(sale.saleDate) : new Date();
+  const time = isNaN(when.getTime()) ? '' : when.toLocaleTimeString();
+  const items = (sale.saleItems || []).map((item) => `
+        <div class="item">
+          <span class="qty">${item.quantity}x</span>
+          <span class="name">${item.itemName || 'Item'}</span>
+        </div>
+      `).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Order ${orderNo}</title>
+      <style>
+        @media print {
+          @page { size: 80mm auto; margin: 0; }
+          body { margin: 0; padding: 5mm; font-family: 'Courier New', monospace; width: 70mm; }
+        }
+        body {
+          font-family: 'Courier New', monospace;
+          margin: 0;
+          padding: 5mm;
+          width: 70mm;
+          color: #000;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .center { text-align: center; }
+        .label { font-size: 14px; font-weight: 700; letter-spacing: 2px; }
+        .copy-label { font-size: 12px; font-weight: 700; letter-spacing: 1px; margin-top: 4px; }
+        .number { font-size: 72px; font-weight: 700; line-height: 1; margin: 8px 0 12px; }
+        .item { display: flex; gap: 8px; margin: 6px 0; font-size: 16px; font-weight: 700; }
+        .qty { min-width: 2.2em; }
+        .name { flex: 1; }
+        .divider { border-top: 1px dashed #000; margin: 10px 0; }
+        .time { font-size: 12px; font-weight: 600; margin-top: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="center copy-label">STAFF COPY</div>
+      <div class="center label">ORDER</div>
+      <div class="center number">${orderNo}</div>
+      <div class="divider"></div>
+      ${items}
+      <div class="divider"></div>
+      ${time ? `<div class="center time">${time}</div>` : ''}
+    </body>
+    </html>
+  `;
+};
+
+export const printOrderTicket = async (sale, printerName = null) => {
+  if (!sale?.displayOrderNo) {
+    return false;
+  }
+  const html = createOrderTicketHTML(sale);
+  return directPrint(html, `Order ${sale.displayOrderNo}`, { printerName });
+};
+
+/**
+ * Customer sale receipt first, then staff order ticket.
+ */
+export const printSaleAndOrderTicket = async (sale, companyName = "ADAMS GREEN", companyAddress = '', printerName = null, cashierName = null) => {
+  await printReceiptRaw(sale, companyName, companyAddress, printerName, cashierName);
+  if (sale?.displayOrderNo) {
+    await wait(500);
+    await printOrderTicket(sale, printerName);
+  }
+  return true;
+};
+
 /**
  * Direct print function - prints silently without dialog (uses Electron IPC if available)
  * @param {string} content - HTML content to print
@@ -176,10 +255,11 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
     return `${day}/${month}/${year}`;
   };
 
-  const subtotalExcludingVat = sale.saleItems.reduce((sum, item) => 
+  const saleItems = sale.saleItems || [];
+  const subtotalExcludingVat = saleItems.reduce((sum, item) => 
     sum + parseFloat(item.priceExcludingVat || 0), 0
   );
-  const totalVat = sale.saleItems.reduce((sum, item) => 
+  const totalVat = saleItems.reduce((sum, item) => 
     sum + parseFloat(item.vatAmount || 0), 0
   );
   
@@ -188,12 +268,12 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
   let averageVatRate = 0;
   if (subtotalExcludingVat > 0) {
     averageVatRate = (totalVat / subtotalExcludingVat) * 100;
-  } else if (sale.saleItems.length > 0) {
+  } else if (saleItems.length > 0) {
     // Fallback: simple average of VAT rates if no excluding VAT data
-    const sumOfRates = sale.saleItems.reduce((sum, item) => 
+    const sumOfRates = saleItems.reduce((sum, item) => 
       sum + parseFloat(item.vatRate || 23), 0
     );
-    averageVatRate = sumOfRates / sale.saleItems.length;
+    averageVatRate = sumOfRates / saleItems.length;
   } else {
     averageVatRate = 23; // Default fallback
   }
@@ -236,6 +316,9 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
         .header .company-name { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
         .header .company-address { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+        .copy-label { font-size: 12px; font-weight: 700; letter-spacing: 1px; margin-top: 4px; }
+        .order-label { font-size: 12px; font-weight: 700; margin-top: 8px; }
+        .order-number { font-size: 56px; font-weight: 700; line-height: 1; margin: 4px 0 8px; }
         .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; font-weight: 600; }
         .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: 700; }
         .vat-info { margin: 5px 0; font-size: 10px; font-weight: 600; }
@@ -250,16 +333,26 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       <div class="header">
         <div class="center company-name">${companyName.toUpperCase()}</div>
         ${companyAddress ? `<div class="center company-address">${companyAddress}</div>` : ''}
+        <div class="center copy-label">CUSTOMER COPY</div>
+        ${sale.displayOrderNo ? `
+        <div class="center order-label">YOUR ORDER</div>
+        <div class="center order-number">${sale.displayOrderNo}</div>
+        ` : ''}
         <div class="center">SALE RECEIPT</div>
         <div class="center">Date: ${formatReceiptDate(sale.saleDate)}</div>
-        <div class="center">Time: ${new Date(sale.saleDate).toLocaleTimeString()}</div>
+        ${(() => {
+          const when = sale.saleDate ? new Date(sale.saleDate) : null;
+          return when && !isNaN(when.getTime())
+            ? `<div class="center">Time: ${when.toLocaleTimeString()}</div>`
+            : '';
+        })()}
         <div class="center">Sale ID: ${sale.id}</div>
         <div class="center">Cashier: ${cashierName || sale.user?.username || 'Unknown'}</div>
       </div>
       
       <div class="divider"></div>
       
-      ${sale.saleItems.map(item => `
+      ${saleItems.map(item => `
         <div class="item">
           <span>${item.itemName} ${item.quantity}x</span>
           <span>€${parseFloat(item.totalPrice).toFixed(2)}</span>
@@ -291,6 +384,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       
       <div class="footer">
         <div>Thank you for your purchase!</div>
+        ${sale.displayOrderNo ? `<div>Please wait for order ${sale.displayOrderNo}</div>` : ''}
         <div>${companyName}</div>
       </div>
     </body>

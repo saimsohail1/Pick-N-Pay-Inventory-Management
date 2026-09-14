@@ -24,7 +24,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 /**
  * Kitchen / pickup ticket: large daily order number (1-99) and items only.
  */
-export const createOrderTicketHTML = (sale) => {
+export const createOrderTicketHTML = (sale, copyLabel = 'STAFF') => {
   const orderNo = sale.displayOrderNo;
   const when = sale.saleDate ? new Date(sale.saleDate) : new Date();
   const time = isNaN(when.getTime()) ? '' : when.toLocaleTimeString();
@@ -39,7 +39,7 @@ export const createOrderTicketHTML = (sale) => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Order ${orderNo}</title>
+      <title>${copyLabel} Order ${orderNo}</title>
       <style>
         @media print {
           @page { size: 80mm auto; margin: 0; }
@@ -56,7 +56,7 @@ export const createOrderTicketHTML = (sale) => {
         }
         .center { text-align: center; }
         .label { font-size: 14px; font-weight: 700; letter-spacing: 2px; }
-        .copy-label { font-size: 12px; font-weight: 700; letter-spacing: 1px; margin-top: 4px; }
+        .copy-label { font-size: 16px; font-weight: 700; letter-spacing: 2px; margin-top: 2px; }
         .number { font-size: 72px; font-weight: 700; line-height: 1; margin: 8px 0 12px; }
         .item { display: flex; gap: 8px; margin: 6px 0; font-size: 16px; font-weight: 700; }
         .qty { min-width: 2.2em; }
@@ -66,7 +66,7 @@ export const createOrderTicketHTML = (sale) => {
       </style>
     </head>
     <body>
-      <div class="center copy-label">STAFF COPY</div>
+      <div class="center copy-label">${copyLabel}</div>
       <div class="center label">ORDER</div>
       <div class="center number">${orderNo}</div>
       <div class="divider"></div>
@@ -78,23 +78,24 @@ export const createOrderTicketHTML = (sale) => {
   `;
 };
 
-export const printOrderTicket = async (sale, printerName = null) => {
+export const printOrderTicket = async (sale, copyLabel = 'STAFF', printerName = null) => {
   if (!sale?.displayOrderNo) {
     return false;
   }
-  const html = createOrderTicketHTML(sale);
-  return directPrint(html, `Order ${sale.displayOrderNo}`, { printerName });
+  const html = createOrderTicketHTML(sale, copyLabel);
+  return directPrint(html, `${copyLabel} Order ${sale.displayOrderNo}`, { printerName });
 };
 
 /**
- * Customer sale receipt first, then staff order ticket.
+ * Checkout / jam recovery: identical order tickets, customer first then staff.
  */
-export const printSaleAndOrderTicket = async (sale, companyName = "ADAMS GREEN", companyAddress = '', printerName = null, cashierName = null) => {
-  await printReceiptRaw(sale, companyName, companyAddress, printerName, cashierName);
-  if (sale?.displayOrderNo) {
-    await wait(500);
-    await printOrderTicket(sale, printerName);
+export const printOrderTickets = async (sale, printerName = null) => {
+  if (!sale?.displayOrderNo) {
+    return false;
   }
+  await printOrderTicket(sale, 'CUSTOMER', printerName);
+  await wait(400);
+  await printOrderTicket(sale, 'STAFF', printerName);
   return true;
 };
 
@@ -316,9 +317,6 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
         .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
         .header .company-name { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
         .header .company-address { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
-        .copy-label { font-size: 12px; font-weight: 700; letter-spacing: 1px; margin-top: 4px; }
-        .order-label { font-size: 12px; font-weight: 700; margin-top: 8px; }
-        .order-number { font-size: 56px; font-weight: 700; line-height: 1; margin: 4px 0 8px; }
         .item { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; font-weight: 600; }
         .total { border-top: 1px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: 700; }
         .vat-info { margin: 5px 0; font-size: 10px; font-weight: 600; }
@@ -333,11 +331,6 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       <div class="header">
         <div class="center company-name">${companyName.toUpperCase()}</div>
         ${companyAddress ? `<div class="center company-address">${companyAddress}</div>` : ''}
-        <div class="center copy-label">CUSTOMER COPY</div>
-        ${sale.displayOrderNo ? `
-        <div class="center order-label">YOUR ORDER</div>
-        <div class="center order-number">${sale.displayOrderNo}</div>
-        ` : ''}
         <div class="center">SALE RECEIPT</div>
         <div class="center">Date: ${formatReceiptDate(sale.saleDate)}</div>
         ${(() => {
@@ -347,6 +340,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
             : '';
         })()}
         <div class="center">Sale ID: ${sale.id}</div>
+        ${sale.displayOrderNo ? `<div class="center">Order No: ${sale.displayOrderNo}</div>` : ''}
         <div class="center">Cashier: ${cashierName || sale.user?.username || 'Unknown'}</div>
       </div>
       
@@ -384,7 +378,6 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
       
       <div class="footer">
         <div>Thank you for your purchase!</div>
-        ${sale.displayOrderNo ? `<div>Please wait for order ${sale.displayOrderNo}</div>` : ''}
         <div>${companyName}</div>
       </div>
     </body>

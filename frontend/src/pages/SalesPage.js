@@ -23,8 +23,7 @@ import FullscreenIndicator from '../components/FullscreenIndicator';
 import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
 import EditItemDialog from '../components/EditItemDialog';
 import JsBarcode from 'jsbarcode';
-import { directPrint, printSaleAndOrderTicket } from '../utils/printUtils';
-import { withExistingOrderNo, withOrderNo } from '../utils/orderTicket';
+import { directPrint, printOrderTickets } from '../utils/printUtils';
 
 const SalesPage = () => {
   const [cart, setCart] = useState([]);
@@ -291,31 +290,18 @@ const SalesPage = () => {
     if (!(window.electron && window.electron.ipcRenderer)) {
       return;
     }
-    let name = companyName;
-    let address = companyAddress;
-    try {
-      const response = await companySettingsAPI.get();
-      const settingsData = response.data || response;
-      if (settingsData) {
-        name = settingsData.companyName || name;
-        address = settingsData.address || address;
-      }
-    } catch (err) {
-      console.error('Failed to fetch company settings for print:', err);
-    }
-    await printSaleAndOrderTicket(sale, name, address, null, user?.username || null);
+    await printOrderTickets(sale);
   };
 
   const afterSaleSaved = async (sale, successMessage) => {
-    const numbered = withOrderNo(sale);
-    setLastSale(numbered);
+    setLastSale(sale);
     try {
-      await printSaleDocuments(numbered);
+      await printSaleDocuments(sale);
       setSuccess(successMessage);
       addTimeout(() => setSuccess(null), 3000);
     } catch (printErr) {
       console.error('Auto-print failed after sale:', printErr);
-      setError('Sale saved, but printing failed. Use PRINT LAST SALE to reprint both slips.');
+      setError('Sale saved, but printing failed. Use PRINT LAST SALE to reprint the tickets.');
       setTimeout(() => setError(null), 5000);
     }
   };
@@ -329,8 +315,8 @@ const SalesPage = () => {
 
     try {
       if (window.electron && window.electron.ipcRenderer) {
-        await printSaleDocuments(withExistingOrderNo(lastSale));
-        setSuccess('Receipt and order ticket printed');
+        await printSaleDocuments(lastSale);
+        setSuccess('Order tickets reprinted');
         setTimeout(() => setSuccess(null), 3000);
         return;
       }
@@ -2282,7 +2268,7 @@ const SalesPage = () => {
                     size="lg" 
                     className="btn-3d"
                     onClick={handlePrintLastSale}
-                    title="Reprint customer receipt and staff ticket for the last sale"
+                    title="Reprint customer and staff order tickets"
                       style={{ fontSize: '1rem', padding: '0.5rem 1rem', minHeight: '40px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     <i className="bi bi-printer me-2"></i>

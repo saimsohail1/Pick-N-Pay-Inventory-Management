@@ -3,8 +3,7 @@ import { Table, Button, Form, Alert, Modal, Spinner, Card } from "react-bootstra
 import { format } from "date-fns";
 import { salesAPI, usersAPI, companySettingsAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
-import { printSaleAndOrderTicket } from '../utils/printUtils';
-import { withExistingOrderNo } from '../utils/orderTicket';
+import { printReceiptRaw } from '../utils/printUtils';
 
 const SalesHistory = () => {
   const { user } = useAuth();
@@ -272,8 +271,8 @@ const SalesHistory = () => {
           console.log('🖨️ Printing receipt using raw ESC/POS (no drawer will open)');
           // Use logged-in user's name as cashier when printing from SalesHistory
           const cashierName = user?.username || null;
-          await printSaleAndOrderTicket(
-        withExistingOrderNo(saleToPrint), 
+          await printReceiptRaw(
+        saleToPrint, 
         currentCompanySettings.companyName, 
             currentCompanySettings.address,
             null, // printerName

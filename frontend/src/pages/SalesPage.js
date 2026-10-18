@@ -16,14 +16,14 @@ import {
 } from 'react-bootstrap';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { itemsAPI, salesAPI, categoriesAPI, companySettingsAPI } from '../services/api';
+import { itemsAPI, salesAPI, categoriesAPI, companySettingsAPI, kitchenOrdersAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import BarcodeScanner from '../components/BarcodeScanner';
 import FullscreenIndicator from '../components/FullscreenIndicator';
 import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
 import EditItemDialog from '../components/EditItemDialog';
 import JsBarcode from 'jsbarcode';
-import { directPrint, printOrderTickets } from '../utils/printUtils';
+import { directPrint, printOrderTickets, printStaffTicket, printUnpaidBill, printReceiptRaw } from '../utils/printUtils';
 
 const SalesPage = () => {
   const [cart, setCart] = useState([]);
@@ -76,6 +76,11 @@ const SalesPage = () => {
   const [heldTransactions, setHeldTransactions] = useState([]);
   const [showHeldTransactions, setShowHeldTransactions] = useState(false);
   const [selectedHeldTransaction, setSelectedHeldTransaction] = useState(null);
+  const [itemSearch, setItemSearch] = useState('');
+  const [preparingOrders, setPreparingOrders] = useState([]);
+  const [readyOrders, setReadyOrders] = useState([]);
+  const [ordersDialogOpen, setOrdersDialogOpen] = useState(false);
+  const [payingKitchenOrder, setPayingKitchenOrder] = useState(null);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [customDiscountAmount, setCustomDiscountAmount] = useState('');
@@ -104,6 +109,9 @@ const SalesPage = () => {
     fetchItems();
     fetchCategories();
     fetchCompanyName();
+    refreshKitchenOrders();
+    const timer = setInterval(refreshKitchenOrders, 8000);
+    return () => clearInterval(timer);
   }, []);
 
   // Broadcast cart updates to customer display window
@@ -139,7 +147,8 @@ const SalesPage = () => {
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
         !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !splitPaymentDialogOpen &&
-        !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
+        !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen &&
+        !ordersDialogOpen) {
       // Small delay to ensure modal is fully closed
       const timer = setTimeout(() => {
         if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current) {
@@ -150,13 +159,15 @@ const SalesPage = () => {
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
       registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, splitPaymentDialogOpen,
-      outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
+      outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen,
+      ordersDialogOpen]);
 
   // Keep barcode input focused continuously (when no modals are open)
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
         !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !splitPaymentDialogOpen &&
-        !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
+        !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen &&
+        !ordersDialogOpen) {
       const handleFocusLoss = () => {
         // Only refocus if user clicked outside an input/button or on the document
         setTimeout(() => {
@@ -181,7 +192,8 @@ const SalesPage = () => {
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
       registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, splitPaymentDialogOpen,
-      outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
+      outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen,
+      ordersDialogOpen]);
 
   useEffect(() => {
     // Focus on barcode input when component mounts
@@ -283,6 +295,128 @@ const SalesPage = () => {
     } catch (error) {
       console.error('Failed to fetch company name:', error);
       // Keep default name if fetch fails
+    }
+  };
+
+  const refreshKitchenOrders = async () => {
+    try {
+      const [preparingRes, readyRes] = await Promise.all([
+        kitchenOrdersAPI.list('PREPARING'),
+        kitchenOrdersAPI.list('READY')
+      ]);
+      setPreparingOrders(preparingRes.data || []);
+      setReadyOrders(readyRes.data || []);
+    } catch (err) {
+      console.error('Failed to load kitchen orders:', err);
+    }
+  };
+
+  const checkoutTotal = () => {
+    if (payingKitchenOrder) {
+      return parseFloat(payingKitchenOrder.totalAmount) || 0;
+    }
+    return calculateTotal();
+  };
+
+  const searchMatches = itemSearch.trim().length >= 1
+    ? items.filter((item) =>
+        (item.name || '').toLowerCase().includes(itemSearch.trim().toLowerCase())
+      ).slice(0, 8)
+    : [];
+
+  const handleSendToKitchen = async () => {
+    if (cart.length === 0) {
+      setError('Add items before sending to kitchen.');
+      addTimeout(() => setError(null), 3000);
+      return;
+    }
+    try {
+      setLoading(true);
+      const response = await kitchenOrdersAPI.create({
+        userId: user?.id || null,
+        items: cart.map((item) => ({
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+          itemName: item.itemName,
+          itemBarcode: item.itemBarcode,
+          vatRate: item.vatRate != null ? item.vatRate : 9.00
+        }))
+      });
+      const order = response.data;
+      if (window.electron && window.electron.ipcRenderer) {
+        try {
+          await printStaffTicket(order);
+        } catch (printErr) {
+          console.error('Kitchen ticket print failed:', printErr);
+          setError('Order sent, but the kitchen ticket failed to print.');
+          addTimeout(() => setError(null), 5000);
+        }
+      }
+      setCart([]);
+      setAppliedDiscount(null);
+      setCustomDiscountAmount('');
+      setSelectedCartItem(null);
+      setItemSearch('');
+      await refreshKitchenOrders();
+      setSuccess(`Order ${order.displayOrderNo} sent to kitchen`);
+      addTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error('Send to kitchen failed:', err);
+      setError(err.response?.data || err.message || 'Failed to send order');
+      addTimeout(() => setError(null), 5000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkPrepared = async (order) => {
+    try {
+      await kitchenOrdersAPI.markPrepared(order.id);
+      await refreshKitchenOrders();
+      setSuccess(`Order ${order.displayOrderNo} is ready`);
+      addTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.response?.data || 'Failed to mark prepared');
+      addTimeout(() => setError(null), 4000);
+    }
+  };
+
+  const handlePrintBill = async (order) => {
+    try {
+      await printUnpaidBill(order, companyName, companyAddress);
+      setSuccess(`Bill printed for order ${order.displayOrderNo}`);
+      addTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error('Bill print failed:', err);
+      setError('Failed to print bill');
+      addTimeout(() => setError(null), 4000);
+    }
+  };
+
+  const handlePayReadyOrder = (order) => {
+    setPayingKitchenOrder(order);
+    setOrdersDialogOpen(false);
+    setCashAmount('');
+    setSelectedNotes({});
+    setCheckoutDialogOpen(true);
+  };
+
+  const afterKitchenPaid = async (sale) => {
+    setLastSale(sale);
+    setPayingKitchenOrder(null);
+    await refreshKitchenOrders();
+    try {
+      if (window.electron && window.electron.ipcRenderer) {
+        await printReceiptRaw(sale, companyName, companyAddress, null, user?.fullName || user?.username);
+      }
+      setSuccess(`Order ${sale.displayOrderNo} paid`);
+      addTimeout(() => setSuccess(null), 3000);
+    } catch (printErr) {
+      console.error('Receipt print failed:', printErr);
+      setError('Sale saved, but the receipt failed to print.');
+      addTimeout(() => setError(null), 5000);
     }
   };
   
@@ -566,6 +700,9 @@ const SalesPage = () => {
     }
     setCheckoutDialogOpen(false);
     setCashConfirmDialogOpen(false);
+    if (!paymentInProgressRef.current) {
+      setPayingKitchenOrder(null);
+    }
   };
 
   const handleNoteSelection = (noteValue) => {
@@ -585,7 +722,7 @@ const SalesPage = () => {
   };
 
   const calculateChange = () => {
-    const total = calculateTotal();
+    const total = checkoutTotal();
     const paid = parseFloat(cashAmount || 0);
     // If no cash amount entered, assume exact payment (no change)
     if (paid === 0) {
@@ -674,15 +811,16 @@ const SalesPage = () => {
       return;
     }
     
-    // Validate stock before proceeding
-    const insufficientStock = validateCartStock();
-    if (insufficientStock.length > 0) {
-      const errorMessage = insufficientStock.map(item => 
-        `${item.name}: Available ${item.available}, Requested ${item.requested}`
-      ).join('\n');
-      setError(`Insufficient stock for the following items:\n${errorMessage}\n\nPlease adjust quantities in cart.`);
-      setTimeout(() => setError(null), 8000);
-      return;
+    if (!payingKitchenOrder) {
+      const insufficientStock = validateCartStock();
+      if (insufficientStock.length > 0) {
+        const errorMessage = insufficientStock.map(item => 
+          `${item.name}: Available ${item.available}, Requested ${item.requested}`
+        ).join('\n');
+        setError(`Insufficient stock for the following items:\n${errorMessage}\n\nPlease adjust quantities in cart.`);
+        setTimeout(() => setError(null), 8000);
+        return;
+      }
     }
     
     // Clear any pending timeout
@@ -698,6 +836,17 @@ const SalesPage = () => {
     setCheckoutDialogOpen(false);
 
     try {
+      if (payingKitchenOrder) {
+        const response = await kitchenOrdersAPI.pay(payingKitchenOrder.id, {
+          paymentMethod: 'CASH',
+          userId: user?.id || null
+        });
+        await afterKitchenPaid(response.data);
+        setCashAmount('');
+        setSelectedNotes({});
+        return;
+      }
+
       const saleItems = cart.map((item) => ({
           itemId: item.itemId,
           quantity: item.quantity,
@@ -756,15 +905,16 @@ const SalesPage = () => {
       return;
     }
     
-    // Validate stock before proceeding
-    const insufficientStock = validateCartStock();
-    if (insufficientStock.length > 0) {
-      const errorMessage = insufficientStock.map(item => 
-        `${item.name}: Available ${item.available}, Requested ${item.requested}`
-      ).join('\n');
-      setError(`Insufficient stock for the following items:\n${errorMessage}\n\nPlease adjust quantities in cart.`);
-      setTimeout(() => setError(null), 8000);
-      return;
+    if (!payingKitchenOrder) {
+      const insufficientStock = validateCartStock();
+      if (insufficientStock.length > 0) {
+        const errorMessage = insufficientStock.map(item => 
+          `${item.name}: Available ${item.available}, Requested ${item.requested}`
+        ).join('\n');
+        setError(`Insufficient stock for the following items:\n${errorMessage}\n\nPlease adjust quantities in cart.`);
+        setTimeout(() => setError(null), 8000);
+        return;
+      }
     }
     
     paymentInProgressRef.current = true;
@@ -774,6 +924,15 @@ const SalesPage = () => {
     setCheckoutDialogOpen(false);
 
     try {
+      if (payingKitchenOrder) {
+        const response = await kitchenOrdersAPI.pay(payingKitchenOrder.id, {
+          paymentMethod: 'CARD',
+          userId: user?.id || null
+        });
+        await afterKitchenPaid(response.data);
+        return;
+      }
+
       const saleItems = cart.map((item) => ({
           itemId: item.itemId,
           quantity: item.quantity,
@@ -828,16 +987,17 @@ const SalesPage = () => {
       return;
     }
     
-    // Validate stock before proceeding
-    const insufficientStock = validateCartStock();
-    if (insufficientStock.length > 0) {
-      const errorMessage = insufficientStock.map(item => 
-        `${item.name}: Available ${item.available}, Requested ${item.requested}`
-      ).join('\n');
-      setError(`Insufficient stock for the following items:\n${errorMessage}\n\nPlease adjust quantities in cart.`);
-      setTimeout(() => setError(null), 8000);
-      setSplitPaymentDialogOpen(false);
-      return;
+    if (!payingKitchenOrder) {
+      const insufficientStock = validateCartStock();
+      if (insufficientStock.length > 0) {
+        const errorMessage = insufficientStock.map(item => 
+          `${item.name}: Available ${item.available}, Requested ${item.requested}`
+        ).join('\n');
+        setError(`Insufficient stock for the following items:\n${errorMessage}\n\nPlease adjust quantities in cart.`);
+        setTimeout(() => setError(null), 8000);
+        setSplitPaymentDialogOpen(false);
+        return;
+      }
     }
     
     paymentInProgressRef.current = true;
@@ -848,7 +1008,7 @@ const SalesPage = () => {
     setSplitPaymentDialogOpen(false);
 
     try {
-      const totalAmount = calculateTotal() || 0;
+      const totalAmount = checkoutTotal() || 0;
       if (isNaN(totalAmount) || totalAmount <= 0) {
         throw new Error('Invalid total amount. Please ensure cart has valid items.');
       }
@@ -875,6 +1035,32 @@ const SalesPage = () => {
         throw new Error('At least one payment method must have an amount greater than 0');
       }
 
+      const paymentSplits = [];
+      if (cashAmountValue > 0) {
+        paymentSplits.push({
+          paymentMethod: 'CASH',
+          amount: cashAmountValue
+        });
+      }
+      if (cardAmountValue > 0) {
+        paymentSplits.push({
+          paymentMethod: 'CARD',
+          amount: cardAmountValue
+        });
+      }
+
+      if (payingKitchenOrder) {
+        const response = await kitchenOrdersAPI.pay(payingKitchenOrder.id, {
+          paymentMethod: 'SPLIT',
+          paymentSplits,
+          userId: user?.id || null
+        });
+        await afterKitchenPaid(response.data);
+        setSplitCashAmount('');
+        setSplitCardAmount('');
+        return;
+      }
+
       // Calculate total amount from original prices (actual price customer pays - including VAT)
       let calculatedTotalAmount = 0;
       const saleItems = cart.map((item) => {
@@ -893,21 +1079,6 @@ const SalesPage = () => {
           vatRate: item.vatRate != null ? item.vatRate : 23.00
         };
       });
-
-      // Build payment splits array
-      const paymentSplits = [];
-      if (cashAmountValue > 0) {
-        paymentSplits.push({
-          paymentMethod: 'CASH',
-          amount: cashAmountValue
-        });
-      }
-      if (cardAmountValue > 0) {
-        paymentSplits.push({
-          paymentMethod: 'CARD',
-          amount: cardAmountValue
-        });
-      }
 
       const saleData = {
         totalAmount: calculatedTotalAmount,
@@ -1614,15 +1785,6 @@ const SalesPage = () => {
           </div>
           <div className="d-flex align-items-center gap-2">
             <div className="d-flex align-items-center gap-2">
-              <Button 
-                className="btn-3d"
-                onClick={() => setShowHeldTransactions(!showHeldTransactions)}
-                style={{ fontSize: '1.1rem', padding: '0.6rem 1rem', backgroundColor: '#3a3a3a', color: '#ffffff' }}
-                title="Hold Transactions"
-              >
-                <i className="bi bi-pause-circle me-1"></i>
-                Hold ({heldTransactions.length})
-              </Button>
               <Button
                 className="btn-3d d-flex align-items-center justify-content-center"
                 onClick={() => navigate('/company')}
@@ -2082,11 +2244,63 @@ const SalesPage = () => {
           ) : (
             /* Normal Sales View */
             <>
-            {/* Barcode Scanner Input - Visible at top of cart */}
             <div className="px-2 py-2" style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333' }}>
+              <Form.Group className="mb-2" style={{ position: 'relative' }}>
+                <Form.Label className="small mb-1" style={{ color: '#ffffff', fontSize: '0.85rem' }}>
+                  <i className="bi bi-search me-1"></i>Search item
+                </Form.Label>
+                <Form.Control
+                  type="text"
+                  value={itemSearch}
+                  onChange={(e) => setItemSearch(e.target.value)}
+                  placeholder="Type a dish name..."
+                  style={{
+                    backgroundColor: '#3a3a3a',
+                    border: '1px solid #555',
+                    color: '#ffffff',
+                    fontSize: '0.9rem',
+                    padding: '0.5rem'
+                  }}
+                />
+                {searchMatches.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: '100%',
+                    zIndex: 20,
+                    backgroundColor: '#1a1a1a',
+                    border: '1px solid #555',
+                    borderRadius: '4px',
+                    maxHeight: '220px',
+                    overflowY: 'auto'
+                  }}>
+                    {searchMatches.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          handleCategoryItemClick(item);
+                          setItemSearch('');
+                        }}
+                        className="w-100 text-start px-3 py-2"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          borderBottom: '1px solid #333',
+                          color: '#ffffff'
+                        }}
+                      >
+                        <div className="fw-bold">{item.name}</div>
+                        <small style={{ color: '#aaaaaa' }}>€{parseFloat(item.price).toFixed(2)}</small>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </Form.Group>
               <Form.Group className="mb-0">
                 <Form.Label className="small mb-1" style={{ color: '#ffffff', fontSize: '0.85rem' }}>
-                  <i className="bi bi-upc-scan me-1"></i>Scan Barcode
+                  <i className="bi bi-upc-scan me-1"></i>Scan barcode
                 </Form.Label>
                 <Form.Control
                   ref={barcodeInputRef}
@@ -2099,8 +2313,7 @@ const SalesPage = () => {
                       setBarcodeInput('');
                     }
                   }}
-                  placeholder="Scan or type barcode..."
-                  autoFocus
+                  placeholder="Scan drinks / barcode..."
                   style={{
                     backgroundColor: '#3a3a3a',
                     border: '1px solid #555',
@@ -2300,43 +2513,35 @@ const SalesPage = () => {
               </div>
             </div>
 
-            {/* Checkout, Discount, Hold, and Open Till Buttons */}
             <div className="d-flex flex-column gap-2" style={{ flexShrink: 0, padding: '0.5rem', marginTop: '0.5rem' }}>
                     <Button 
                       size="lg" 
                       className="fw-bold btn-3d" 
                 style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }} 
-                onClick={handleCheckout} 
+                onClick={handleSendToKitchen} 
                 disabled={loading}
               >
-                {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-check-circle me-2"></i>}
-                CHECKOUT
+                {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-send me-2"></i>}
+                SEND
               </Button>
               
               <Button 
                 size="lg" 
                 className="fw-bold btn-3d" 
                 style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
-                      onClick={() => setDiscountDialogOpen(true)}
-                    >
-                      <i className="bi bi-percent me-2"></i>
-                DISCOUNT
-                        {appliedDiscount && (
-                          <Badge className="ms-2" style={{ fontSize: '0.8rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
-                            {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : `€${appliedDiscount.value}`}
-                          </Badge>
-                        )}
-                    </Button>
-              
-                  <Button 
-                    size="lg" 
-                    className="fw-bold btn-3d" 
-                style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }} 
-                onClick={handleHoldTransaction}
+                onClick={() => {
+                  setOrdersDialogOpen(true);
+                  refreshKitchenOrders();
+                }}
               >
-                      <i className="bi bi-pause-circle me-2"></i>
-                HOLD
-                    </Button>
+                <i className="bi bi-receipt me-2"></i>
+                ORDERS
+                {(preparingOrders.length + readyOrders.length) > 0 && (
+                  <Badge className="ms-2" style={{ fontSize: '0.8rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
+                    {preparingOrders.length + readyOrders.length}
+                  </Badge>
+                )}
+              </Button>
               
                     <Button 
                       size="lg" 
@@ -2520,6 +2725,68 @@ const SalesPage = () => {
         onBarcodeScanned={processBarcode}
       />
 
+      <Modal show={ordersDialogOpen} onHide={() => setOrdersDialogOpen(false)} centered>
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #333', color: '#ffffff' }}>
+          <Modal.Title>Orders</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff', maxHeight: '75vh', overflowY: 'auto' }}>
+          <div className="mb-3" style={{ color: '#aaaaaa', fontWeight: 700 }}>Kitchen ({preparingOrders.length})</div>
+          {preparingOrders.length === 0 ? (
+            <p className="mb-4" style={{ color: '#777777' }}>Nothing cooking</p>
+          ) : (
+            preparingOrders.map((order) => (
+              <div key={order.id} className="mb-2 p-3" style={{ backgroundColor: '#2a2a2a', borderRadius: '8px', border: '1px solid #333' }}>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="fw-bold" style={{ fontSize: '1.6rem' }}>#{order.displayOrderNo}</span>
+                  <span>€{parseFloat(order.totalAmount).toFixed(2)}</span>
+                </div>
+                <div className="mt-2">
+                  {(order.items || []).map((item) => (
+                    <div key={item.id} className="d-flex justify-content-between small py-1">
+                      <span>{item.quantity}x {item.itemName}</span>
+                      <span>€{parseFloat(item.totalPrice).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <Button className="w-100 mt-2 btn-3d" onClick={() => handleMarkPrepared(order)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+                  Ready
+                </Button>
+              </div>
+            ))
+          )}
+
+          <div className="mb-3 mt-4" style={{ color: '#aaaaaa', fontWeight: 700 }}>To pay ({readyOrders.length})</div>
+          {readyOrders.length === 0 ? (
+            <p className="mb-0" style={{ color: '#777777' }}>No bills waiting</p>
+          ) : (
+            readyOrders.map((order) => (
+              <div key={order.id} className="mb-2 p-3" style={{ backgroundColor: '#2a2a2a', borderRadius: '8px', border: '1px solid #333' }}>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="fw-bold" style={{ fontSize: '1.6rem' }}>#{order.displayOrderNo}</span>
+                  <span>€{parseFloat(order.totalAmount).toFixed(2)}</span>
+                </div>
+                <div className="mt-2">
+                  {(order.items || []).map((item) => (
+                    <div key={item.id} className="d-flex justify-content-between small py-1">
+                      <span>{item.quantity}x {item.itemName}</span>
+                      <span>€{parseFloat(item.totalPrice).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="d-flex gap-2 mt-2">
+                  <Button className="flex-fill btn-3d" onClick={() => handlePrintBill(order)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+                    Bill
+                  </Button>
+                  <Button className="flex-fill btn-3d" onClick={() => handlePayReadyOrder(order)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+                    Pay
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </Modal.Body>
+      </Modal>
+
       {/* Unified Payment Dialog */}
       <Modal show={checkoutDialogOpen} onHide={handleCloseCheckoutDialog} centered size="xl" style={{ maxWidth: '90vw', width: '1200px', transform: 'translateX(8%)' }}>
         <Modal.Body className="p-0" style={{ backgroundColor: '#1a1a1a' }}>
@@ -2528,8 +2795,10 @@ const SalesPage = () => {
             <div className="col-12">
               <div className="row g-0 border-bottom p-4" style={{ backgroundColor: '#2a2a2a' }}>
                 <div className="col-4 text-center">
-                  <h5 className="mb-2" style={{ color: '#aaaaaa' }}>Balance Due</h5>
-                  <h1 className="fw-bold" style={{ color: '#ffffff' }}>€{calculateTotal().toFixed(2)}</h1>
+                  <h5 className="mb-2" style={{ color: '#aaaaaa' }}>
+                    {payingKitchenOrder ? `Order #${payingKitchenOrder.displayOrderNo}` : 'Balance Due'}
+                  </h5>
+                  <h1 className="fw-bold" style={{ color: '#ffffff' }}>€{checkoutTotal().toFixed(2)}</h1>
           </div>
                 <div className="col-4 text-center">
                   <h5 className="mb-2" style={{ color: '#aaaaaa' }}>Paid</h5>
@@ -2673,7 +2942,7 @@ const SalesPage = () => {
               disabled={loading || paymentInProgressRef.current}
                     style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
             >
-                    CASH €{calculateTotal().toFixed(2)}
+                    CASH €{checkoutTotal().toFixed(2)}
             </Button>
                 </div>
                 <div className="col-3">
@@ -2686,7 +2955,7 @@ const SalesPage = () => {
               disabled={loading}
                     style={{ fontSize: '1.2rem', fontWeight: 'bold', backgroundColor: '#3a3a3a', color: '#ffffff' }}
             >
-                    CARD €{calculateTotal().toFixed(2)}
+                    CARD €{checkoutTotal().toFixed(2)}
             </Button>
                 </div>
                 <div className="col-3">
@@ -2988,7 +3257,7 @@ const SalesPage = () => {
         </Modal.Header>
         <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
           <div className="mb-4">
-            <h5 className="text-center mb-3" style={{ color: '#e0e0e0', fontWeight: 'bold' }}>Total Amount: €{calculateTotal().toFixed(2)}</h5>
+            <h5 className="text-center mb-3" style={{ color: '#e0e0e0', fontWeight: 'bold' }}>Total Amount: €{checkoutTotal().toFixed(2)}</h5>
             <div className="mb-3">
               <label className="form-label" style={{ color: '#e8e8e8', fontWeight: '500' }}>Cash Amount (€)</label>
               <input
@@ -2999,7 +3268,7 @@ const SalesPage = () => {
                   const cashValue = e.target.value;
                   setSplitCashAmount(cashValue);
                   // Auto-calculate card amount
-                  const total = calculateTotal() || 0;
+                  const total = checkoutTotal() || 0;
                   const cash = parseFloat(cashValue || 0) || 0;
                   if (isNaN(cash)) {
                     setSplitCardAmount('');
@@ -3024,7 +3293,7 @@ const SalesPage = () => {
                   const cardValue = e.target.value;
                   setSplitCardAmount(cardValue);
                   // Auto-calculate cash amount
-                  const total = calculateTotal() || 0;
+                  const total = checkoutTotal() || 0;
                   const card = parseFloat(cardValue || 0) || 0;
                   if (isNaN(card)) {
                     setSplitCashAmount('');
@@ -3059,7 +3328,7 @@ const SalesPage = () => {
               processSplitPayment();
             }}
             disabled={loading || paymentInProgressRef.current || 
-              Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (calculateTotal() || 0)) > 0.01}
+              Math.abs(((parseFloat(splitCashAmount || 0) || 0) + (parseFloat(splitCardAmount || 0) || 0)) - (checkoutTotal() || 0)) > 0.01}
             style={{ backgroundColor: '#ffc107', border: '1px solid #ffffff', color: '#ffffff', fontWeight: 'bold' }}
           >
                 Complete Sale

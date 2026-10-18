@@ -176,7 +176,11 @@ public class SaleService {
         }
         
         sale.setTotalAmount(totalAmount);
-        sale.setDisplayOrderNo(orderTicketCounterRepository.allocateNext(LocalDate.now()));
+        if (saleDTO.getDisplayOrderNo() != null) {
+            sale.setDisplayOrderNo(saleDTO.getDisplayOrderNo());
+        } else {
+            sale.setDisplayOrderNo(orderTicketCounterRepository.allocateNext(LocalDate.now()));
+        }
         
         // Handle split payments if payment method is SPLIT
         if (saleDTO.getPaymentMethod() == PaymentMethod.SPLIT && saleDTO.getPaymentSplits() != null && !saleDTO.getPaymentSplits().isEmpty()) {

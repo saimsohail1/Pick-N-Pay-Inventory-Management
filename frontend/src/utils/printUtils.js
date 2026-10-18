@@ -99,6 +99,65 @@ export const printOrderTickets = async (sale, printerName = null) => {
   return true;
 };
 
+export const printStaffTicket = async (order, printerName = null) => {
+  return printOrderTicket(toTicketSale(order), 'STAFF', printerName);
+};
+
+const toTicketSale = (order) => ({
+  displayOrderNo: order.displayOrderNo,
+  saleDate: order.createdAt || order.saleDate,
+  saleItems: (order.items || order.saleItems || []).map((item) => ({
+    quantity: item.quantity,
+    itemName: item.itemName || item.name
+  }))
+});
+
+export const printUnpaidBill = async (order, companyName = 'KHYBER GRILL', companyAddress = '', printerName = null) => {
+  const items = order.items || order.saleItems || [];
+  const total = parseFloat(order.totalAmount || 0);
+  const when = order.createdAt || order.saleDate ? new Date(order.createdAt || order.saleDate) : new Date();
+  const time = isNaN(when.getTime()) ? '' : when.toLocaleString();
+  const lines = items.map((item) => `
+        <div class="item">
+          <span>${item.quantity}x ${item.itemName || item.name}</span>
+          <span>€${parseFloat(item.totalPrice || 0).toFixed(2)}</span>
+        </div>
+      `).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Bill Order ${order.displayOrderNo}</title>
+      <style>
+        @media print {
+          @page { size: 80mm auto; margin: 0; }
+          body { margin: 0; padding: 5mm; font-family: 'Courier New', monospace; width: 70mm; }
+        }
+        body { font-family: 'Courier New', monospace; margin: 0; padding: 5mm; width: 70mm; color: #000; }
+        .center { text-align: center; }
+        .item { display: flex; justify-content: space-between; margin: 4px 0; font-size: 13px; font-weight: 700; }
+        .divider { border-top: 1px dashed #000; margin: 10px 0; }
+        .total { font-size: 16px; font-weight: 700; }
+      </style>
+    </head>
+    <body>
+      <div class="center">${(companyName || '').toUpperCase()}</div>
+      ${companyAddress ? `<div class="center">${companyAddress}</div>` : ''}
+      <div class="center">BILL — NOT A RECEIPT</div>
+      <div class="center">ORDER ${order.displayOrderNo}</div>
+      <div class="divider"></div>
+      ${lines}
+      <div class="divider"></div>
+      <div class="item total"><span>TOTAL</span><span>€${total.toFixed(2)}</span></div>
+      <div class="center" style="margin-top:12px;font-size:11px;">${time}</div>
+      <div class="center" style="margin-top:8px;font-size:11px;">Please pay at the till</div>
+    </body>
+    </html>
+  `;
+  return directPrint(html, `Bill Order ${order.displayOrderNo}`, { printerName });
+};
+
 /**
  * Direct print function - prints silently without dialog (uses Electron IPC if available)
  * @param {string} content - HTML content to print

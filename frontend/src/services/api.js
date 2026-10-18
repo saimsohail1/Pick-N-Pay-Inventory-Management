@@ -85,6 +85,14 @@ export const salesAPI = {
   delete: (id) => api.delete(`/sales/${id}`),
 };
 
+export const kitchenOrdersAPI = {
+  create: (order) => api.post('/kitchen-orders', order),
+  list: (status) => api.get(`/kitchen-orders?status=${status}`),
+  counts: () => api.get('/kitchen-orders/counts'),
+  markPrepared: (id) => api.patch(`/kitchen-orders/${id}/prepared`),
+  pay: (id, payment) => api.post(`/kitchen-orders/${id}/pay`, payment),
+};
+
 // Company Settings API
 export const companySettingsAPI = {
   get: () => api.get('/company-settings'),

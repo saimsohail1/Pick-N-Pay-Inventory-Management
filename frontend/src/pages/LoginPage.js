@@ -49,57 +49,95 @@ const LoginPage = () => {
     }
   };
 
-  const handleCloseApp = () => {
-    // Check if running in Electron
+  const sendElectron = (channel) => {
     if (window && window.require) {
       try {
         const { ipcRenderer } = window.require('electron');
-        ipcRenderer.send('app-closing');
+        ipcRenderer.send(channel);
+        return true;
       } catch (error) {
-        console.error('Error closing app:', error);
+        console.error(`Error sending ${channel}:`, error);
       }
-    } else {
-      // If not in Electron, just navigate away or close window
-      if (window.close) {
-        window.close();
-      }
+    }
+    if (window.electron && window.electron.ipcRenderer) {
+      window.electron.ipcRenderer.send(channel);
+      return true;
+    }
+    return false;
+  };
+
+  const handleMinimizeApp = () => {
+    sendElectron('app-minimize');
+  };
+
+  const handleToggleFullscreen = () => {
+    sendElectron('toggle-fullscreen');
+  };
+
+  const handleCloseApp = () => {
+    if (!sendElectron('app-closing') && window.close) {
+      window.close();
+    }
+  };
+
+  const windowBtnStyle = {
+    width: '55px',
+    height: '55px',
+    padding: '0',
+    backgroundColor: '#3a3a3a',
+    color: '#ffffff'
+  };
+
+  const scrollFieldIntoView = (event) => {
+    const field = event?.target;
+    if (field && typeof field.scrollIntoView === 'function') {
+      setTimeout(() => field.scrollIntoView({ block: 'center', behavior: 'smooth' }), 150);
     }
   };
 
   return (
-    <div className="min-vh-100 d-flex align-items-center" style={{ 
+    <div style={{ 
+      minHeight: '100vh',
+      height: '100vh',
+      overflowY: 'auto',
+      overflowX: 'hidden',
+      WebkitOverflowScrolling: 'touch',
       background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
-      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
-      borderBottom: '2px solid #22c55e',
       position: 'relative'
     }}>
-      {/* Close Button - Top Right */}
-      <div style={{
-        position: 'absolute',
-        top: '1rem',
-        right: '1rem',
-        zIndex: 1000
+      <div className="d-flex align-items-center justify-content-end gap-2" style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
+        minHeight: '70px',
+        padding: '0.5rem 1rem',
+        backgroundColor: '#1a1a1a',
+        borderBottom: '1px solid #2a2a2a'
       }}>
-        <i 
-          className="bi bi-power fs-4 text-white" 
-          style={{ 
-            cursor: 'pointer',
-            padding: '0.5rem',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(0, 0, 0, 0.2)',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
-            e.target.style.transform = 'scale(1.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
-            e.target.style.transform = 'scale(1)';
-          }}
+        <Button
+          className="d-flex align-items-center justify-content-center"
+          onClick={handleMinimizeApp}
+          style={windowBtnStyle}
+          title="Minimize Application"
+        >
+          <i className="bi bi-dash-lg" style={{ fontSize: '1.5rem' }}></i>
+        </Button>
+        <Button
+          className="d-flex align-items-center justify-content-center"
+          onClick={handleToggleFullscreen}
+          style={windowBtnStyle}
+          title="Toggle Fullscreen"
+        >
+          <i className="bi bi-fullscreen" style={{ fontSize: '1.5rem' }}></i>
+        </Button>
+        <Button
+          className="d-flex align-items-center justify-content-center"
           onClick={handleCloseApp}
+          style={windowBtnStyle}
           title="Close Application"
-        ></i>
+        >
+          <i className="bi bi-power" style={{ fontSize: '1.5rem' }}></i>
+        </Button>
       </div>
 
       {/* Background Pattern */}
@@ -110,10 +148,11 @@ const LoginPage = () => {
         right: 0,
         bottom: 0,
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        opacity: 0.5
+        opacity: 0.5,
+        pointerEvents: 'none'
       }}></div>
       
-      <Container style={{ position: 'relative', zIndex: 1 }}>
+      <Container style={{ position: 'relative', zIndex: 1, paddingTop: '2rem', paddingBottom: '8rem' }}>
         <Row className="justify-content-center">
           <Col xs={12} sm={8} md={6} lg={4}>
             <Card className="shadow-2xl border-0 animate-fade-in-up" style={{ 
@@ -158,6 +197,10 @@ const LoginPage = () => {
                           {...field}
                           isInvalid={!!errors.username}
                           className="form-control-lg"
+                          onFocus={(e) => {
+                            if (typeof field.onFocus === 'function') field.onFocus(e);
+                            scrollFieldIntoView(e);
+                          }}
                         />
                       )}
                     />
@@ -182,6 +225,10 @@ const LoginPage = () => {
                           {...field}
                           isInvalid={!!errors.password}
                           className="form-control-lg"
+                          onFocus={(e) => {
+                            if (typeof field.onFocus === 'function') field.onFocus(e);
+                            scrollFieldIntoView(e);
+                          }}
                         />
                       )}
                     />

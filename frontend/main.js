@@ -122,7 +122,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    fullscreen: true,
+    fullscreen: process.platform !== 'win32',
     frame: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -142,7 +142,13 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    mainWindow.setFullScreen(true);
+    // Windows on-screen keyboard minimises exclusive fullscreen; maximised looks the same and stays up.
+    if (process.platform === 'win32') {
+      mainWindow.setFullScreen(false);
+      mainWindow.maximize();
+    } else {
+      mainWindow.setFullScreen(true);
+    }
     mainWindow.setMenuBarVisibility(false);
 
     if (isDev) {
@@ -346,8 +352,16 @@ ipcMain.on('app-minimize', () => {
 ipcMain.on('toggle-fullscreen', () => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     const isFullScreen = mainWindow.isFullScreen();
-    mainWindow.setFullScreen(!isFullScreen);
-    mainWindow.setMenuBarVisibility(isFullScreen);
+    if (isFullScreen) {
+      mainWindow.setFullScreen(false);
+      if (process.platform === 'win32') {
+        mainWindow.maximize();
+      }
+      mainWindow.setMenuBarVisibility(true);
+    } else {
+      mainWindow.setFullScreen(true);
+      mainWindow.setMenuBarVisibility(false);
+    }
     console.log(`🖥️ Fullscreen ${!isFullScreen ? 'enabled' : 'disabled'}`);
   }
 });

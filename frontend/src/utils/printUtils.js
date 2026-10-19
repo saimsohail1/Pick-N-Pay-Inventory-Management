@@ -141,20 +141,19 @@ export const printUnpaidBill = async (order, companyName = 'KHYBER GRILL', compa
           padding: 3.5mm;
           width: 73mm;
           color: #000;
-          font-weight: 800;
-          -webkit-text-stroke: 0.25px #000;
+          font-weight: 600;
         }
         .center { text-align: center; }
-        .company { font-size: 18px; font-weight: 900; line-height: 1.15; }
-        .address { font-size: 13px; font-weight: 800; margin-top: 2px; }
-        .bill-label { font-size: 14px; font-weight: 900; margin-top: 8px; letter-spacing: 0.4px; }
-        .order { font-size: 22px; font-weight: 900; margin: 6px 0 2px; line-height: 1.1; }
-        .item { display: flex; justify-content: space-between; gap: 8px; margin: 6px 0; font-size: 15px; font-weight: 800; line-height: 1.25; }
+        .company { font-size: 18px; font-weight: 700; line-height: 1.15; }
+        .address { font-size: 13px; font-weight: 600; margin-top: 2px; }
+        .bill-label { font-size: 14px; font-weight: 700; margin-top: 8px; letter-spacing: 0.4px; }
+        .order { font-size: 22px; font-weight: 700; margin: 6px 0 2px; line-height: 1.1; }
+        .item { display: flex; justify-content: space-between; gap: 8px; margin: 6px 0; font-size: 15px; font-weight: 600; line-height: 1.25; }
         .name { flex: 1; word-break: break-word; }
-        .price { white-space: nowrap; font-weight: 900; }
+        .price { white-space: nowrap; font-weight: 700; }
         .divider { border-top: 2px dashed #000; margin: 10px 0; }
-        .total { font-size: 20px; font-weight: 900; }
-        .meta { margin-top: 12px; font-size: 12px; font-weight: 800; }
+        .total { font-size: 20px; font-weight: 700; }
+        .meta { margin-top: 12px; font-size: 12px; font-weight: 600; }
       </style>
     </head>
     <body>
@@ -372,7 +371,7 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
             font-size: 14px; 
             line-height: 1.25;
             width: 73mm;
-            font-weight: 800;
+            font-weight: 600;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
@@ -384,21 +383,20 @@ export const createReceiptHTML = (sale, companyName = "ADAMS GREEN", companyAddr
           margin: 0; 
           padding: 3.5mm; 
           width: 73mm;
-          font-weight: 800;
+          font-weight: 600;
           color: #000;
-          -webkit-text-stroke: 0.25px #000;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
         .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
-        .header .company-name { font-size: 18px; font-weight: 900; margin-bottom: 3px; }
-        .header .company-address { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
-        .item { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0; font-size: 14px; font-weight: 800; }
+        .header .company-name { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+        .header .company-address { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+        .item { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0; font-size: 14px; font-weight: 600; }
         .item span:first-child { flex: 1; word-break: break-word; }
-        .item span:last-child { white-space: nowrap; font-weight: 900; }
-        .total { border-top: 2px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: 900; font-size: 16px; }
-        .vat-info { margin: 5px 0; font-size: 12px; font-weight: 800; }
-        .footer { text-align: center; margin-top: 15px; font-size: 12px; font-weight: 800; }
+        .item span:last-child { white-space: nowrap; font-weight: 700; }
+        .total { border-top: 2px dashed #000; padding-top: 5px; margin-top: 10px; font-weight: 700; font-size: 16px; }
+        .vat-info { margin: 5px 0; font-size: 12px; font-weight: 600; }
+        .footer { text-align: center; margin-top: 15px; font-size: 12px; font-weight: 600; }
         .divider { border-top: 1px dashed #000; margin: 5px 0; }
         .center { text-align: center; }
         .right { text-align: right; }

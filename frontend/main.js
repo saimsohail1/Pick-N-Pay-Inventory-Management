@@ -119,10 +119,15 @@ function stopBackend() {
 function createWindow() {
   if (mainWindow) return;
 
+  const display = screen.getPrimaryDisplay();
+  const { width, height } = display.bounds;
+
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    fullscreen: process.platform !== 'win32',
+    width,
+    height,
+    x: display.bounds.x,
+    y: display.bounds.y,
+    fullscreen: true,
     frame: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -142,13 +147,8 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    // Windows on-screen keyboard minimises exclusive fullscreen; maximised looks the same and stays up.
-    if (process.platform === 'win32') {
-      mainWindow.setFullScreen(false);
-      mainWindow.maximize();
-    } else {
-      mainWindow.setFullScreen(true);
-    }
+    mainWindow.maximize();
+    mainWindow.setFullScreen(true);
     mainWindow.setMenuBarVisibility(false);
 
     if (isDev) {

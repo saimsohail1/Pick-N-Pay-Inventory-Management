@@ -23,7 +23,7 @@ import FullscreenIndicator from '../components/FullscreenIndicator';
 import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
 import EditItemDialog from '../components/EditItemDialog';
 import JsBarcode from 'jsbarcode';
-import { directPrint, printOrderTickets, printStaffTicket, printUnpaidBill, printReceiptRaw } from '../utils/printUtils';
+import { directPrint, printStaffTicket, printUnpaidBill, printReceiptRaw } from '../utils/printUtils';
 
 const SalesPage = () => {
   const [cart, setCart] = useState([]);
@@ -407,37 +407,14 @@ const SalesPage = () => {
     setLastSale(sale);
     setPayingKitchenOrder(null);
     await refreshKitchenOrders();
-    try {
-      if (window.electron && window.electron.ipcRenderer) {
-        await printReceiptRaw(sale, companyName, companyAddress, null, user?.fullName || user?.username);
-      }
-      setSuccess(`Order ${sale.displayOrderNo} paid`);
-      addTimeout(() => setSuccess(null), 3000);
-    } catch (printErr) {
-      console.error('Receipt print failed:', printErr);
-      setError('Sale saved, but the receipt failed to print.');
-      addTimeout(() => setError(null), 5000);
-    }
+    setSuccess(`Order ${sale.displayOrderNo} paid`);
+    addTimeout(() => setSuccess(null), 3000);
   };
   
-  const printSaleDocuments = async (sale) => {
-    if (!(window.electron && window.electron.ipcRenderer)) {
-      return;
-    }
-    await printOrderTickets(sale);
-  };
-
   const afterSaleSaved = async (sale, successMessage) => {
     setLastSale(sale);
-    try {
-      await printSaleDocuments(sale);
-      setSuccess(successMessage);
-      addTimeout(() => setSuccess(null), 3000);
-    } catch (printErr) {
-      console.error('Auto-print failed after sale:', printErr);
-      setError('Sale saved, but printing failed. Use PRINT LAST SALE to reprint the tickets.');
-      setTimeout(() => setError(null), 5000);
-    }
+    setSuccess(successMessage);
+    addTimeout(() => setSuccess(null), 3000);
   };
 
   const handlePrintLastSale = async () => {
@@ -449,8 +426,8 @@ const SalesPage = () => {
 
     try {
       if (window.electron && window.electron.ipcRenderer) {
-        await printSaleDocuments(lastSale);
-        setSuccess('Order tickets reprinted');
+        await printReceiptRaw(lastSale, companyName, companyAddress, null, user?.fullName || user?.username);
+        setSuccess('Receipt printed');
         setTimeout(() => setSuccess(null), 3000);
         return;
       }
@@ -868,7 +845,7 @@ const SalesPage = () => {
       };
 
       const response = await salesAPI.create(saleData);
-      await afterSaleSaved(response.data, 'Cash payment completed — customer and staff slips printing.');
+      await afterSaleSaved(response.data, 'Cash payment completed');
       
       setCart([]);
       setCashAmount('');
@@ -952,7 +929,7 @@ const SalesPage = () => {
       };
 
       const response = await salesAPI.create(saleData);
-      await afterSaleSaved(response.data, 'Card payment completed — customer and staff slips printing.');
+      await afterSaleSaved(response.data, 'Card payment completed');
       
       setCart([]);
       setAppliedDiscount(null); // Clear discount after sale
@@ -1093,7 +1070,7 @@ const SalesPage = () => {
       };
 
       const response = await salesAPI.create(saleData);
-      await afterSaleSaved(response.data, 'Split payment completed — customer and staff slips printing.');
+      await afterSaleSaved(response.data, 'Split payment completed');
       
       setCart([]);
       setSplitCashAmount('');
@@ -2481,7 +2458,7 @@ const SalesPage = () => {
                     size="lg" 
                     className="btn-3d"
                     onClick={handlePrintLastSale}
-                    title="Reprint customer and staff order tickets"
+                    title="Print receipt for the last paid sale"
                       style={{ fontSize: '1rem', padding: '0.5rem 1rem', minHeight: '40px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
                   >
                     <i className="bi bi-printer me-2"></i>

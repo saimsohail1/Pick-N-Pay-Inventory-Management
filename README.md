@@ -1,6 +1,31 @@
-# PickNPay Point of Sale System
+# PickNPay – Point of Sale & Inventory Management System
 
-A complete Point of Sale (POS) and inventory management system for retail businesses. Built with modern web technologies and packaged as a desktop application.
+A production point-of-sale and inventory system used daily across 7 retail stores in Ireland for sales, stock control, reporting and staff attendance. I designed, built, deployed and supported it as the sole developer, working directly with the store owners from requirements through to production support.
+
+![Java](https://img.shields.io/badge/Java-17-orange) ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-green) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-blue) ![React](https://img.shields.io/badge/React-Electron-61dafb)
+
+## Highlights
+
+- **In production:** runs every day in 7 stores as a desktop app (React packaged with Electron) talking to a Spring Boot REST API backed by PostgreSQL.
+- **Layered backend:** controllers, services, repositories and DTOs, with Spring Data JPA/Hibernate and Bean Validation on incoming requests.
+- **Role-based access:** Spring Security login with two roles (Admin and User), with admin views for reporting and user management.
+- **Stock and batch tracking:** batches with expiry dates, low-stock thresholds and category filters, so stores can catch stock before it expires.
+- **Reporting:** daily, weekly and custom date-range sales reports, VAT summaries per category, and per-user reports.
+- **Schema evolution:** versioned SQL migrations in [`migrations/`](migrations/) for each change made after go-live (split payments, VAT per category, attendance, hourly pay rates).
+- **Built for the shop floor:** barcode scanning and label printing, hold/resume transactions, split cash/card payments and a customer-facing display.
+
+## Architecture
+
+```
+Electron desktop app (React, Bootstrap)
+        |  REST / JSON (Axios)
+        v
+Spring Boot API ── Spring Security (Admin / User)
+   controllers -> services -> repositories (Spring Data JPA)
+        |
+        v
+   PostgreSQL
+```
 
 ## Tech Stack
 

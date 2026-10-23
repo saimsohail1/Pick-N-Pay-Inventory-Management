@@ -44,6 +44,11 @@ const SalesPage = () => {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const barcodeInputRef = useRef(null);
+  const itemSearchRef = useRef(null);
+  const [itemSearch, setItemSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const paymentInProgressRef = useRef(false);
   const cashPaymentTimeoutRef = useRef(null);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
@@ -128,22 +133,32 @@ const SalesPage = () => {
     }
   }, [cart, appliedDiscount, customDiscountAmount]);
 
-  // Auto-focus barcode input on mount and keep it focused
+  const focusSearchField = () => {
+    setTimeout(() => {
+      if (itemSearchRef.current) {
+        itemSearchRef.current.focus();
+      }
+    }, 100);
+  };
+
+  // Auto-focus item search on mount
   useEffect(() => {
-    if (barcodeInputRef.current) {
-      barcodeInputRef.current.focus();
+    if (itemSearchRef.current) {
+      itemSearchRef.current.focus();
     }
   }, []);
 
-  // Refocus barcode input after modals close, cart operations, etc.
+  // Refocus search after modals close
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
         !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !splitPaymentDialogOpen &&
         !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
-      // Small delay to ensure modal is fully closed
       const timer = setTimeout(() => {
-        if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        const active = document.activeElement;
+        if (itemSearchRef.current && active !== itemSearchRef.current && active !== barcodeInputRef.current) {
+          if (active?.tagName !== 'INPUT' && active?.tagName !== 'BUTTON' && active?.tagName !== 'SELECT' && active?.tagName !== 'TEXTAREA') {
+            itemSearchRef.current.focus();
+          }
         }
       }, 100);
       return () => clearTimeout(timer);
@@ -152,31 +167,28 @@ const SalesPage = () => {
       registerItemDialogOpen, checkoutDialogOpen, cashConfirmDialogOpen, splitPaymentDialogOpen,
       outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
-  // Keep barcode input focused continuously (when no modals are open)
+  // Keep search focused when clicking empty till chrome (not when using barcode or other inputs)
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
         !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !splitPaymentDialogOpen &&
         !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen) {
       const handleFocusLoss = () => {
-        // Only refocus if user clicked outside an input/button or on the document
         setTimeout(() => {
-          if (barcodeInputRef.current && 
-              document.activeElement !== barcodeInputRef.current && 
-              document.activeElement?.tagName !== 'INPUT' && 
+          if (itemSearchRef.current &&
+              document.activeElement !== itemSearchRef.current &&
+              document.activeElement !== barcodeInputRef.current &&
+              document.activeElement?.tagName !== 'INPUT' &&
               document.activeElement?.tagName !== 'BUTTON' &&
-              document.activeElement?.tagName !== 'SELECT') {
-            barcodeInputRef.current.focus();
+              document.activeElement?.tagName !== 'SELECT' &&
+              document.activeElement?.tagName !== 'TEXTAREA') {
+            itemSearchRef.current.focus();
           }
         }, 100);
       };
-      
-      // Listen for clicks that might steal focus
+
       document.addEventListener('click', handleFocusLoss);
-      document.addEventListener('focusin', handleFocusLoss);
-      
       return () => {
         document.removeEventListener('click', handleFocusLoss);
-        document.removeEventListener('focusin', handleFocusLoss);
       };
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
@@ -184,13 +196,11 @@ const SalesPage = () => {
       outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen]);
 
   useEffect(() => {
-    // Focus on barcode input when component mounts
     const handleKeyDown = (event) => {
-      // Only process if a barcode scanner is likely being used (e.g., Enter key)
-      if (event.key === 'Enter' && barcodeInput) {
-        event.preventDefault(); // Prevent form submission
+      if (event.key === 'Enter' && barcodeInput && document.activeElement === barcodeInputRef.current) {
+        event.preventDefault();
         processBarcode(barcodeInput);
-        setBarcodeInput(''); // Clear input after processing
+        setBarcodeInput('');
       }
     };
 
@@ -200,6 +210,33 @@ const SalesPage = () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [barcodeInput]);
+
+  useEffect(() => {
+    const query = itemSearch.trim();
+    if (query.length < 1) {
+      setSearchResults([]);
+      setSearchOpen(false);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const response = await itemsAPI.search(query);
+        const list = Array.isArray(response.data) ? response.data : [];
+        const exact = list.filter((item) => (item.barcode || '').trim() === query);
+        const rest = list.filter((item) => (item.barcode || '').trim() !== query);
+        setSearchResults([...exact, ...rest].slice(0, 12));
+        setSearchOpen(true);
+      } catch (err) {
+        setSearchResults([]);
+        setSearchOpen(true);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [itemSearch]);
 
 
 
@@ -419,6 +456,70 @@ const SalesPage = () => {
       // Show dialog to register new item
       setScannedBarcode(barcode);
       setItemNotFoundDialogOpen(true);
+    }
+  };
+
+  const addSearchedItem = (item) => {
+    if (!item) return;
+    const newCartItem = {
+      id: Date.now() + Math.random(),
+      itemId: item.id,
+      itemName: item.name,
+      itemBarcode: item.barcode,
+      quantity: 1,
+      unitPrice: item.price,
+      totalPrice: item.price
+    };
+    addOrUpdateCartItem(newCartItem);
+    setItemSearch('');
+    setSearchResults([]);
+    setSearchOpen(false);
+    setSuccess(`Item "${item.name}" added to cart.`);
+    setTimeout(() => setSuccess(null), 2000);
+    focusSearchField();
+  };
+
+  const handleSearchKeyDown = async (event) => {
+    if (event.key === 'Escape') {
+      setSearchOpen(false);
+      return;
+    }
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const query = itemSearch.trim();
+    if (!query) return;
+
+    try {
+      const response = await itemsAPI.getByBarcode(query);
+      if (response.data) {
+        addSearchedItem(response.data);
+        return;
+      }
+    } catch (err) {
+      // Not an exact barcode — fall through to suggestions
+    }
+
+    if (searchResults.length === 1) {
+      addSearchedItem(searchResults[0]);
+      return;
+    }
+    if (searchResults.length > 1) {
+      setSearchOpen(true);
+      return;
+    }
+
+    try {
+      const response = await itemsAPI.search(query);
+      const list = Array.isArray(response.data) ? response.data : [];
+      if (list.length === 1) {
+        addSearchedItem(list[0]);
+        return;
+      }
+      setSearchResults(list.slice(0, 12));
+      setSearchOpen(true);
+    } catch (err) {
+      setSearchResults([]);
+      setSearchOpen(true);
     }
   };
 
@@ -729,8 +830,8 @@ const SalesPage = () => {
       setCustomDiscountAmount('');
       // Refocus barcode input after payment
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } catch (err) {
@@ -740,8 +841,8 @@ const SalesPage = () => {
       setTimeout(() => setError(null), 5000);
       // Refocus barcode input even on error
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } finally {
@@ -801,8 +902,8 @@ const SalesPage = () => {
       setSelectedCartItem(null); // Clear selected item after sale
       // Refocus barcode input after payment
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } catch (err) {
@@ -812,8 +913,8 @@ const SalesPage = () => {
       setTimeout(() => setError(null), 5000);
       // Refocus barcode input even on error
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } finally {
@@ -932,8 +1033,8 @@ const SalesPage = () => {
       setCustomDiscountAmount('');
       // Refocus barcode input after payment
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } catch (err) {
@@ -943,8 +1044,8 @@ const SalesPage = () => {
       setTimeout(() => setError(null), 5000);
       // Refocus barcode input even on error
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } finally {
@@ -1421,8 +1522,8 @@ const SalesPage = () => {
     addTimeout(() => setSuccess(null), 3000);
     // Refocus barcode input after holding transaction
     setTimeout(() => {
-      if (barcodeInputRef.current) {
-        barcodeInputRef.current.focus();
+      if (itemSearchRef.current) {
+        itemSearchRef.current.focus();
       }
     }, 200);
   };
@@ -2082,8 +2183,82 @@ const SalesPage = () => {
           ) : (
             /* Normal Sales View */
             <>
-            {/* Barcode Scanner Input - Visible at top of cart */}
+            {/* Item search first, then barcode */}
             <div className="px-2 py-2" style={{ backgroundColor: '#2a2a2a', borderBottom: '1px solid #333333' }}>
+              <Form.Group className="mb-2" style={{ position: 'relative' }}>
+                <Form.Label className="small mb-1" style={{ color: '#ffffff', fontSize: '0.85rem' }}>
+                  <i className="bi bi-search me-1"></i>Search items
+                </Form.Label>
+                <Form.Control
+                  ref={itemSearchRef}
+                  type="text"
+                  value={itemSearch}
+                  onChange={(e) => setItemSearch(e.target.value)}
+                  onFocus={() => {
+                    if (searchResults.length > 0 || itemSearch.trim()) {
+                      setSearchOpen(true);
+                    }
+                  }}
+                  onKeyDown={handleSearchKeyDown}
+                  onBlur={() => {
+                    setTimeout(() => setSearchOpen(false), 150);
+                  }}
+                  placeholder="Search name or scan barcode..."
+                  autoFocus
+                  autoComplete="off"
+                  style={{
+                    backgroundColor: '#3a3a3a',
+                    border: '1px solid #555',
+                    color: '#ffffff',
+                    fontSize: '0.9rem',
+                    padding: '0.5rem'
+                  }}
+                />
+                {searchOpen && (searchLoading || itemSearch.trim()) && (
+                  <div style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: '100%',
+                    zIndex: 30,
+                    backgroundColor: '#1f1f1f',
+                    border: '1px solid #555',
+                    borderRadius: '4px',
+                    maxHeight: '240px',
+                    overflowY: 'auto'
+                  }}>
+                    {searchLoading && searchResults.length === 0 && (
+                      <div className="px-2 py-2 small" style={{ color: '#aaaaaa' }}>Searching...</div>
+                    )}
+                    {!searchLoading && searchResults.length === 0 && (
+                      <div className="px-2 py-2 small" style={{ color: '#aaaaaa' }}>No items found</div>
+                    )}
+                    {searchResults.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          addSearchedItem(item);
+                        }}
+                        className="w-100 text-start"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          borderBottom: '1px solid #333',
+                          color: '#ffffff',
+                          padding: '0.45rem 0.65rem'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{item.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#aaaaaa' }}>
+                          {item.barcode ? `${item.barcode} · ` : ''}€{parseFloat(item.price || 0).toFixed(2)}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </Form.Group>
               <Form.Group className="mb-0">
                 <Form.Label className="small mb-1" style={{ color: '#ffffff', fontSize: '0.85rem' }}>
                   <i className="bi bi-upc-scan me-1"></i>Scan Barcode
@@ -2100,7 +2275,6 @@ const SalesPage = () => {
                     }
                   }}
                   placeholder="Scan or type barcode..."
-                  autoFocus
                   style={{
                     backgroundColor: '#3a3a3a',
                     border: '1px solid #555',
@@ -2253,8 +2427,8 @@ const SalesPage = () => {
                     setCustomDiscountAmount(''); 
                     setSelectedCartItem(null);
                     setTimeout(() => {
-                      if (barcodeInputRef.current) {
-                        barcodeInputRef.current.focus();
+                      if (itemSearchRef.current) {
+                        itemSearchRef.current.focus();
                       }
                     }, 100);
                     }} 

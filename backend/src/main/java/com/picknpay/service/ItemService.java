@@ -77,7 +77,11 @@ public class ItemService {
     }
     
     public List<ItemDTO> searchItemsByName(String name) {
-        return itemRepository.findByNameContainingIgnoreCase(name).stream()
+        if (name == null || name.isBlank()) {
+            return List.of();
+        }
+        return itemRepository.searchByNameOrBarcode(name.trim()).stream()
+                .limit(25)
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }

@@ -45,7 +45,7 @@ export const itemsAPI = {
   getById: (id) => api.get(`/items/${id}`),
   getByBarcode: (barcode) => api.get(`/items/barcode/${barcode}`),
   getItemsByCategory: (categoryId) => api.get(`/items/category/${categoryId}`),
-  search: (name) => api.get(`/items/search?name=${name}`),
+  search: (name) => api.get(`/items/search?name=${encodeURIComponent(name)}`),
   getAvailable: () => api.get('/items/available'),
   getLowStock: (threshold = 10) => api.get(`/items/low-stock?threshold=${threshold}`),
   create: (item) => api.post('/items', item),

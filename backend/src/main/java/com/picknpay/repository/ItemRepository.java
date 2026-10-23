@@ -19,6 +19,10 @@ public interface ItemRepository extends JpaRepository<Item, Long>, PagingAndSort
     Optional<Item> findByBarcode(String barcode);
     
     List<Item> findByNameContainingIgnoreCase(String name);
+
+    @Query("SELECT i FROM Item i WHERE LOWER(i.name) LIKE LOWER(CONCAT('%', :q, '%')) " +
+           "OR (i.barcode IS NOT NULL AND LOWER(i.barcode) LIKE LOWER(CONCAT('%', :q, '%')))")
+    List<Item> searchByNameOrBarcode(@Param("q") String q);
     
     List<Item> findByCategoryId(Long categoryId);
     

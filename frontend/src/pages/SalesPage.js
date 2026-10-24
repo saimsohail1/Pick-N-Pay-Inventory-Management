@@ -81,6 +81,7 @@ const SalesPage = () => {
   const [openOrders, setOpenOrders] = useState([]);
   const [ordersDialogOpen, setOrdersDialogOpen] = useState(false);
   const [kitchenOrderToDelete, setKitchenOrderToDelete] = useState(null);
+  const [editingKitchenOrder, setEditingKitchenOrder] = useState(null);
   const [payingKitchenOrder, setPayingKitchenOrder] = useState(null);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState(null);
@@ -332,51 +333,91 @@ const SalesPage = () => {
       ).slice(0, 8)
     : [];
 
+  const cartAsKitchenItems = () => cart.map((item) => ({
+    itemId: item.itemId,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    totalPrice: item.totalPrice,
+    itemName: item.itemName,
+    itemBarcode: item.itemBarcode,
+    vatRate: item.vatRate != null ? item.vatRate : 9.00
+  }));
+
+  const finishKitchenCart = () => {
+    setCart([]);
+    setAppliedDiscount(null);
+    setCustomDiscountAmount('');
+    setSelectedCartItem(null);
+    setItemSearch('');
+    setEditingKitchenOrder(null);
+  };
+
   const handleSendToKitchen = async () => {
     if (cart.length === 0) {
-      setError('Add items before sending to kitchen.');
+      setError(editingKitchenOrder ? 'Add items before updating the order.' : 'Add items before sending to kitchen.');
       addTimeout(() => setError(null), 3000);
       return;
     }
     try {
       setLoading(true);
-      const response = await kitchenOrdersAPI.create({
+      const payload = {
         userId: user?.id || null,
-        items: cart.map((item) => ({
-          itemId: item.itemId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: item.totalPrice,
-          itemName: item.itemName,
-          itemBarcode: item.itemBarcode,
-          vatRate: item.vatRate != null ? item.vatRate : 9.00
-        }))
-      });
+        items: cartAsKitchenItems()
+      };
+      const response = editingKitchenOrder
+        ? await kitchenOrdersAPI.update(editingKitchenOrder.id, payload)
+        : await kitchenOrdersAPI.create(payload);
       const order = response.data;
       if (window.electron && window.electron.ipcRenderer) {
         try {
           await printOrderTickets(order);
         } catch (printErr) {
           console.error('Order ticket print failed:', printErr);
-          setError('Order sent, but the slips failed to print.');
+          setError(editingKitchenOrder
+            ? 'Order updated, but the slips failed to print.'
+            : 'Order sent, but the slips failed to print.');
           addTimeout(() => setError(null), 5000);
         }
       }
-      setCart([]);
-      setAppliedDiscount(null);
-      setCustomDiscountAmount('');
-      setSelectedCartItem(null);
-      setItemSearch('');
+      const orderNo = order.displayOrderNo;
+      const wasEditing = !!editingKitchenOrder;
+      finishKitchenCart();
       await refreshKitchenOrders();
-      setSuccess(`Order ${order.displayOrderNo} sent to kitchen`);
+      setSuccess(wasEditing ? `Order ${orderNo} updated` : `Order ${orderNo} sent to kitchen`);
       addTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Send to kitchen failed:', err);
-      setError(err.response?.data || err.message || 'Failed to send order');
+      setError(err.response?.data || err.message || (editingKitchenOrder ? 'Failed to update order' : 'Failed to send order'));
       addTimeout(() => setError(null), 5000);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditOrder = (order) => {
+    setCart((order.items || []).map((item) => ({
+      id: Date.now() + Math.random() + (item.id || 0),
+      itemId: item.itemId,
+      itemName: item.itemName,
+      itemBarcode: item.itemBarcode,
+      quantity: item.quantity,
+      unitPrice: parseFloat(item.unitPrice),
+      totalPrice: parseFloat(item.totalPrice),
+      vatRate: item.vatRate != null ? item.vatRate : 9.00
+    })));
+    setAppliedDiscount(null);
+    setCustomDiscountAmount('');
+    setSelectedCartItem(null);
+    setEditingKitchenOrder(order);
+    setOrdersDialogOpen(false);
+    setSuccess(`Editing order ${order.displayOrderNo}. Add items, then Update.`);
+    addTimeout(() => setSuccess(null), 4000);
+  };
+
+  const handleCancelEditOrder = () => {
+    finishKitchenCart();
+    setSuccess('Edit cancelled. The original order is unchanged.');
+    addTimeout(() => setSuccess(null), 3000);
   };
 
   const handlePrintBill = async (order) => {
@@ -1575,8 +1616,7 @@ const SalesPage = () => {
     };
 
     setHeldTransactions(prev => [...prev, heldTransaction]);
-    setCart([]);
-    setSelectedCartItem(null); // Clear selected item when holding transaction
+    finishKitchenCart();
     setSuccess('Transaction held successfully!');
     addTimeout(() => setSuccess(null), 3000);
     // Refocus barcode input after holding transaction
@@ -1588,6 +1628,7 @@ const SalesPage = () => {
   };
 
   const handleLoadHeldTransaction = (heldTransaction) => {
+    setEditingKitchenOrder(null);
     setCart(heldTransaction.items);
     // Restore discount if it was applied to the held transaction
     if (heldTransaction.discountType && heldTransaction.discountValue) {
@@ -2454,10 +2495,7 @@ const SalesPage = () => {
                     size="lg" 
                     className="btn-3d" 
                     onClick={() => {
-                    setCart([]); 
-                    setAppliedDiscount(null); 
-                    setCustomDiscountAmount(''); 
-                    setSelectedCartItem(null);
+                    finishKitchenCart();
                     setTimeout(() => {
                       if (itemSearchRef.current) {
                         itemSearchRef.current.focus();
@@ -2514,9 +2552,20 @@ const SalesPage = () => {
                 onClick={handleSendToKitchen} 
                 disabled={loading}
               >
-                {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-send me-2"></i>}
-                SEND
+                {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className={`bi ${editingKitchenOrder ? 'bi-pencil-square' : 'bi-send'} me-2`}></i>}
+                {editingKitchenOrder ? `UPDATE #${editingKitchenOrder.displayOrderNo}` : 'SEND'}
               </Button>
+              {editingKitchenOrder && (
+                <Button
+                  size="lg"
+                  className="fw-bold btn-3d"
+                  style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                  onClick={handleCancelEditOrder}
+                  disabled={loading}
+                >
+                  CANCEL EDIT
+                </Button>
+              )}
               
               <Button 
                 size="lg" 
@@ -2741,6 +2790,9 @@ const SalesPage = () => {
                   ))}
                 </div>
                 <div className="d-flex gap-2 mt-2">
+                  <Button className="flex-fill btn-3d" onClick={() => handleEditOrder(order)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+                    Edit
+                  </Button>
                   <Button className="flex-fill btn-3d" onClick={() => handlePrintBill(order)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
                     Bill
                   </Button>

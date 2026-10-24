@@ -55,37 +55,21 @@ public class KitchenOrderService {
             order.setUser(user);
         }
 
-        BigDecimal total = BigDecimal.ZERO;
-        for (KitchenOrderItemDTO itemDto : dto.getItems()) {
-            KitchenOrderItem line = new KitchenOrderItem();
-            line.setKitchenOrder(order);
-            line.setQuantity(itemDto.getQuantity());
-            line.setUnitPrice(itemDto.getUnitPrice());
-            line.setTotalPrice(itemDto.getTotalPrice());
-            line.setItemName(itemDto.getItemName() != null ? itemDto.getItemName() : "Item");
-            line.setItemBarcode(itemDto.getItemBarcode());
-            line.setVatRate(itemDto.getVatRate());
+        applyItems(order, dto);
+        return toDto(kitchenOrderRepository.save(order));
+    }
 
-            if (itemDto.getItemId() != null) {
-                Item item = itemRepository.findById(itemDto.getItemId())
-                        .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemDto.getItemId()));
-                line.setItem(item);
-                if (itemDto.getItemName() == null) {
-                    line.setItemName(item.getName());
-                }
-                if (itemDto.getItemBarcode() == null) {
-                    line.setItemBarcode(item.getBarcode());
-                }
-                if (itemDto.getVatRate() == null) {
-                    line.setVatRate(item.getVatRate());
-                }
-            }
-
-            order.getItems().add(line);
-            total = total.add(itemDto.getTotalPrice());
+    public KitchenOrderDTO updateUnpaid(Long id, KitchenOrderDTO dto) {
+        KitchenOrder order = kitchenOrderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Kitchen order not found: " + id));
+        if (order.getStatus() == KitchenOrderStatus.PAID) {
+            throw new RuntimeException("Paid orders cannot be edited");
         }
-
-        order.setTotalAmount(total);
+        if (dto.getItems() == null || dto.getItems().isEmpty()) {
+            throw new RuntimeException("Add items before updating the order");
+        }
+        order.getItems().clear();
+        applyItems(order, dto);
         return toDto(kitchenOrderRepository.save(order));
     }
 
@@ -150,6 +134,39 @@ public class KitchenOrderService {
             throw new RuntimeException("Paid orders cannot be deleted");
         }
         kitchenOrderRepository.delete(order);
+    }
+
+    private void applyItems(KitchenOrder order, KitchenOrderDTO dto) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (KitchenOrderItemDTO itemDto : dto.getItems()) {
+            KitchenOrderItem line = new KitchenOrderItem();
+            line.setKitchenOrder(order);
+            line.setQuantity(itemDto.getQuantity());
+            line.setUnitPrice(itemDto.getUnitPrice());
+            line.setTotalPrice(itemDto.getTotalPrice());
+            line.setItemName(itemDto.getItemName() != null ? itemDto.getItemName() : "Item");
+            line.setItemBarcode(itemDto.getItemBarcode());
+            line.setVatRate(itemDto.getVatRate());
+
+            if (itemDto.getItemId() != null) {
+                Item item = itemRepository.findById(itemDto.getItemId())
+                        .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemDto.getItemId()));
+                line.setItem(item);
+                if (itemDto.getItemName() == null) {
+                    line.setItemName(item.getName());
+                }
+                if (itemDto.getItemBarcode() == null) {
+                    line.setItemBarcode(item.getBarcode());
+                }
+                if (itemDto.getVatRate() == null) {
+                    line.setVatRate(item.getVatRate());
+                }
+            }
+
+            order.getItems().add(line);
+            total = total.add(itemDto.getTotalPrice());
+        }
+        order.setTotalAmount(total);
     }
 
     private SaleItemDTO toSaleItemDto(KitchenOrderItem line) {

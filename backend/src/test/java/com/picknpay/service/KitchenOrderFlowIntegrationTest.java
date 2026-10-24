@@ -98,6 +98,34 @@ class KitchenOrderFlowIntegrationTest {
     }
 
     @Test
+    void editKeepsNumberAndAddsItemsWithoutMovingSequence() {
+        KitchenOrderDTO first = kitchenOrderService.create(order("Chapli Kebab"));
+        KitchenOrderDTO second = kitchenOrderService.create(order("Chicken Burger"));
+
+        KitchenOrderItemDTO extra = new KitchenOrderItemDTO();
+        extra.setQuantity(1);
+        extra.setUnitPrice(new BigDecimal("1.50"));
+        extra.setTotalPrice(new BigDecimal("1.50"));
+        extra.setItemName("Coke");
+        extra.setVatRate(new BigDecimal("23.00"));
+
+        KitchenOrderDTO update = new KitchenOrderDTO();
+        update.setItems(List.of(
+                first.getItems().get(0),
+                extra
+        ));
+        KitchenOrderDTO edited = kitchenOrderService.updateUnpaid(first.getId(), update);
+
+        assertEquals(first.getDisplayOrderNo(), edited.getDisplayOrderNo());
+        assertEquals(2, edited.getItems().size());
+        assertEquals(new BigDecimal("6.49"), edited.getTotalAmount());
+        assertEquals(
+                List.of(first.getDisplayOrderNo(), second.getDisplayOrderNo()),
+                kitchenOrderService.listOpen().stream().map(KitchenOrderDTO::getDisplayOrderNo).toList()
+        );
+    }
+
+    @Test
     void payRemovesOrderFromOpenListAndKeepsNumberOnSale() {
         KitchenOrderDTO open = kitchenOrderService.create(order("Lamb Shish Kebab"));
         KitchenOrderPayDTO pay = new KitchenOrderPayDTO();

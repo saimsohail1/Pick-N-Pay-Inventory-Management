@@ -91,6 +91,7 @@ export const kitchenOrdersAPI = {
   listOpen: () => api.get('/kitchen-orders/open'),
   counts: () => api.get('/kitchen-orders/counts'),
   markPrepared: (id) => api.patch(`/kitchen-orders/${id}/prepared`),
+  update: (id, order) => api.put(`/kitchen-orders/${id}`, order),
   pay: (id, payment) => api.post(`/kitchen-orders/${id}/pay`, payment),
   delete: (id) => api.delete(`/kitchen-orders/${id}`),
 };

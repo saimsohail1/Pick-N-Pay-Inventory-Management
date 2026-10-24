@@ -134,6 +134,30 @@ class KitchenOrderServiceTest {
     }
 
     @Test
+    void updateReplacesItemsAndKeepsOrderNumber() {
+        KitchenOrder open = openOrder(5, KitchenOrderStatus.PREPARING);
+        when(kitchenOrderRepository.findById(5L)).thenReturn(Optional.of(open));
+
+        KitchenOrderDTO updated = kitchenOrderService.updateUnpaid(5L, newOrder("Coke", "1.50"));
+
+        assertEquals(5, updated.getDisplayOrderNo());
+        assertEquals(new BigDecimal("1.50"), updated.getTotalAmount());
+        assertEquals(1, updated.getItems().size());
+        assertEquals("Coke", updated.getItems().get(0).getItemName());
+        verify(orderTicketCounterRepository, never()).allocateNext(any());
+    }
+
+    @Test
+    void updateRejectsPaidOrder() {
+        KitchenOrder paid = openOrder(5, KitchenOrderStatus.PAID);
+        when(kitchenOrderRepository.findById(5L)).thenReturn(Optional.of(paid));
+
+        RuntimeException error = assertThrows(RuntimeException.class,
+                () -> kitchenOrderService.updateUnpaid(5L, newOrder("Coke", "1.50")));
+        assertEquals("Paid orders cannot be edited", error.getMessage());
+    }
+
+    @Test
     void listOpenKeepsSendOrder() {
         KitchenOrder first = openOrder(1, KitchenOrderStatus.PREPARING);
         first.setCreatedAt(LocalDateTime.of(2026, 10, 24, 12, 0));

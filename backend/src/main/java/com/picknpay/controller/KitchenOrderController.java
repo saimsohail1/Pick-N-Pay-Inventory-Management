@@ -55,6 +55,15 @@ public class KitchenOrderController {
         return ResponseEntity.ok(counts);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody KitchenOrderDTO dto) {
+        try {
+            return ResponseEntity.ok(kitchenOrderService.updateUnpaid(id, dto));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PatchMapping("/{id}/prepared")
     public ResponseEntity<?> markPrepared(@PathVariable Long id) {
         try {

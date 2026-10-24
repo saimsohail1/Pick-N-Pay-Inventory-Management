@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -78,6 +79,34 @@ class KitchenOrderControllerIntegrationTest {
 
         mockMvc.perform(delete("/api/kitchen-orders/" + first.get("id").asLong()))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void httpEditAddsItemsAndKeepsOrderNumber() throws Exception {
+        JsonNode created = read(sendOrder("Chapli Kebab"));
+        KitchenOrderDTO update = new KitchenOrderDTO();
+        KitchenOrderItemDTO kebab = new KitchenOrderItemDTO();
+        kebab.setQuantity(1);
+        kebab.setUnitPrice(new BigDecimal("5.99"));
+        kebab.setTotalPrice(new BigDecimal("5.99"));
+        kebab.setItemName("Chapli Kebab");
+        kebab.setVatRate(new BigDecimal("9.00"));
+        KitchenOrderItemDTO coke = new KitchenOrderItemDTO();
+        coke.setQuantity(1);
+        coke.setUnitPrice(new BigDecimal("1.50"));
+        coke.setTotalPrice(new BigDecimal("1.50"));
+        coke.setItemName("Coke");
+        coke.setVatRate(new BigDecimal("23.00"));
+        update.setItems(List.of(kebab, coke));
+
+        MvcResult edited = mockMvc.perform(put("/api/kitchen-orders/" + created.get("id").asLong())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(update)))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode body = objectMapper.readTree(edited.getResponse().getContentAsString());
+        assertEquals(created.get("displayOrderNo").asInt(), body.get("displayOrderNo").asInt());
+        assertEquals(2, body.get("items").size());
     }
 
     @Test

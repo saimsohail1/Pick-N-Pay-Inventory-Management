@@ -1,8 +1,10 @@
--- Khyber City Grill: replace catalogue with the printed menu.
--- Keep Quick Sale. Wipe sales. Keep admin + imran. Reset admin to admin123.
+-- Khyber City Grill: first-time catalogue + users. WIPES sales.
+-- The live printed board is now scripts/apply_khyber_printed_menu.sql
+-- (no pizza/shawarma; platters priced; extras removed). Prefer that script
+-- on an existing till. Keep Quick Sale. Keep admin + imran. Reset admin to admin123.
 -- Add user saim / saim12 as ADMIN.
 -- VAT from 1 July 2026 (Revenue): hot restaurant/takeaway food 9%, cold takeaway 0%,
--- canned/bottled soft drinks and water 23%, hot tea 9%. Khyber Plates skipped (price TBC).
+-- canned/bottled soft drinks and water 23%, hot tea 9%.
 --
 -- Dump ~/Downloads/KhyberGrill is pg_dump v1.16 (Postgres 17). This script is meant
 -- to run on that till. Local Postgres.app 16 cannot restore that dump.

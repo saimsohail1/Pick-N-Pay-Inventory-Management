@@ -17,4 +17,6 @@ public interface KitchenOrderRepository extends JpaRepository<KitchenOrder, Long
     long countByStatus(KitchenOrderStatus status);
 
     long countByStatusNot(KitchenOrderStatus status);
+
+    boolean existsByDisplayOrderNoAndStatusNot(Integer displayOrderNo, KitchenOrderStatus status);
 }

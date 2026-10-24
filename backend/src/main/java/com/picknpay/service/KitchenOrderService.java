@@ -95,8 +95,17 @@ public class KitchenOrderService {
                 .collect(Collectors.toList());
     }
 
+    public List<KitchenOrderDTO> listOpen() {
+        return kitchenOrderRepository.findByStatusNotOrderByCreatedAtAscDisplayOrderNoAsc(KitchenOrderStatus.PAID)
+                .stream().map(this::toDto).collect(Collectors.toList());
+    }
+
     public long countByStatus(KitchenOrderStatus status) {
         return kitchenOrderRepository.countByStatus(status);
+    }
+
+    public long countOpen() {
+        return kitchenOrderRepository.countByStatusNot(KitchenOrderStatus.PAID);
     }
 
     public KitchenOrderDTO markPrepared(Long id) {
@@ -113,8 +122,8 @@ public class KitchenOrderService {
     public SaleDTO pay(Long id, KitchenOrderPayDTO payDto) {
         KitchenOrder order = kitchenOrderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Kitchen order not found: " + id));
-        if (order.getStatus() != KitchenOrderStatus.READY) {
-            throw new RuntimeException("Only prepared orders can be checked out");
+        if (order.getStatus() == KitchenOrderStatus.PAID) {
+            throw new RuntimeException("This order is already paid");
         }
 
         SaleDTO saleDto = new SaleDTO();
@@ -132,6 +141,15 @@ public class KitchenOrderService {
         order.setSaleId(saved.getId());
         kitchenOrderRepository.save(order);
         return saved;
+    }
+
+    public void deleteUnpaid(Long id) {
+        KitchenOrder order = kitchenOrderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Kitchen order not found: " + id));
+        if (order.getStatus() == KitchenOrderStatus.PAID) {
+            throw new RuntimeException("Paid orders cannot be deleted");
+        }
+        kitchenOrderRepository.delete(order);
     }
 
     private SaleItemDTO toSaleItemDto(KitchenOrderItem line) {

@@ -87,10 +87,12 @@ export const salesAPI = {
 
 export const kitchenOrdersAPI = {
   create: (order) => api.post('/kitchen-orders', order),
-  list: (status) => api.get(`/kitchen-orders?status=${status}`),
+  list: (status) => status ? api.get(`/kitchen-orders?status=${status}`) : api.get('/kitchen-orders/open'),
+  listOpen: () => api.get('/kitchen-orders/open'),
   counts: () => api.get('/kitchen-orders/counts'),
   markPrepared: (id) => api.patch(`/kitchen-orders/${id}/prepared`),
   pay: (id, payment) => api.post(`/kitchen-orders/${id}/pay`, payment),
+  delete: (id) => api.delete(`/kitchen-orders/${id}`),
 };
 
 // Company Settings API

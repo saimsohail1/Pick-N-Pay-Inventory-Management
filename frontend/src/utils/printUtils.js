@@ -90,12 +90,16 @@ export const printOrderTicket = async (sale, copyLabel = 'STAFF', printerName = 
  * Checkout / jam recovery: identical order tickets, customer first then staff.
  */
 export const printOrderTickets = async (sale, printerName = null) => {
-  if (!sale?.displayOrderNo) {
+  if (!sale) {
     return false;
   }
-  await printOrderTicket(sale, 'CUSTOMER', printerName);
+  const ticketSale = toTicketSale(sale);
+  if (!ticketSale?.displayOrderNo) {
+    return false;
+  }
+  await printOrderTicket(ticketSale, 'CUSTOMER', printerName);
   await wait(400);
-  await printOrderTicket(sale, 'STAFF', printerName);
+  await printOrderTicket(ticketSale, 'STAFF', printerName);
   return true;
 };
 

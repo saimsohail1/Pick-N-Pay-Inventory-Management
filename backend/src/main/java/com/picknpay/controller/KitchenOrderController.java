@@ -33,13 +33,23 @@ public class KitchenOrderController {
     }
 
     @GetMapping
-    public ResponseEntity<List<KitchenOrderDTO>> list(@RequestParam KitchenOrderStatus status) {
+    public ResponseEntity<List<KitchenOrderDTO>> list(@RequestParam(required = false) KitchenOrderStatus status) {
+        if (status == null) {
+            return ResponseEntity.ok(kitchenOrderService.listOpen());
+        }
         return ResponseEntity.ok(kitchenOrderService.listByStatus(status));
+    }
+
+    @GetMapping("/open")
+    public ResponseEntity<List<KitchenOrderDTO>> listOpen() {
+        return ResponseEntity.ok(kitchenOrderService.listOpen());
     }
 
     @GetMapping("/counts")
     public ResponseEntity<Map<String, Long>> counts() {
         Map<String, Long> counts = new HashMap<>();
+        long open = kitchenOrderService.countOpen();
+        counts.put("open", open);
         counts.put("preparing", kitchenOrderService.countByStatus(KitchenOrderStatus.PREPARING));
         counts.put("ready", kitchenOrderService.countByStatus(KitchenOrderStatus.READY));
         return ResponseEntity.ok(counts);
@@ -49,6 +59,16 @@ public class KitchenOrderController {
     public ResponseEntity<?> markPrepared(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(kitchenOrderService.markPrepared(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        try {
+            kitchenOrderService.deleteUnpaid(id);
+            return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

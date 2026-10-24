@@ -23,7 +23,7 @@ import FullscreenIndicator from '../components/FullscreenIndicator';
 import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
 import EditItemDialog from '../components/EditItemDialog';
 import JsBarcode from 'jsbarcode';
-import { directPrint, printStaffTicket, printUnpaidBill, printReceiptRaw } from '../utils/printUtils';
+import { directPrint, printOrderTickets, printUnpaidBill, printReceiptRaw } from '../utils/printUtils';
 
 const SalesPage = () => {
   const [cart, setCart] = useState([]);
@@ -44,6 +44,7 @@ const SalesPage = () => {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const barcodeInputRef = useRef(null);
+  const itemSearchRef = useRef(null);
   const paymentInProgressRef = useRef(false);
   const cashPaymentTimeoutRef = useRef(null);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
@@ -77,9 +78,9 @@ const SalesPage = () => {
   const [showHeldTransactions, setShowHeldTransactions] = useState(false);
   const [selectedHeldTransaction, setSelectedHeldTransaction] = useState(null);
   const [itemSearch, setItemSearch] = useState('');
-  const [preparingOrders, setPreparingOrders] = useState([]);
-  const [readyOrders, setReadyOrders] = useState([]);
+  const [openOrders, setOpenOrders] = useState([]);
   const [ordersDialogOpen, setOrdersDialogOpen] = useState(false);
+  const [kitchenOrderToDelete, setKitchenOrderToDelete] = useState(null);
   const [payingKitchenOrder, setPayingKitchenOrder] = useState(null);
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState(null);
@@ -136,23 +137,25 @@ const SalesPage = () => {
     }
   }, [cart, appliedDiscount, customDiscountAmount]);
 
-  // Auto-focus barcode input on mount and keep it focused
+  // Auto-focus item search, not barcode
   useEffect(() => {
-    if (barcodeInputRef.current) {
-      barcodeInputRef.current.focus();
+    if (itemSearchRef.current) {
+      itemSearchRef.current.focus();
     }
   }, []);
 
-  // Refocus barcode input after modals close, cart operations, etc.
+  // Refocus search after modals close
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
         !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !splitPaymentDialogOpen &&
         !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen &&
         !ordersDialogOpen) {
-      // Small delay to ensure modal is fully closed
       const timer = setTimeout(() => {
-        if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        const active = document.activeElement;
+        if (itemSearchRef.current && active !== itemSearchRef.current && active !== barcodeInputRef.current) {
+          if (active?.tagName !== 'INPUT' && active?.tagName !== 'BUTTON' && active?.tagName !== 'SELECT' && active?.tagName !== 'TEXTAREA') {
+            itemSearchRef.current.focus();
+          }
         }
       }, 100);
       return () => clearTimeout(timer);
@@ -162,32 +165,29 @@ const SalesPage = () => {
       outOfStockDialogOpen, editItemDialogOpen, printLabelDialogOpen,
       ordersDialogOpen]);
 
-  // Keep barcode input focused continuously (when no modals are open)
+  // Keep search focused when clicking empty till chrome
   useEffect(() => {
     if (!scannerOpen && !simpleScannerOpen && !addItemDialogOpen && !itemNotFoundDialogOpen && 
         !registerItemDialogOpen && !checkoutDialogOpen && !cashConfirmDialogOpen && !splitPaymentDialogOpen &&
         !outOfStockDialogOpen && !editItemDialogOpen && !printLabelDialogOpen &&
         !ordersDialogOpen) {
       const handleFocusLoss = () => {
-        // Only refocus if user clicked outside an input/button or on the document
         setTimeout(() => {
-          if (barcodeInputRef.current && 
-              document.activeElement !== barcodeInputRef.current && 
-              document.activeElement?.tagName !== 'INPUT' && 
+          if (itemSearchRef.current &&
+              document.activeElement !== itemSearchRef.current &&
+              document.activeElement !== barcodeInputRef.current &&
+              document.activeElement?.tagName !== 'INPUT' &&
               document.activeElement?.tagName !== 'BUTTON' &&
-              document.activeElement?.tagName !== 'SELECT') {
-            barcodeInputRef.current.focus();
+              document.activeElement?.tagName !== 'SELECT' &&
+              document.activeElement?.tagName !== 'TEXTAREA') {
+            itemSearchRef.current.focus();
           }
         }, 100);
       };
-      
-      // Listen for clicks that might steal focus
+
       document.addEventListener('click', handleFocusLoss);
-      document.addEventListener('focusin', handleFocusLoss);
-      
       return () => {
         document.removeEventListener('click', handleFocusLoss);
-        document.removeEventListener('focusin', handleFocusLoss);
       };
     }
   }, [scannerOpen, simpleScannerOpen, addItemDialogOpen, itemNotFoundDialogOpen, 
@@ -196,13 +196,11 @@ const SalesPage = () => {
       ordersDialogOpen]);
 
   useEffect(() => {
-    // Focus on barcode input when component mounts
     const handleKeyDown = (event) => {
-      // Only process if a barcode scanner is likely being used (e.g., Enter key)
-      if (event.key === 'Enter' && barcodeInput) {
-        event.preventDefault(); // Prevent form submission
+      if (event.key === 'Enter' && barcodeInput && document.activeElement === barcodeInputRef.current) {
+        event.preventDefault();
         processBarcode(barcodeInput);
-        setBarcodeInput(''); // Clear input after processing
+        setBarcodeInput('');
       }
     };
 
@@ -298,14 +296,24 @@ const SalesPage = () => {
     }
   };
 
+  const sortOpenOrders = (orders) =>
+    [...(orders || [])].sort((a, b) => {
+      const aTime = new Date(a.createdAt || 0).getTime();
+      const bTime = new Date(b.createdAt || 0).getTime();
+      if (aTime !== bTime) {
+        return aTime - bTime;
+      }
+      return (a.displayOrderNo || 0) - (b.displayOrderNo || 0);
+    });
+
+  const removeOpenOrder = (orderId) => {
+    setOpenOrders((current) => current.filter((order) => order.id !== orderId));
+  };
+
   const refreshKitchenOrders = async () => {
     try {
-      const [preparingRes, readyRes] = await Promise.all([
-        kitchenOrdersAPI.list('PREPARING'),
-        kitchenOrdersAPI.list('READY')
-      ]);
-      setPreparingOrders(preparingRes.data || []);
-      setReadyOrders(readyRes.data || []);
+      const response = await kitchenOrdersAPI.listOpen();
+      setOpenOrders(sortOpenOrders(response.data || []));
     } catch (err) {
       console.error('Failed to load kitchen orders:', err);
     }
@@ -347,10 +355,10 @@ const SalesPage = () => {
       const order = response.data;
       if (window.electron && window.electron.ipcRenderer) {
         try {
-          await printStaffTicket(order);
+          await printOrderTickets(order);
         } catch (printErr) {
-          console.error('Kitchen ticket print failed:', printErr);
-          setError('Order sent, but the kitchen ticket failed to print.');
+          console.error('Order ticket print failed:', printErr);
+          setError('Order sent, but the slips failed to print.');
           addTimeout(() => setError(null), 5000);
         }
       }
@@ -371,18 +379,6 @@ const SalesPage = () => {
     }
   };
 
-  const handleMarkPrepared = async (order) => {
-    try {
-      await kitchenOrdersAPI.markPrepared(order.id);
-      await refreshKitchenOrders();
-      setSuccess(`Order ${order.displayOrderNo} is ready`);
-      addTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(err.response?.data || 'Failed to mark prepared');
-      addTimeout(() => setError(null), 4000);
-    }
-  };
-
   const handlePrintBill = async (order) => {
     try {
       await printUnpaidBill(order, companyName, companyAddress);
@@ -395,7 +391,7 @@ const SalesPage = () => {
     }
   };
 
-  const handlePayReadyOrder = (order) => {
+  const handlePayOrder = (order) => {
     setPayingKitchenOrder(order);
     setOrdersDialogOpen(false);
     setCashAmount('');
@@ -403,8 +399,24 @@ const SalesPage = () => {
     setCheckoutDialogOpen(true);
   };
 
+  const handleDeleteKitchenOrder = async (order) => {
+    try {
+      await kitchenOrdersAPI.delete(order.id);
+      setKitchenOrderToDelete(null);
+      removeOpenOrder(order.id);
+      setSuccess(`Order ${order.displayOrderNo} deleted`);
+      addTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.response?.data || 'Failed to delete order');
+      addTimeout(() => setError(null), 4000);
+    }
+  };
+
   const afterKitchenPaid = async (sale) => {
     setLastSale(sale);
+    if (payingKitchenOrder?.id) {
+      removeOpenOrder(payingKitchenOrder.id);
+    }
     setPayingKitchenOrder(null);
     await refreshKitchenOrders();
     setSuccess(`Order ${sale.displayOrderNo} paid`);
@@ -855,8 +867,8 @@ const SalesPage = () => {
       setCustomDiscountAmount('');
       // Refocus barcode input after payment
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } catch (err) {
@@ -866,8 +878,8 @@ const SalesPage = () => {
       setTimeout(() => setError(null), 5000);
       // Refocus barcode input even on error
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } finally {
@@ -937,8 +949,8 @@ const SalesPage = () => {
       setSelectedCartItem(null); // Clear selected item after sale
       // Refocus barcode input after payment
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } catch (err) {
@@ -948,8 +960,8 @@ const SalesPage = () => {
       setTimeout(() => setError(null), 5000);
       // Refocus barcode input even on error
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } finally {
@@ -1080,8 +1092,8 @@ const SalesPage = () => {
       setCustomDiscountAmount('');
       // Refocus barcode input after payment
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } catch (err) {
@@ -1091,8 +1103,8 @@ const SalesPage = () => {
       setTimeout(() => setError(null), 5000);
       // Refocus barcode input even on error
       setTimeout(() => {
-        if (barcodeInputRef.current) {
-          barcodeInputRef.current.focus();
+        if (itemSearchRef.current) {
+          itemSearchRef.current.focus();
         }
       }, 200);
     } finally {
@@ -1569,8 +1581,8 @@ const SalesPage = () => {
     addTimeout(() => setSuccess(null), 3000);
     // Refocus barcode input after holding transaction
     setTimeout(() => {
-      if (barcodeInputRef.current) {
-        barcodeInputRef.current.focus();
+      if (itemSearchRef.current) {
+        itemSearchRef.current.focus();
       }
     }, 200);
   };
@@ -2227,10 +2239,13 @@ const SalesPage = () => {
                   <i className="bi bi-search me-1"></i>Search item
                 </Form.Label>
                 <Form.Control
+                  ref={itemSearchRef}
                   type="text"
                   value={itemSearch}
                   onChange={(e) => setItemSearch(e.target.value)}
                   placeholder="Type a dish name..."
+                  autoFocus
+                  autoComplete="off"
                   style={{
                     backgroundColor: '#3a3a3a',
                     border: '1px solid #555',
@@ -2259,6 +2274,7 @@ const SalesPage = () => {
                         onClick={() => {
                           handleCategoryItemClick(item);
                           setItemSearch('');
+                          setTimeout(() => itemSearchRef.current && itemSearchRef.current.focus(), 50);
                         }}
                         className="w-100 text-start px-3 py-2"
                         style={{
@@ -2443,8 +2459,8 @@ const SalesPage = () => {
                     setCustomDiscountAmount(''); 
                     setSelectedCartItem(null);
                     setTimeout(() => {
-                      if (barcodeInputRef.current) {
-                        barcodeInputRef.current.focus();
+                      if (itemSearchRef.current) {
+                        itemSearchRef.current.focus();
                       }
                     }, 100);
                     }} 
@@ -2513,9 +2529,9 @@ const SalesPage = () => {
               >
                 <i className="bi bi-receipt me-2"></i>
                 ORDERS
-                {(preparingOrders.length + readyOrders.length) > 0 && (
+                {openOrders.length > 0 && (
                   <Badge className="ms-2" style={{ fontSize: '0.8rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
-                    {preparingOrders.length + readyOrders.length}
+                    {openOrders.length}
                   </Badge>
                 )}
               </Button>
@@ -2707,36 +2723,10 @@ const SalesPage = () => {
           <Modal.Title>Orders</Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff', maxHeight: '75vh', overflowY: 'auto' }}>
-          <div className="mb-3" style={{ color: '#aaaaaa', fontWeight: 700 }}>Kitchen ({preparingOrders.length})</div>
-          {preparingOrders.length === 0 ? (
-            <p className="mb-4" style={{ color: '#777777' }}>Nothing cooking</p>
+          {openOrders.length === 0 ? (
+            <p className="mb-0" style={{ color: '#777777' }}>No open orders</p>
           ) : (
-            preparingOrders.map((order) => (
-              <div key={order.id} className="mb-2 p-3" style={{ backgroundColor: '#2a2a2a', borderRadius: '8px', border: '1px solid #333' }}>
-                <div className="d-flex justify-content-between align-items-center">
-                  <span className="fw-bold" style={{ fontSize: '1.6rem' }}>#{order.displayOrderNo}</span>
-                  <span>€{parseFloat(order.totalAmount).toFixed(2)}</span>
-                </div>
-                <div className="mt-2">
-                  {(order.items || []).map((item) => (
-                    <div key={item.id} className="d-flex justify-content-between small py-1">
-                      <span>{item.quantity}x {item.itemName}</span>
-                      <span>€{parseFloat(item.totalPrice).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-                <Button className="w-100 mt-2 btn-3d" onClick={() => handleMarkPrepared(order)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
-                  Ready
-                </Button>
-              </div>
-            ))
-          )}
-
-          <div className="mb-3 mt-4" style={{ color: '#aaaaaa', fontWeight: 700 }}>To pay ({readyOrders.length})</div>
-          {readyOrders.length === 0 ? (
-            <p className="mb-0" style={{ color: '#777777' }}>No bills waiting</p>
-          ) : (
-            readyOrders.map((order) => (
+            openOrders.map((order) => (
               <div key={order.id} className="mb-2 p-3" style={{ backgroundColor: '#2a2a2a', borderRadius: '8px', border: '1px solid #333' }}>
                 <div className="d-flex justify-content-between align-items-center">
                   <span className="fw-bold" style={{ fontSize: '1.6rem' }}>#{order.displayOrderNo}</span>
@@ -2754,14 +2744,34 @@ const SalesPage = () => {
                   <Button className="flex-fill btn-3d" onClick={() => handlePrintBill(order)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
                     Bill
                   </Button>
-                  <Button className="flex-fill btn-3d" onClick={() => handlePayReadyOrder(order)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+                  <Button className="flex-fill btn-3d" onClick={() => handlePayOrder(order)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
                     Pay
+                  </Button>
+                  <Button className="flex-fill btn-3d" onClick={() => setKitchenOrderToDelete(order)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+                    Delete
                   </Button>
                 </div>
               </div>
             ))
           )}
         </Modal.Body>
+      </Modal>
+
+      <Modal show={!!kitchenOrderToDelete} onHide={() => setKitchenOrderToDelete(null)} centered>
+        <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #333', color: '#ffffff' }}>
+          <Modal.Title>Delete order</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          Delete order #{kitchenOrderToDelete?.displayOrderNo}? This cannot be undone.
+        </Modal.Body>
+        <Modal.Footer style={{ backgroundColor: '#1a1a1a', borderTop: '1px solid #333' }}>
+          <Button className="btn-3d" onClick={() => setKitchenOrderToDelete(null)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+            Cancel
+          </Button>
+          <Button className="btn-3d" onClick={() => handleDeleteKitchenOrder(kitchenOrderToDelete)} style={{ backgroundColor: '#3a3a3a', color: '#ffffff' }}>
+            Delete
+          </Button>
+        </Modal.Footer>
       </Modal>
 
       {/* Unified Payment Dialog */}

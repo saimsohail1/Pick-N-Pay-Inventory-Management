@@ -12,5 +12,9 @@ public interface KitchenOrderRepository extends JpaRepository<KitchenOrder, Long
 
     List<KitchenOrder> findByStatusOrderByCreatedAtAsc(KitchenOrderStatus status);
 
+    List<KitchenOrder> findByStatusNotOrderByCreatedAtAscDisplayOrderNoAsc(KitchenOrderStatus status);
+
     long countByStatus(KitchenOrderStatus status);
+
+    long countByStatusNot(KitchenOrderStatus status);
 }

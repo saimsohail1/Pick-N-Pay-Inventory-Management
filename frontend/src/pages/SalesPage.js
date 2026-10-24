@@ -333,6 +333,20 @@ const SalesPage = () => {
       ).slice(0, 8)
     : [];
 
+  const apiErrorMessage = (err, fallback) => {
+    const data = err?.response?.data;
+    if (typeof data === 'string' && data.trim()) {
+      return data;
+    }
+    if (data?.message) {
+      return data.message;
+    }
+    if (data?.detail) {
+      return data.detail;
+    }
+    return err?.message || fallback;
+  };
+
   const cartAsKitchenItems = () => cart.map((item) => ({
     itemId: item.itemId,
     quantity: item.quantity,
@@ -387,24 +401,57 @@ const SalesPage = () => {
       addTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Send to kitchen failed:', err);
-      setError(err.response?.data || err.message || (editingKitchenOrder ? 'Failed to update order' : 'Failed to send order'));
+      setError(apiErrorMessage(err, editingKitchenOrder ? 'Failed to update order' : 'Failed to send order'));
       addTimeout(() => setError(null), 5000);
     } finally {
       setLoading(false);
     }
   };
 
+  const toKitchenCartLine = (item) => ({
+    id: Date.now() + Math.random() + (item.id || 0),
+    itemId: item.itemId ?? null,
+    itemName: item.itemName,
+    itemBarcode: item.itemBarcode,
+    quantity: item.quantity,
+    unitPrice: parseFloat(item.unitPrice),
+    totalPrice: parseFloat(item.totalPrice),
+    vatRate: item.vatRate != null ? item.vatRate : 9.00
+  });
+
+  const sameKitchenLine = (left, right) => {
+    if (left.itemId != null && right.itemId != null) {
+      return left.itemId === right.itemId;
+    }
+    const leftCode = left.itemBarcode;
+    const rightCode = right.itemBarcode || right.barcode;
+    if (leftCode && rightCode && leftCode !== 'N/A' && leftCode === rightCode) {
+      return true;
+    }
+    return left.itemId == null && right.itemId == null
+      && left.itemName === right.itemName
+      && Number(left.unitPrice) === Number(right.unitPrice);
+  };
+
   const handleEditOrder = (order) => {
-    setCart((order.items || []).map((item) => ({
-      id: Date.now() + Math.random() + (item.id || 0),
-      itemId: item.itemId,
-      itemName: item.itemName,
-      itemBarcode: item.itemBarcode,
-      quantity: item.quantity,
-      unitPrice: parseFloat(item.unitPrice),
-      totalPrice: parseFloat(item.totalPrice),
-      vatRate: item.vatRate != null ? item.vatRate : 9.00
-    })));
+    const orderLines = (order.items || []).map(toKitchenCartLine);
+    setCart((currentCart) => {
+      const merged = [...orderLines];
+      (currentCart || []).forEach((extra) => {
+        const idx = merged.findIndex((line) => sameKitchenLine(line, extra));
+        if (idx >= 0) {
+          const quantity = merged[idx].quantity + extra.quantity;
+          merged[idx] = {
+            ...merged[idx],
+            quantity,
+            totalPrice: merged[idx].unitPrice * quantity
+          };
+        } else {
+          merged.push({ ...extra, id: Date.now() + Math.random() });
+        }
+      });
+      return merged;
+    });
     setAppliedDiscount(null);
     setCustomDiscountAmount('');
     setSelectedCartItem(null);
@@ -496,10 +543,13 @@ const SalesPage = () => {
   // Helper function to add or update item in cart
   const addOrUpdateCartItem = (newItem, quantity = 1) => {
     setCart(currentCart => {
-      const existingItemIndex = currentCart.findIndex(cartItem => 
-        cartItem.itemId === newItem.itemId || 
-        (newItem.barcode && cartItem.itemBarcode === newItem.barcode && newItem.barcode !== 'N/A')
-      );
+      const existingItemIndex = currentCart.findIndex((cartItem) => {
+        if (cartItem.itemId != null && newItem.itemId != null) {
+          return cartItem.itemId === newItem.itemId;
+        }
+        const barcode = newItem.itemBarcode || newItem.barcode;
+        return barcode && barcode !== 'N/A' && cartItem.itemBarcode === barcode;
+      });
 
       if (existingItemIndex >= 0) {
         // Update quantity of existing item
@@ -2495,7 +2545,11 @@ const SalesPage = () => {
                     size="lg" 
                     className="btn-3d" 
                     onClick={() => {
-                    finishKitchenCart();
+                    setCart([]);
+                    setAppliedDiscount(null);
+                    setCustomDiscountAmount('');
+                    setSelectedCartItem(null);
+                    setItemSearch('');
                     setTimeout(() => {
                       if (itemSearchRef.current) {
                         itemSearchRef.current.focus();

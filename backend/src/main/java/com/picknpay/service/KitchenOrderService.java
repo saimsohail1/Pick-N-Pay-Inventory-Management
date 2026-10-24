@@ -149,18 +149,18 @@ public class KitchenOrderService {
             line.setVatRate(itemDto.getVatRate());
 
             if (itemDto.getItemId() != null) {
-                Item item = itemRepository.findById(itemDto.getItemId())
-                        .orElseThrow(() -> new RuntimeException("Item not found with ID: " + itemDto.getItemId()));
-                line.setItem(item);
-                if (itemDto.getItemName() == null) {
-                    line.setItemName(item.getName());
-                }
-                if (itemDto.getItemBarcode() == null) {
-                    line.setItemBarcode(item.getBarcode());
-                }
-                if (itemDto.getVatRate() == null) {
-                    line.setVatRate(item.getVatRate());
-                }
+                itemRepository.findById(itemDto.getItemId()).ifPresent(item -> {
+                    line.setItem(item);
+                    if (itemDto.getItemName() == null) {
+                        line.setItemName(item.getName());
+                    }
+                    if (itemDto.getItemBarcode() == null) {
+                        line.setItemBarcode(item.getBarcode());
+                    }
+                    if (itemDto.getVatRate() == null) {
+                        line.setVatRate(item.getVatRate());
+                    }
+                });
             }
 
             order.getItems().add(line);

@@ -1,8 +1,10 @@
 -- PRODUCTION script for Khyber City Grill only. Do not run on other shops.
--- Replaces the till catalogue with the printed Galway board.
--- Removes Pizza, Shawarma/Doner, extra wraps/burgers/drinks/sides.
--- Does not wipe sales or users. Unlinks removed items from old sale/kitchen lines.
--- Keeps Quick Sale.
+-- Upserts printed-board prices and new board items. Does NOT delete catalogue.
+-- Pizza, Shawarma/Doner, extra wraps/drinks/sides stay. Quick Sale stays.
+-- Does not wipe sales or users.
+--
+-- If an earlier version of this file already ran and wiped Pizza / Shawarma /
+-- extra drinks, run scripts/restore_khyber_removed_catalogue.sql on that till.
 --
 -- On the shop till, after git pull on Khyber_Grill:
 --   psql -U postgres -d YOUR_KHYBER_DB -f scripts/apply_khyber_printed_menu.sql
@@ -226,33 +228,6 @@ JOIN categories c ON lower(btrim(c.name)) = lower(m.category_name)
 WHERE NOT EXISTS (
   SELECT 1 FROM items i WHERE lower(btrim(i.name)) = lower(m.item_name)
 );
-
-CREATE TEMP TABLE extra_items AS
-SELECT i.id
-FROM items i
-LEFT JOIN categories c ON c.id = i.category_id
-WHERE NOT EXISTS (
-  SELECT 1 FROM printed_menu m WHERE lower(btrim(m.item_name)) = lower(btrim(i.name))
-)
-AND lower(btrim(COALESCE(c.name, ''))) <> 'quick sale';
-
-UPDATE sale_items SET item_id = NULL WHERE item_id IN (SELECT id FROM extra_items);
-UPDATE kitchen_order_items SET item_id = NULL WHERE item_id IN (SELECT id FROM extra_items);
-
-DO $$
-BEGIN
-  IF to_regclass('public.batches') IS NOT NULL THEN
-    EXECUTE 'DELETE FROM batches WHERE product_id IN (SELECT id FROM extra_items)';
-  END IF;
-END $$;
-
-DELETE FROM items WHERE id IN (SELECT id FROM extra_items);
-
-DELETE FROM categories c
-WHERE lower(btrim(c.name)) <> 'quick sale'
-  AND NOT EXISTS (
-    SELECT 1 FROM printed_menu m WHERE lower(btrim(m.category_name)) = lower(btrim(c.name))
-  );
 
 SELECT setval('categories_id_seq', (SELECT COALESCE(max(id), 1) FROM categories));
 SELECT setval('items_id_seq', (SELECT COALESCE(max(id), 1) FROM items));

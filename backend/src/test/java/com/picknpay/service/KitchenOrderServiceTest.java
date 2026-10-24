@@ -148,6 +148,21 @@ class KitchenOrderServiceTest {
     }
 
     @Test
+    void updateKeepsLineWhenCatalogueItemWasRemoved() {
+        KitchenOrder open = openOrder(5, KitchenOrderStatus.PREPARING);
+        when(kitchenOrderRepository.findById(5L)).thenReturn(Optional.of(open));
+        when(itemRepository.findById(999L)).thenReturn(Optional.empty());
+
+        KitchenOrderDTO dto = newOrder("Deleted pizza", "9.99");
+        dto.getItems().get(0).setItemId(999L);
+
+        KitchenOrderDTO updated = kitchenOrderService.updateUnpaid(5L, dto);
+
+        assertEquals("Deleted pizza", updated.getItems().get(0).getItemName());
+        assertEquals(new BigDecimal("9.99"), updated.getTotalAmount());
+    }
+
+    @Test
     void updateRejectsPaidOrder() {
         KitchenOrder paid = openOrder(5, KitchenOrderStatus.PAID);
         when(kitchenOrderRepository.findById(5L)).thenReturn(Optional.of(paid));

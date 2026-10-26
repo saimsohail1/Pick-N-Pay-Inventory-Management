@@ -1,6 +1,6 @@
 -- PRODUCTION restore for Khyber City Grill only. Do not run on other shops.
--- Puts back Pizza, Shawarma/Doner, extra wraps, Doner burgers, extra sides
--- and drinks that scripts/apply_khyber_printed_menu.sql previously deleted.
+-- Puts back extra sides and drinks the old apply deleted.
+-- Does NOT add Pizza, Doner, or Shawarma — those are old-till only, not the new board.
 -- Keeps printed-board items and prices already on the till.
 -- Does not wipe sales or users. Does not delete any item.
 --
@@ -19,53 +19,9 @@ CREATE TEMP TABLE restore_menu (
 );
 
 INSERT INTO restore_menu (category_name, item_name, description, price, vat_rate, barcode) VALUES
--- Shawarma / Doner (old till — not on the TV board, still sold)
-('Shawarma Kebabs', 'Lamb Doner Kebab', 'Lamb slow-roasted on an upright spit', 7.99, 9.00, 'KG-0008'),
-('Shawarma Kebabs', 'Lamb Doner Kebab Meal', 'Lamb slow-roasted on an upright spit', 9.99, 9.00, 'KG-0009'),
-('Shawarma Kebabs', 'Chicken Doner Kebab', 'Marinated chicken roasted on an upright spit', 7.99, 9.00, 'KG-0010'),
-('Shawarma Kebabs', 'Chicken Doner Kebab Meal', 'Marinated chicken roasted on an upright spit', 9.99, 9.00, 'KG-0011'),
-('Shawarma Kebabs', 'Mixed Doner Kebab', 'Lamb and chicken shawarma in naan with salad', 7.99, 9.00, 'KG-0012'),
-('Shawarma Kebabs', 'Mixed Doner Kebab Meal', 'Lamb and chicken shawarma in naan with salad', 9.99, 9.00, 'KG-0013'),
-('Shawarma Kebabs', 'Chicken Shawarma Kebab', 'Chicken shawarma with salad and garlic', 7.99, 9.00, 'KG-0014'),
-('Shawarma Kebabs', 'Chicken Shawarma Kebab Meal', 'Chicken shawarma with salad and garlic', 9.99, 9.00, 'KG-0015'),
-
--- Extra wraps from the old till
-('Wraps', 'Lamb Doner Wrap', NULL, 5.99, 9.00, 'KG-0018'),
-('Wraps', 'Lamb Doner Wrap Meal', NULL, 8.99, 9.00, 'KG-0019'),
-('Wraps', 'Mixed Doner Wrap', NULL, 5.99, 9.00, 'KG-0020'),
-('Wraps', 'Mixed Doner Wrap Meal', NULL, 8.99, 9.00, 'KG-0021'),
-('Wraps', 'Chicken Shawarma Wrap', NULL, 5.99, 9.00, 'KG-0022'),
-('Wraps', 'Chicken Shawarma Wrap Meal', NULL, 8.99, 9.00, 'KG-0023'),
+-- Extra wrap from the old till (not doner/shawarma)
 ('Wraps', 'Chicken Tikka Wrap', NULL, 5.99, 9.00, 'KG-0024'),
 ('Wraps', 'Chicken Tikka Wrap Meal', NULL, 8.99, 9.00, 'KG-0025'),
-
--- Pizza
-('Pizza', 'Margherita 10"', NULL, 9.99, 9.00, 'KG-0050'),
-('Pizza', 'Margherita 12"', NULL, 11.99, 9.00, 'KG-0051'),
-('Pizza', 'Margherita 16"', NULL, 14.99, 9.00, 'KG-0052'),
-('Pizza', 'Pepperoni Deluxe 10"', NULL, 9.99, 9.00, 'KG-0053'),
-('Pizza', 'Pepperoni Deluxe 12"', NULL, 11.99, 9.00, 'KG-0054'),
-('Pizza', 'Pepperoni Deluxe 16"', NULL, 14.99, 9.00, 'KG-0055'),
-('Pizza', 'Meat Feast 10"', NULL, 9.99, 9.00, 'KG-0056'),
-('Pizza', 'Meat Feast 12"', NULL, 11.99, 9.00, 'KG-0057'),
-('Pizza', 'Meat Feast 16"', NULL, 14.99, 9.00, 'KG-0058'),
-('Pizza', 'Four Seasons 10"', NULL, 9.99, 9.00, 'KG-0059'),
-('Pizza', 'Four Seasons 12"', NULL, 11.99, 9.00, 'KG-0060'),
-('Pizza', 'Four Seasons 16"', NULL, 14.99, 9.00, 'KG-0061'),
-('Pizza', 'Hawaiian 10"', NULL, 9.99, 9.00, 'KG-0062'),
-('Pizza', 'Hawaiian 12"', NULL, 11.99, 9.00, 'KG-0063'),
-('Pizza', 'Hawaiian 16"', NULL, 14.99, 9.00, 'KG-0064'),
-('Pizza', 'Hot & Spicy 10"', NULL, 9.99, 9.00, 'KG-0065'),
-('Pizza', 'Hot & Spicy 12"', NULL, 11.99, 9.00, 'KG-0066'),
-('Pizza', 'Hot & Spicy 16"', NULL, 14.99, 9.00, 'KG-0067'),
-('Pizza', 'Vegetarian 10"', NULL, 9.99, 9.00, 'KG-0068'),
-('Pizza', 'Vegetarian 12"', NULL, 11.99, 9.00, 'KG-0069'),
-('Pizza', 'Vegetarian 16"', NULL, 14.99, 9.00, 'KG-0070'),
-('Pizza', 'Extra Pizza Topping', 'Any extra topping', 1.49, 9.00, 'KG-0071'),
-
--- Extra burger
-('Burgers', 'Doner Burger', NULL, 5.99, 9.00, 'KG-0080'),
-('Burgers', 'Doner Burger Meal', NULL, 8.99, 9.00, 'KG-0081'),
 
 -- Extra chips / sides
 ('Fresh-Cut Chips', 'Curry Chips', NULL, 3.99, 9.00, 'KG-0085'),
@@ -82,14 +38,10 @@ INSERT INTO restore_menu (category_name, item_name, description, price, vat_rate
 INSERT INTO categories (name, description, is_active, display_on_pos, vat_rate, created_at, updated_at)
 SELECT DISTINCT
   m.category_name,
-  CASE m.category_name
-    WHEN 'Shawarma Kebabs' THEN 'Doner and shawarma — Regular and Meal'
-    WHEN 'Pizza' THEN '10, 12 and 16 inch — hot takeaway'
-    ELSE m.category_name
-  END,
+  m.category_name,
   true,
   true,
-  9.00,
+  CASE WHEN m.category_name = 'Drinks' THEN 23.00 ELSE 9.00 END,
   NOW(),
   NOW()
 FROM restore_menu m
@@ -101,8 +53,7 @@ UPDATE categories
 SET is_active = true,
     display_on_pos = true,
     updated_at = NOW()
-WHERE lower(btrim(name)) IN ('shawarma kebabs', 'pizza', 'wraps', 'burgers',
-                             'fresh-cut chips', 'sides & salad', 'drinks');
+WHERE lower(btrim(name)) IN ('wraps', 'fresh-cut chips', 'sides & salad', 'drinks');
 
 INSERT INTO items (name, description, price, stock_quantity, barcode, vat_rate,
                    batch_id, general_expiry_date, category_id, created_at, updated_at)

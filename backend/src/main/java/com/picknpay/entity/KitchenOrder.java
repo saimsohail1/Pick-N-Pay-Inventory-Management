@@ -45,6 +45,9 @@ public class KitchenOrder {
     @Column(name = "sale_id")
     private Long saleId;
 
+    @Version
+    private Long version;
+
     @OneToMany(mappedBy = "kitchenOrder", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<KitchenOrderItem> items = new ArrayList<>();
 
@@ -123,6 +126,14 @@ public class KitchenOrder {
 
     public void setSaleId(Long saleId) {
         this.saleId = saleId;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public List<KitchenOrderItem> getItems() {

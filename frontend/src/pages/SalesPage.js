@@ -23,7 +23,7 @@ import FullscreenIndicator from '../components/FullscreenIndicator';
 import SimpleBarcodeScanner from '../components/SimpleBarcodeScanner';
 import EditItemDialog from '../components/EditItemDialog';
 import JsBarcode from 'jsbarcode';
-import { directPrint, printOrderTickets, printUnpaidBill, printReceiptRaw } from '../utils/printUtils';
+import { directPrint, printStaffTicket, printUnpaidBill, printReceiptRaw } from '../utils/printUtils';
 
 const SalesPage = () => {
   const [cart, setCart] = useState([]);
@@ -46,6 +46,7 @@ const SalesPage = () => {
   const barcodeInputRef = useRef(null);
   const itemSearchRef = useRef(null);
   const paymentInProgressRef = useRef(false);
+  const sendInProgressRef = useRef(false);
   const cashPaymentTimeoutRef = useRef(null);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [cashAmount, setCashAmount] = useState('');
@@ -347,15 +348,20 @@ const SalesPage = () => {
     return err?.message || fallback;
   };
 
-  const cartAsKitchenItems = () => cart.map((item) => ({
-    itemId: item.itemId,
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    totalPrice: item.totalPrice,
-    itemName: item.itemName,
-    itemBarcode: item.itemBarcode,
-    vatRate: item.vatRate != null ? item.vatRate : 9.00
-  }));
+  const cartAsKitchenItems = () => cart.map((item) => {
+    const quantity = Math.max(1, parseInt(item.quantity, 10) || 1);
+    const unitPrice = Number(item.unitPrice);
+    const totalPrice = Number(item.totalPrice);
+    return {
+      itemId: item.itemId || null,
+      quantity,
+      unitPrice,
+      totalPrice: Number.isFinite(totalPrice) && totalPrice > 0 ? totalPrice : unitPrice * quantity,
+      itemName: item.itemName || 'Item',
+      itemBarcode: item.itemBarcode || null,
+      vatRate: item.vatRate != null ? Number(item.vatRate) : 9.00
+    };
+  }).filter((item) => Number.isFinite(item.unitPrice) && item.unitPrice > 0);
 
   const finishKitchenCart = () => {
     setCart([]);
@@ -367,16 +373,21 @@ const SalesPage = () => {
   };
 
   const handleSendToKitchen = async () => {
-    if (cart.length === 0) {
+    if (sendInProgressRef.current) {
+      return;
+    }
+    const items = cartAsKitchenItems();
+    if (cart.length === 0 || items.length === 0) {
       setError(editingKitchenOrder ? 'Add items before updating the order.' : 'Add items before sending to kitchen.');
       addTimeout(() => setError(null), 3000);
       return;
     }
+    sendInProgressRef.current = true;
     try {
       setLoading(true);
       const payload = {
         userId: user?.id || null,
-        items: cartAsKitchenItems()
+        items
       };
       const response = editingKitchenOrder
         ? await kitchenOrdersAPI.update(editingKitchenOrder.id, payload)
@@ -384,12 +395,12 @@ const SalesPage = () => {
       const order = response.data;
       if (window.electron && window.electron.ipcRenderer) {
         try {
-          await printOrderTickets(order);
+          await printStaffTicket(order);
         } catch (printErr) {
           console.error('Order ticket print failed:', printErr);
           setError(editingKitchenOrder
-            ? 'Order updated, but the slips failed to print.'
-            : 'Order sent, but the slips failed to print.');
+            ? 'Order updated, but the staff slip failed to print.'
+            : 'Order sent, but the staff slip failed to print.');
           addTimeout(() => setError(null), 5000);
         }
       }
@@ -404,6 +415,7 @@ const SalesPage = () => {
       setError(apiErrorMessage(err, editingKitchenOrder ? 'Failed to update order' : 'Failed to send order'));
       addTimeout(() => setError(null), 5000);
     } finally {
+      sendInProgressRef.current = false;
       setLoading(false);
     }
   };
@@ -1396,7 +1408,7 @@ const SalesPage = () => {
       prevCart.map(item => {
         if (item.id === itemId) {
           const originalPrice = item.originalPrice || item.unitPrice;
-          const newUnitPrice = Math.max(0, originalPrice - discountAmount);
+          const newUnitPrice = Math.max(0.01, originalPrice - discountAmount);
           const newTotalPrice = newUnitPrice * item.quantity;
           
           return {

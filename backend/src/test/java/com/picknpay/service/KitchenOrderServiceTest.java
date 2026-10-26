@@ -80,7 +80,7 @@ class KitchenOrderServiceTest {
     @Test
     void payRejectsAlreadyPaidOrder() {
         KitchenOrder paid = openOrder(8, KitchenOrderStatus.PAID);
-        when(kitchenOrderRepository.findById(8L)).thenReturn(Optional.of(paid));
+        when(kitchenOrderRepository.lockById(8L)).thenReturn(Optional.of(paid));
 
         KitchenOrderPayDTO pay = new KitchenOrderPayDTO();
         pay.setPaymentMethod(PaymentMethod.CASH);
@@ -93,7 +93,7 @@ class KitchenOrderServiceTest {
     @Test
     void payConvertsUnpaidOrderToSale() {
         KitchenOrder open = openOrder(3, KitchenOrderStatus.PREPARING);
-        when(kitchenOrderRepository.findById(3L)).thenReturn(Optional.of(open));
+        when(kitchenOrderRepository.lockById(3L)).thenReturn(Optional.of(open));
         SaleDTO sale = new SaleDTO();
         sale.setId(99L);
         sale.setDisplayOrderNo(3);
@@ -116,7 +116,7 @@ class KitchenOrderServiceTest {
     @Test
     void deleteRemovesUnpaidOrder() {
         KitchenOrder open = openOrder(4, KitchenOrderStatus.PREPARING);
-        when(kitchenOrderRepository.findById(4L)).thenReturn(Optional.of(open));
+        when(kitchenOrderRepository.lockById(4L)).thenReturn(Optional.of(open));
 
         kitchenOrderService.deleteUnpaid(4L);
 
@@ -126,7 +126,7 @@ class KitchenOrderServiceTest {
     @Test
     void deleteRejectsPaidOrder() {
         KitchenOrder paid = openOrder(4, KitchenOrderStatus.PAID);
-        when(kitchenOrderRepository.findById(4L)).thenReturn(Optional.of(paid));
+        when(kitchenOrderRepository.lockById(4L)).thenReturn(Optional.of(paid));
 
         RuntimeException error = assertThrows(RuntimeException.class, () -> kitchenOrderService.deleteUnpaid(4L));
         assertEquals("Paid orders cannot be deleted", error.getMessage());
@@ -136,7 +136,7 @@ class KitchenOrderServiceTest {
     @Test
     void updateReplacesItemsAndKeepsOrderNumber() {
         KitchenOrder open = openOrder(5, KitchenOrderStatus.PREPARING);
-        when(kitchenOrderRepository.findById(5L)).thenReturn(Optional.of(open));
+        when(kitchenOrderRepository.lockById(5L)).thenReturn(Optional.of(open));
 
         KitchenOrderDTO updated = kitchenOrderService.updateUnpaid(5L, newOrder("Coke", "1.50"));
 
@@ -148,9 +148,23 @@ class KitchenOrderServiceTest {
     }
 
     @Test
+    void createStillSendsWhenLoggedInUserWasDeleted() {
+        when(orderTicketCounterRepository.allocateNext(LocalDate.now())).thenReturn(3);
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        KitchenOrderDTO dto = newOrder("Chapli Kebab Wrap", "5.99");
+        dto.setUserId(99L);
+
+        KitchenOrderDTO created = kitchenOrderService.create(dto);
+
+        assertEquals(3, created.getDisplayOrderNo());
+        assertEquals("Chapli Kebab Wrap", created.getItems().get(0).getItemName());
+    }
+
+    @Test
     void updateKeepsLineWhenCatalogueItemWasRemoved() {
         KitchenOrder open = openOrder(5, KitchenOrderStatus.PREPARING);
-        when(kitchenOrderRepository.findById(5L)).thenReturn(Optional.of(open));
+        when(kitchenOrderRepository.lockById(5L)).thenReturn(Optional.of(open));
         when(itemRepository.findById(999L)).thenReturn(Optional.empty());
 
         KitchenOrderDTO dto = newOrder("Deleted pizza", "9.99");
@@ -165,7 +179,7 @@ class KitchenOrderServiceTest {
     @Test
     void updateRejectsPaidOrder() {
         KitchenOrder paid = openOrder(5, KitchenOrderStatus.PAID);
-        when(kitchenOrderRepository.findById(5L)).thenReturn(Optional.of(paid));
+        when(kitchenOrderRepository.lockById(5L)).thenReturn(Optional.of(paid));
 
         RuntimeException error = assertThrows(RuntimeException.class,
                 () -> kitchenOrderService.updateUnpaid(5L, newOrder("Coke", "1.50")));

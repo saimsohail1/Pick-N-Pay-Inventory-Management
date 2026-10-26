@@ -1,10 +1,10 @@
 -- PRODUCTION script for Khyber City Grill only. Do not run on other shops.
 -- Upserts printed-board prices and new board items. Does NOT delete catalogue.
--- Pizza, Shawarma/Doner, extra wraps/drinks/sides stay. Quick Sale stays.
--- Does not wipe sales or users.
+-- Does not add Pizza, Doner, or Shawarma (old till only, not the new board).
+-- Quick Sale stays. Does not wipe sales or users.
 --
--- If an earlier version of this file already ran and wiped Pizza / Shawarma /
--- extra drinks, run scripts/restore_khyber_removed_catalogue.sql on that till.
+-- Extra drinks/sides the old apply deleted:
+--   scripts/restore_khyber_removed_catalogue.sql
 --
 -- On the shop till, after git pull on Khyber_Grill:
 --   psql -U postgres -d YOUR_KHYBER_DB -f scripts/apply_khyber_printed_menu.sql

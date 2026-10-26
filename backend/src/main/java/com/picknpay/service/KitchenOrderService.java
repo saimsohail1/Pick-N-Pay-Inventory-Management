@@ -50,9 +50,7 @@ public class KitchenOrderService {
         order.setDisplayOrderNo(orderTicketCounterRepository.allocateNext(LocalDate.now()));
 
         if (dto.getUserId() != null) {
-            User user = userRepository.findById(dto.getUserId())
-                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + dto.getUserId()));
-            order.setUser(user);
+            userRepository.findById(dto.getUserId()).ifPresent(order::setUser);
         }
 
         applyItems(order, dto);
@@ -60,7 +58,7 @@ public class KitchenOrderService {
     }
 
     public KitchenOrderDTO updateUnpaid(Long id, KitchenOrderDTO dto) {
-        KitchenOrder order = kitchenOrderRepository.findById(id)
+        KitchenOrder order = kitchenOrderRepository.lockById(id)
                 .orElseThrow(() -> new RuntimeException("Kitchen order not found: " + id));
         if (order.getStatus() == KitchenOrderStatus.PAID) {
             throw new RuntimeException("Paid orders cannot be edited");
@@ -104,17 +102,22 @@ public class KitchenOrderService {
     }
 
     public SaleDTO pay(Long id, KitchenOrderPayDTO payDto) {
-        KitchenOrder order = kitchenOrderRepository.findById(id)
+        KitchenOrder order = kitchenOrderRepository.lockById(id)
                 .orElseThrow(() -> new RuntimeException("Kitchen order not found: " + id));
         if (order.getStatus() == KitchenOrderStatus.PAID) {
             throw new RuntimeException("This order is already paid");
         }
 
+        Long userId = payDto.getUserId() != null ? payDto.getUserId()
+                : (order.getUser() != null ? order.getUser().getId() : null);
+        if (userId != null && userRepository.findById(userId).isEmpty()) {
+            userId = null;
+        }
+
         SaleDTO saleDto = new SaleDTO();
         saleDto.setPaymentMethod(payDto.getPaymentMethod());
         saleDto.setPaymentSplits(payDto.getPaymentSplits());
-        saleDto.setUserId(payDto.getUserId() != null ? payDto.getUserId()
-                : (order.getUser() != null ? order.getUser().getId() : null));
+        saleDto.setUserId(userId);
         saleDto.setDisplayOrderNo(order.getDisplayOrderNo());
         saleDto.setTotalAmount(order.getTotalAmount());
         saleDto.setSaleItems(order.getItems().stream().map(this::toSaleItemDto).collect(Collectors.toList()));
@@ -128,7 +131,7 @@ public class KitchenOrderService {
     }
 
     public void deleteUnpaid(Long id) {
-        KitchenOrder order = kitchenOrderRepository.findById(id)
+        KitchenOrder order = kitchenOrderRepository.lockById(id)
                 .orElseThrow(() -> new RuntimeException("Kitchen order not found: " + id));
         if (order.getStatus() == KitchenOrderStatus.PAID) {
             throw new RuntimeException("Paid orders cannot be deleted");
@@ -144,7 +147,8 @@ public class KitchenOrderService {
             line.setQuantity(itemDto.getQuantity());
             line.setUnitPrice(itemDto.getUnitPrice());
             line.setTotalPrice(itemDto.getTotalPrice());
-            line.setItemName(itemDto.getItemName() != null ? itemDto.getItemName() : "Item");
+            String name = itemDto.getItemName();
+            line.setItemName(name != null && !name.isBlank() ? name : "Item");
             line.setItemBarcode(itemDto.getItemBarcode());
             line.setVatRate(itemDto.getVatRate());
 

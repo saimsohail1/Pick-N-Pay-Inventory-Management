@@ -27,7 +27,7 @@ public class KitchenOrderController {
     public ResponseEntity<?> create(@Valid @RequestBody KitchenOrderDTO dto) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(kitchenOrderService.create(dto));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -59,7 +59,7 @@ public class KitchenOrderController {
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody KitchenOrderDTO dto) {
         try {
             return ResponseEntity.ok(kitchenOrderService.updateUnpaid(id, dto));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

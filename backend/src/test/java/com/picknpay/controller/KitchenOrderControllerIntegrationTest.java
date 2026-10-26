@@ -82,6 +82,14 @@ class KitchenOrderControllerIntegrationTest {
     }
 
     @Test
+    void invalidKitchenOrderIsBadRequestNotForbidden() throws Exception {
+        mockMvc.perform(post("/api/kitchen-orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"items\":[]}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void httpEditAddsItemsAndKeepsOrderNumber() throws Exception {
         JsonNode created = read(sendOrder("Chapli Kebab"));
         KitchenOrderDTO update = new KitchenOrderDTO();

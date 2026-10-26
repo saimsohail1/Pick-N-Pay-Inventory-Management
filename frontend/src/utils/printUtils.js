@@ -19,8 +19,6 @@ export const printReceiptRaw = async (sale, companyName = "ADAMS GREEN", company
   return directPrint(receiptContent, `Receipt - Sale #${sale.id}`);
 };
 
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 /**
  * Kitchen / pickup ticket: large daily order number (1-99) and items only.
  */
@@ -86,26 +84,12 @@ export const printOrderTicket = async (sale, copyLabel = 'STAFF', printerName = 
   return directPrint(html, `${copyLabel} Order ${sale.displayOrderNo}`, { printerName });
 };
 
-/**
- * Checkout / jam recovery: identical order tickets, customer first then staff.
- */
-export const printOrderTickets = async (sale, printerName = null) => {
-  if (!sale) {
-    return false;
-  }
-  const ticketSale = toTicketSale(sale);
-  if (!ticketSale?.displayOrderNo) {
-    return false;
-  }
-  await printOrderTicket(ticketSale, 'CUSTOMER', printerName);
-  await wait(400);
-  await printOrderTicket(ticketSale, 'STAFF', printerName);
-  return true;
-};
-
+/** One kitchen slip for staff. Customer copies come from Print Bill. */
 export const printStaffTicket = async (order, printerName = null) => {
   return printOrderTicket(toTicketSale(order), 'STAFF', printerName);
 };
+
+export const printOrderTickets = printStaffTicket;
 
 const toTicketSale = (order) => ({
   displayOrderNo: order.displayOrderNo,

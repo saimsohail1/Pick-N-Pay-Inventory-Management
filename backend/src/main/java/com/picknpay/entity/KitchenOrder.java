@@ -46,7 +46,8 @@ public class KitchenOrder {
     private Long saleId;
 
     @Version
-    private Long version;
+    @Column(nullable = false)
+    private Long version = 0L;
 
     @OneToMany(mappedBy = "kitchenOrder", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<KitchenOrderItem> items = new ArrayList<>();

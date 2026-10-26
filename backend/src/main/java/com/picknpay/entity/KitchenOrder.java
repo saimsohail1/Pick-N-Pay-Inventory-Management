@@ -24,6 +24,13 @@ public class KitchenOrder {
     @Column(nullable = false, length = 20)
     private KitchenOrderStatus status = KitchenOrderStatus.PREPARING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_type", nullable = false, length = 20)
+    private KitchenOrderType orderType = KitchenOrderType.TAKEAWAY;
+
+    @Column(name = "table_number")
+    private Integer tableNumber;
+
     @NotNull
     @DecimalMin(value = "0.0", inclusive = false)
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
@@ -79,6 +86,22 @@ public class KitchenOrder {
 
     public void setStatus(KitchenOrderStatus status) {
         this.status = status;
+    }
+
+    public KitchenOrderType getOrderType() {
+        return orderType;
+    }
+
+    public void setOrderType(KitchenOrderType orderType) {
+        this.orderType = orderType;
+    }
+
+    public Integer getTableNumber() {
+        return tableNumber;
+    }
+
+    public void setTableNumber(Integer tableNumber) {
+        this.tableNumber = tableNumber;
     }
 
     public BigDecimal getTotalAmount() {

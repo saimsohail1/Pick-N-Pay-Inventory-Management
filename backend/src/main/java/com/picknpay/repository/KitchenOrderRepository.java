@@ -2,6 +2,7 @@ package com.picknpay.repository;
 
 import com.picknpay.entity.KitchenOrder;
 import com.picknpay.entity.KitchenOrderStatus;
+import com.picknpay.entity.KitchenOrderType;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -24,6 +25,9 @@ public interface KitchenOrderRepository extends JpaRepository<KitchenOrder, Long
     long countByStatusNot(KitchenOrderStatus status);
 
     boolean existsByDisplayOrderNoAndStatusNot(Integer displayOrderNo, KitchenOrderStatus status);
+
+    boolean existsByTableNumberAndOrderTypeAndStatusNot(
+            Integer tableNumber, KitchenOrderType orderType, KitchenOrderStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM KitchenOrder o WHERE o.id = :id")

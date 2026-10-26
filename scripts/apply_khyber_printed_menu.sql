@@ -1,17 +1,41 @@
 -- PRODUCTION script for Khyber City Grill only. Do not run on other shops.
--- Upserts printed-board prices and new board items. Does NOT delete catalogue.
--- Does not add Pizza, Doner, or Shawarma (old till only, not the new board).
--- Quick Sale stays. Does not wipe sales or users.
+-- Replaces the catalogue so it matches the printed TV board exactly.
+-- Categories = board headings. Items = board lines (Regular + Meal where the board has two prices).
+-- No Pizza. No Doner. No Shawarma.
+-- Chapli Kebab is its own category.
+-- Deletes previous items and categories (except Quick Sale). Does NOT wipe sales or users.
+-- Past sale lines keep their names; item_id is cleared.
 --
--- Extra drinks/sides the old apply deleted:
---   scripts/restore_khyber_removed_catalogue.sql
---
--- On the shop till, after git pull on Khyber_Grill:
+-- On the shop till:
 --   psql -U postgres -d YOUR_KHYBER_DB -f scripts/apply_khyber_printed_menu.sql
---
--- Replace YOUR_KHYBER_DB with the live Khyber database name.
 
 BEGIN;
+
+-- Keep sales. Unlink catalogue FKs that would block DELETE.
+UPDATE kitchen_order_items SET item_id = NULL WHERE item_id IS NOT NULL;
+DELETE FROM items;
+DELETE FROM categories WHERE lower(btrim(name)) <> 'quick sale';
+
+UPDATE categories
+SET is_active = true, display_on_pos = true, vat_rate = 23.00, updated_at = NOW()
+WHERE lower(btrim(name)) = 'quick sale';
+
+INSERT INTO categories (name, description, is_active, display_on_pos, vat_rate, created_at, updated_at)
+SELECT 'Quick Sale', 'Manually keyed sale', true, true, 23.00, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM categories WHERE lower(btrim(name)) = 'quick sale');
+
+INSERT INTO categories (name, description, is_active, display_on_pos, vat_rate, created_at, updated_at)
+VALUES
+  ('Mains', 'Rice dishes and mains', true, true, 9.00, NOW(), NOW()),
+  ('Chapli Kebab', 'Meal: drink + chips', true, true, 9.00, NOW(), NOW()),
+  ('Khyber Platters', 'Family platters — includes Afghani kawa', true, true, 9.00, NOW(), NOW()),
+  ('Wraps', 'Meal: drink + chips', true, true, 9.00, NOW(), NOW()),
+  ('The Grill', 'Charcoal grill — Regular and Meal. Extra rice €2', true, true, 9.00, NOW(), NOW()),
+  ('Chips', 'Hot chips', true, true, 9.00, NOW(), NOW()),
+  ('Peri Peri Chicken', 'Hot peri peri chicken, boxes and platters', true, true, 9.00, NOW(), NOW()),
+  ('Burgers', 'Meal: drink + chips', true, true, 9.00, NOW(), NOW()),
+  ('Sides & Salad', 'Hot sides 9%; cold salads/hummus 0%', true, true, 9.00, NOW(), NOW()),
+  ('Drinks', 'Cans, water and juice 23%; hot tea 9%', true, true, 23.00, NOW(), NOW());
 
 CREATE TEMP TABLE printed_menu (
   category_name text NOT NULL,
@@ -23,18 +47,17 @@ CREATE TEMP TABLE printed_menu (
 
 INSERT INTO printed_menu (category_name, item_name, description, price, vat_rate) VALUES
 -- Mains
-('Mains', 'Lamb Qabuli Pulao', 'Slow-cooked lamb over fragrant rice with carrots, raisins', 12.99, 9.00),
-('Mains', 'Chicken Qabuli Pulao', 'Grilled chicken over fragrant rice with carrots, raisins', 9.99, 9.00),
-('Mains', 'Chicken Biryani', 'Spiced rice slow-cooked with marinated chicken', 9.99, 9.00),
-('Mains', 'Chicken Karahi', 'Includes 1 naan', 12.99, 9.00),
-('Mains', 'Lamb Karahi', 'Includes 1 naan', 14.99, 9.00),
-('Mains', 'Afghani Mantoo', 'Steamed dumplings filled with seasoned minced lamb', 9.99, 9.00),
-('Mains', 'Extra Rice', 'Swap naan for rice, or add rice', 2.00, 9.00),
+('Mains', 'Lamb Qabuli Pulao', NULL, 12.99, 9.00),
+('Mains', 'Chicken Qabuli Pulao', NULL, 9.99, 9.00),
+('Mains', 'Chicken Biryani', NULL, 9.99, 9.00),
+('Mains', 'Chicken Karahi', '+ 1 naan', 12.99, 9.00),
+('Mains', 'Lamb Karahi', '+ 1 naan', 14.99, 9.00),
+('Mains', 'Afghani Mantoo', NULL, 9.99, 9.00),
 
--- Chapli Kebab
-('Chapli Kebab', 'Chapli Kebab', 'Crispy Afghan minced lamb patties', 9.99, 9.00),
+-- Chapli Kebab (own category)
+('Chapli Kebab', 'Chapli Kebab', 'Regular', 9.99, 9.00),
 ('Chapli Kebab', 'Chapli Kebab Meal', 'Meal: drink + chips', 12.99, 9.00),
-('Chapli Kebab', 'Spicy Chapli Kebab', 'Spicy Afghan minced lamb patties', 9.99, 9.00),
+('Chapli Kebab', 'Spicy Chapli Kebab', 'Regular', 9.99, 9.00),
 ('Chapli Kebab', 'Spicy Chapli Kebab Meal', 'Meal: drink + chips', 12.99, 9.00),
 
 -- Khyber Platters
@@ -43,42 +66,44 @@ INSERT INTO printed_menu (category_name, item_name, description, price, vat_rate
 ('Khyber Platters', 'Khyber Platter 3', 'Serves 6 — includes Afghani kawa', 100.00, 9.00),
 
 -- Wraps
-('Wraps', 'Chapli Kebab Wrap', 'Meal option is drink + chips', 5.99, 9.00),
+('Wraps', 'Chapli Kebab Wrap', 'Regular', 5.99, 9.00),
 ('Wraps', 'Chapli Kebab Wrap Meal', 'Meal: drink + chips', 8.99, 9.00),
-('Wraps', 'Peri Peri Wrap', 'Meal option is drink + chips', 5.99, 9.00),
+('Wraps', 'Peri Peri Wrap', 'Regular', 5.99, 9.00),
 ('Wraps', 'Peri Peri Wrap Meal', 'Meal: drink + chips', 8.99, 9.00),
-('Wraps', 'Falafel Wrap', 'Meal option is drink + chips', 5.99, 9.00),
+('Wraps', 'Falafel Wrap', 'Regular', 5.99, 9.00),
 ('Wraps', 'Falafel Wrap Meal', 'Meal: drink + chips', 8.99, 9.00),
 
 -- The Grill
 ('The Grill', 'Lamb Shish Kebab', 'Regular', 9.99, 9.00),
-('The Grill', 'Lamb Shish Kebab Meal', 'Meal: drink + chips', 12.99, 9.00),
+('The Grill', 'Lamb Shish Kebab Meal', 'Meal', 12.99, 9.00),
 ('The Grill', 'Chicken Shish Kebab', 'Regular', 9.99, 9.00),
-('The Grill', 'Chicken Shish Kebab Meal', 'Meal: drink + chips', 12.99, 9.00),
+('The Grill', 'Chicken Shish Kebab Meal', 'Meal', 12.99, 9.00),
 ('The Grill', 'Mixed Shish Kebab', 'Regular', 9.99, 9.00),
-('The Grill', 'Mixed Shish Kebab Meal', 'Meal: drink + chips', 12.99, 9.00),
+('The Grill', 'Mixed Shish Kebab Meal', 'Meal', 12.99, 9.00),
 ('The Grill', 'Lamb Kofta Kebab', 'Regular', 9.99, 9.00),
-('The Grill', 'Lamb Kofta Kebab Meal', 'Meal: drink + chips', 12.99, 9.00),
+('The Grill', 'Lamb Kofta Kebab Meal', 'Meal', 12.99, 9.00),
 ('The Grill', 'Chicken Kofta Kebab', 'Regular', 9.99, 9.00),
-('The Grill', 'Chicken Kofta Kebab Meal', 'Meal: drink + chips', 12.99, 9.00),
+('The Grill', 'Chicken Kofta Kebab Meal', 'Meal', 12.99, 9.00),
 ('The Grill', 'Grilled Lamb Chops', 'Regular', 12.99, 9.00),
-('The Grill', 'Grilled Lamb Chops Meal', 'Meal: drink + chips', 15.99, 9.00),
+('The Grill', 'Grilled Lamb Chops Meal', 'Meal', 15.99, 9.00),
 ('The Grill', 'Grilled Steak', 'Regular', 12.99, 9.00),
-('The Grill', 'Grilled Steak Meal', 'Meal: drink + chips', 15.99, 9.00),
+('The Grill', 'Grilled Steak Meal', 'Meal', 15.99, 9.00),
 ('The Grill', 'Fresh Sea Bass', 'Regular', 11.99, 9.00),
-('The Grill', 'Fresh Sea Bass Meal', 'Meal: drink + chips', 14.99, 9.00),
+('The Grill', 'Fresh Sea Bass Meal', 'Meal', 14.99, 9.00),
 ('The Grill', 'Grill Special 1', 'Regular', 14.99, 9.00),
-('The Grill', 'Grill Special 1 Meal', 'Meal: drink + chips', 17.99, 9.00),
+('The Grill', 'Grill Special 1 Meal', 'Meal', 17.99, 9.00),
 ('The Grill', 'Grill Special 2', 'Regular', 29.99, 9.00),
-('The Grill', 'Grill Special 2 Meal', 'Meal: drink + chips', 34.99, 9.00),
+('The Grill', 'Grill Special 2 Meal', 'Meal', 34.99, 9.00),
+('The Grill', 'Extra Rice', 'Swap naan for rice, or add rice', 2.00, 9.00),
 
--- Fresh-cut chips
-('Fresh-Cut Chips', 'Chips', 'Plain', 1.99, 9.00),
-('Fresh-Cut Chips', 'Garlic Chips', NULL, 2.99, 9.00),
-('Fresh-Cut Chips', 'Cheese Chips', NULL, 3.99, 9.00),
-('Fresh-Cut Chips', 'Curry Cheese Chips', NULL, 3.99, 9.00),
-('Fresh-Cut Chips', 'Taco Chips', NULL, 4.99, 9.00),
-('Fresh-Cut Chips', 'Taco Cheese Chips', NULL, 4.99, 9.00),
+-- Chips (board heading)
+('Chips', 'Chips', 'Plain', 1.99, 9.00),
+('Chips', 'Garlic Chips', NULL, 2.99, 9.00),
+('Chips', 'Garlic Cheese Chips', NULL, 3.99, 9.00),
+('Chips', 'Curry Chips', NULL, 3.99, 9.00),
+('Chips', 'Curry Cheese Chips', NULL, 3.99, 9.00),
+('Chips', 'Taco Chips', NULL, 4.99, 9.00),
+('Chips', 'Taco Cheese Chips', NULL, 4.99, 9.00),
 
 -- Peri peri
 ('Peri Peri Chicken', 'Full Chicken', NULL, 13.99, 9.00),
@@ -113,99 +138,30 @@ INSERT INTO printed_menu (category_name, item_name, description, price, vat_rate
 ('Sides & Salad', 'Rice Small', NULL, 2.99, 9.00),
 ('Sides & Salad', 'Rice Large', NULL, 5.99, 9.00),
 ('Sides & Salad', 'Samosa 3 pcs', '3 pieces', 3.99, 9.00),
-('Sides & Salad', 'Hummus with bread', NULL, 3.99, 0.00),
+('Sides & Salad', 'Hummus with Bread', NULL, 3.99, 0.00),
 ('Sides & Salad', 'Lentil Sauce', NULL, 2.99, 9.00),
 ('Sides & Salad', 'Greek Salad', NULL, 4.99, 0.00),
 ('Sides & Salad', 'Tabbouleh', NULL, 4.99, 0.00),
-('Sides & Salad', 'Peri Peri Chicken Salad', 'Hot chicken salad', 6.99, 9.00),
+('Sides & Salad', 'Peri Peri Chicken Salad', NULL, 6.99, 9.00),
 ('Sides & Salad', 'Onion Rings', '8 pcs', 3.99, 9.00),
 ('Sides & Salad', 'Onion Rings Meal', '8 pcs meal', 7.99, 9.00),
-('Sides & Salad', 'Chicken Nuggets', '6 pcs', 4.99, 9.00),
-('Sides & Salad', 'Chicken Nuggets Meal', '6 pcs meal', 7.99, 9.00),
-('Sides & Salad', 'Chicken Goujons', '6 pcs', 4.99, 9.00),
-('Sides & Salad', 'Chicken Goujons Meal', '6 pcs meal', 7.99, 9.00),
+('Sides & Salad', 'Chicken Nuggets', '8 pcs', 3.99, 9.00),
+('Sides & Salad', 'Chicken Nuggets Meal', '8 pcs meal', 7.99, 9.00),
+('Sides & Salad', 'Chicken Goujons', '8 pcs', 4.99, 9.00),
+('Sides & Salad', 'Chicken Goujons Meal', '8 pcs meal', 7.99, 9.00),
 
 -- Drinks
-('Drinks', 'Coke', 'Can', 1.50, 23.00),
-('Drinks', 'Coke Zero', 'Can', 1.50, 23.00),
-('Drinks', 'Diet Coke', 'Can', 1.50, 23.00),
-('Drinks', 'Fanta', 'Can', 1.50, 23.00),
-('Drinks', 'Club Orange', 'Can', 1.50, 23.00),
-('Drinks', '7Up', 'Can', 1.50, 23.00),
-('Drinks', 'Water', 'Bottle', 1.00, 23.00),
+('Drinks', 'Coke', NULL, 1.50, 23.00),
+('Drinks', 'Coke Zero', NULL, 1.50, 23.00),
+('Drinks', 'Diet Coke', NULL, 1.50, 23.00),
+('Drinks', 'Fanta', NULL, 1.50, 23.00),
+('Drinks', 'Club Orange', NULL, 1.50, 23.00),
+('Drinks', '7Up', NULL, 1.50, 23.00),
+('Drinks', 'Water', NULL, 1.00, 23.00),
 ('Drinks', 'Capri-Sun', NULL, 1.00, 23.00),
 ('Drinks', 'Ayran', NULL, 1.50, 23.00),
-('Drinks', 'Karak Chai', 'Hot tea', 1.99, 9.00),
-('Drinks', 'Afghani Kawwa', 'Hot tea', 1.00, 9.00);
-
--- Align old names to the printed board
-UPDATE categories
-SET name = 'Mains',
-    description = 'Rice dishes and mains',
-    is_active = true,
-    display_on_pos = true,
-    vat_rate = 9.00,
-    updated_at = NOW()
-WHERE lower(btrim(name)) IN ('qabuli pulao & mains', 'mains');
-
-UPDATE items SET name = 'Peri Peri Wrap', updated_at = NOW()
-WHERE lower(btrim(name)) = 'chicken peri peri wrap';
-UPDATE items SET name = 'Peri Peri Wrap Meal', updated_at = NOW()
-WHERE lower(btrim(name)) = 'chicken peri peri wrap meal';
-UPDATE items SET name = 'Cheese Chips', updated_at = NOW()
-WHERE lower(btrim(name)) = 'garlic cheese chips';
-UPDATE items SET name = 'Hummus with bread', updated_at = NOW()
-WHERE lower(btrim(name)) = 'hummus';
-UPDATE items SET name = 'Lentil Sauce', updated_at = NOW()
-WHERE lower(btrim(name)) = 'lentil sauce small';
-UPDATE items SET name = 'Afghani Kawwa', updated_at = NOW()
-WHERE lower(btrim(name)) IN ('afghani kawa', 'afghani kawwa');
-
-INSERT INTO categories (name, description, is_active, display_on_pos, vat_rate, created_at, updated_at)
-SELECT DISTINCT
-  m.category_name,
-  CASE m.category_name
-    WHEN 'Drinks' THEN 'Cans, water and juice 23%; hot tea 9% on the item'
-    WHEN 'Sides & Salad' THEN 'Hot sides 9%; cold salads/hummus 0%'
-    WHEN 'Khyber Platters' THEN 'Family platters — includes Afghani kawa'
-    ELSE m.category_name
-  END,
-  true,
-  true,
-  CASE WHEN m.category_name = 'Drinks' THEN 23.00 ELSE 9.00 END,
-  NOW(),
-  NOW()
-FROM printed_menu m
-WHERE NOT EXISTS (
-  SELECT 1 FROM categories c WHERE lower(btrim(c.name)) = lower(m.category_name)
-);
-
-UPDATE categories c
-SET is_active = true,
-    display_on_pos = true,
-    vat_rate = CASE WHEN c.name = 'Drinks' THEN 23.00 ELSE 9.00 END,
-    updated_at = NOW()
-WHERE EXISTS (
-  SELECT 1 FROM printed_menu m WHERE lower(btrim(m.category_name)) = lower(btrim(c.name))
-);
-
-UPDATE categories SET is_active = true, display_on_pos = true, updated_at = NOW()
-WHERE lower(btrim(name)) = 'quick sale';
-
-INSERT INTO categories (name, description, is_active, display_on_pos, vat_rate, created_at, updated_at)
-SELECT 'Quick Sale', 'Manually keyed sale', true, true, 23.00, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM categories WHERE lower(btrim(name)) = 'quick sale');
-
-UPDATE items i
-SET description = m.description,
-    price = m.price,
-    vat_rate = m.vat_rate,
-    stock_quantity = 9999,
-    category_id = c.id,
-    updated_at = NOW()
-FROM printed_menu m
-JOIN categories c ON lower(btrim(c.name)) = lower(m.category_name)
-WHERE lower(btrim(i.name)) = lower(m.item_name);
+('Drinks', 'Karak Chai', 'Tea', 1.99, 9.00),
+('Drinks', 'Afghani Kawa', 'Tea', 1.00, 9.00);
 
 INSERT INTO items (name, description, price, stock_quantity, barcode, vat_rate,
                    batch_id, general_expiry_date, category_id, created_at, updated_at)
@@ -214,9 +170,7 @@ SELECT
   m.description,
   m.price,
   9999,
-  'KG-' || lpad((
-    200 + row_number() OVER (ORDER BY m.category_name, m.item_name)
-  )::text, 4, '0'),
+  'KG-' || lpad(row_number() OVER (ORDER BY m.category_name, m.item_name)::text, 4, '0'),
   m.vat_rate,
   NULL,
   NULL,
@@ -224,23 +178,50 @@ SELECT
   NOW(),
   NOW()
 FROM printed_menu m
-JOIN categories c ON lower(btrim(c.name)) = lower(m.category_name)
-WHERE NOT EXISTS (
-  SELECT 1 FROM items i WHERE lower(btrim(i.name)) = lower(m.item_name)
-);
+JOIN categories c ON c.name = m.category_name;
 
 SELECT setval('categories_id_seq', (SELECT COALESCE(max(id), 1) FROM categories));
 SELECT setval('items_id_seq', (SELECT COALESCE(max(id), 1) FROM items));
 
 COMMIT;
 
-SELECT id, name, vat_rate FROM categories ORDER BY name;
+SELECT id, name FROM categories ORDER BY
+  CASE name
+    WHEN 'Mains' THEN 1
+    WHEN 'Chapli Kebab' THEN 2
+    WHEN 'Khyber Platters' THEN 3
+    WHEN 'Wraps' THEN 4
+    WHEN 'The Grill' THEN 5
+    WHEN 'Chips' THEN 6
+    WHEN 'Peri Peri Chicken' THEN 7
+    WHEN 'Burgers' THEN 8
+    WHEN 'Sides & Salad' THEN 9
+    WHEN 'Drinks' THEN 10
+    WHEN 'Quick Sale' THEN 11
+    ELSE 99
+  END;
+
 SELECT c.name AS category, count(*) AS items
 FROM items i
 JOIN categories c ON c.id = i.category_id
 GROUP BY 1
 ORDER BY 1;
+
 SELECT c.name AS category, i.name, i.price, i.vat_rate
 FROM items i
 JOIN categories c ON c.id = i.category_id
-ORDER BY c.name, i.name;
+ORDER BY
+  CASE c.name
+    WHEN 'Mains' THEN 1
+    WHEN 'Chapli Kebab' THEN 2
+    WHEN 'Khyber Platters' THEN 3
+    WHEN 'Wraps' THEN 4
+    WHEN 'The Grill' THEN 5
+    WHEN 'Chips' THEN 6
+    WHEN 'Peri Peri Chicken' THEN 7
+    WHEN 'Burgers' THEN 8
+    WHEN 'Sides & Salad' THEN 9
+    WHEN 'Drinks' THEN 10
+    ELSE 99
+  END,
+  i.name;

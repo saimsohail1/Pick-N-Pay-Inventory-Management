@@ -82,6 +82,36 @@ class KitchenOrderControllerIntegrationTest {
     }
 
     @Test
+    void eatInRejectsATakenTable() throws Exception {
+        KitchenOrderDTO first = new KitchenOrderDTO();
+        first.setOrderType(com.picknpay.entity.KitchenOrderType.EAT_IN);
+        first.setTableNumber(3);
+        KitchenOrderItemDTO line = new KitchenOrderItemDTO();
+        line.setQuantity(1);
+        line.setUnitPrice(new BigDecimal("5.99"));
+        line.setTotalPrice(new BigDecimal("5.99"));
+        line.setItemName("Chapli Kebab");
+        line.setVatRate(new BigDecimal("9.00"));
+        first.setItems(List.of(line));
+
+        mockMvc.perform(post("/api/kitchen-orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(first)))
+                .andExpect(status().isCreated());
+
+        KitchenOrderDTO second = new KitchenOrderDTO();
+        second.setOrderType(com.picknpay.entity.KitchenOrderType.EAT_IN);
+        second.setTableNumber(3);
+        second.setItems(List.of(line));
+        MvcResult taken = mockMvc.perform(post("/api/kitchen-orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(second)))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+        assertEquals("Table 3 is already taken", taken.getResponse().getContentAsString());
+    }
+
+    @Test
     void invalidKitchenOrderIsBadRequestNotForbidden() throws Exception {
         mockMvc.perform(post("/api/kitchen-orders")
                         .contentType(MediaType.APPLICATION_JSON)

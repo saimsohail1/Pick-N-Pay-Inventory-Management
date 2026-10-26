@@ -1,6 +1,7 @@
 package com.picknpay.dto;
 
 import com.picknpay.entity.KitchenOrderStatus;
+import com.picknpay.entity.KitchenOrderType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 
@@ -13,6 +14,8 @@ public class KitchenOrderDTO {
     private Long id;
     private Integer displayOrderNo;
     private KitchenOrderStatus status;
+    private KitchenOrderType orderType;
+    private Integer tableNumber;
     private BigDecimal totalAmount;
     private Long userId;
     private LocalDateTime createdAt;
@@ -45,6 +48,22 @@ public class KitchenOrderDTO {
 
     public void setStatus(KitchenOrderStatus status) {
         this.status = status;
+    }
+
+    public KitchenOrderType getOrderType() {
+        return orderType;
+    }
+
+    public void setOrderType(KitchenOrderType orderType) {
+        this.orderType = orderType;
+    }
+
+    public Integer getTableNumber() {
+        return tableNumber;
+    }
+
+    public void setTableNumber(Integer tableNumber) {
+        this.tableNumber = tableNumber;
     }
 
     public BigDecimal getTotalAmount() {

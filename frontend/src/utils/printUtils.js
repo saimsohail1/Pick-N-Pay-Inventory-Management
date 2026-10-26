@@ -22,6 +22,26 @@ export const printReceiptRaw = async (sale, companyName = "ADAMS GREEN", company
 /**
  * Kitchen / pickup ticket: large daily order number (1-99) and items only.
  */
+const hasTable = (order) =>
+  order?.orderType === 'EAT_IN' && order.tableNumber != null && order.tableNumber !== '';
+
+const ticketServiceBlock = (order) => {
+  if (hasTable(order)) {
+    return `
+      <div class="center label">TABLE</div>
+      <div class="center number">${order.tableNumber}</div>
+    `;
+  }
+  return `<div class="center service">TAKEAWAY</div>`;
+};
+
+const billServiceBlock = (order) => {
+  if (hasTable(order)) {
+    return `<div class="center order">TABLE ${order.tableNumber}</div>`;
+  }
+  return `<div class="center bill-label">TAKEAWAY</div>`;
+};
+
 export const createOrderTicketHTML = (sale, copyLabel = 'STAFF') => {
   const orderNo = sale.displayOrderNo;
   const when = sale.saleDate ? new Date(sale.saleDate) : new Date();
@@ -55,7 +75,8 @@ export const createOrderTicketHTML = (sale, copyLabel = 'STAFF') => {
         .center { text-align: center; }
         .label { font-size: 14px; font-weight: 700; letter-spacing: 2px; }
         .copy-label { font-size: 16px; font-weight: 700; letter-spacing: 2px; margin-top: 2px; }
-        .number { font-size: 72px; font-weight: 700; line-height: 1; margin: 8px 0 12px; }
+        .number { font-size: 72px; font-weight: 700; line-height: 1; margin: 8px 0 4px; }
+        .service { font-size: 28px; font-weight: 700; letter-spacing: 1px; margin: 0 0 12px; }
         .item { display: flex; gap: 8px; margin: 6px 0; font-size: 16px; font-weight: 700; }
         .qty { min-width: 2.2em; }
         .name { flex: 1; }
@@ -67,6 +88,7 @@ export const createOrderTicketHTML = (sale, copyLabel = 'STAFF') => {
       <div class="center copy-label">${copyLabel}</div>
       <div class="center label">ORDER</div>
       <div class="center number">${orderNo}</div>
+      ${ticketServiceBlock(sale)}
       <div class="divider"></div>
       ${items}
       <div class="divider"></div>
@@ -94,13 +116,15 @@ export const printOrderTickets = printStaffTicket;
 const toTicketSale = (order) => ({
   displayOrderNo: order.displayOrderNo,
   saleDate: order.createdAt || order.saleDate,
+  orderType: order.orderType,
+  tableNumber: order.tableNumber,
   saleItems: (order.items || order.saleItems || []).map((item) => ({
     quantity: item.quantity,
     itemName: item.itemName || item.name
   }))
 });
 
-export const printUnpaidBill = async (order, companyName = 'KHYBER GRILL', companyAddress = '', printerName = null) => {
+export const createUnpaidBillHTML = (order, companyName = 'KHYBER GRILL', companyAddress = '') => {
   const items = order.items || order.saleItems || [];
   const total = parseFloat(order.totalAmount || 0);
   const when = order.createdAt || order.saleDate ? new Date(order.createdAt || order.saleDate) : new Date();
@@ -112,7 +136,7 @@ export const printUnpaidBill = async (order, companyName = 'KHYBER GRILL', compa
         </div>
       `).join('');
 
-  const html = `
+  return `
     <!DOCTYPE html>
     <html>
     <head>
@@ -135,7 +159,7 @@ export const printUnpaidBill = async (order, companyName = 'KHYBER GRILL', compa
         .company { font-size: 18px; font-weight: 700; line-height: 1.15; }
         .address { font-size: 13px; font-weight: 600; margin-top: 2px; }
         .bill-label { font-size: 14px; font-weight: 700; margin-top: 8px; letter-spacing: 0.4px; }
-        .order { font-size: 22px; font-weight: 700; margin: 6px 0 2px; line-height: 1.1; }
+        .order { font-size: 32px; font-weight: 700; margin: 6px 0 2px; line-height: 1.1; }
         .item { display: flex; justify-content: space-between; gap: 8px; margin: 6px 0; font-size: 15px; font-weight: 600; line-height: 1.25; }
         .name { flex: 1; word-break: break-word; }
         .price { white-space: nowrap; font-weight: 700; }
@@ -149,6 +173,7 @@ export const printUnpaidBill = async (order, companyName = 'KHYBER GRILL', compa
       ${companyAddress ? `<div class="center address">${companyAddress}</div>` : ''}
       <div class="center bill-label">BILL — NOT A RECEIPT</div>
       <div class="center order">ORDER ${order.displayOrderNo}</div>
+      ${billServiceBlock(order)}
       <div class="divider"></div>
       ${lines}
       <div class="divider"></div>
@@ -158,6 +183,10 @@ export const printUnpaidBill = async (order, companyName = 'KHYBER GRILL', compa
     </body>
     </html>
   `;
+};
+
+export const printUnpaidBill = async (order, companyName = 'KHYBER GRILL', companyAddress = '', printerName = null) => {
+  const html = createUnpaidBillHTML(order, companyName, companyAddress);
   return directPrint(html, `Bill Order ${order.displayOrderNo}`, { printerName });
 };
 

@@ -6,6 +6,7 @@ import com.picknpay.dto.KitchenOrderPayDTO;
 import com.picknpay.dto.SaleDTO;
 import com.picknpay.entity.KitchenOrder;
 import com.picknpay.entity.KitchenOrderStatus;
+import com.picknpay.entity.KitchenOrderType;
 import com.picknpay.entity.PaymentMethod;
 import com.picknpay.repository.ItemRepository;
 import com.picknpay.repository.KitchenOrderRepository;
@@ -184,6 +185,36 @@ class KitchenOrderServiceTest {
         RuntimeException error = assertThrows(RuntimeException.class,
                 () -> kitchenOrderService.updateUnpaid(5L, newOrder("Coke", "1.50")));
         assertEquals("Paid orders cannot be edited", error.getMessage());
+    }
+
+    @Test
+    void createEatInStoresTableNumber() {
+        when(orderTicketCounterRepository.allocateNext(LocalDate.now())).thenReturn(3);
+        when(kitchenOrderRepository.existsByTableNumberAndOrderTypeAndStatusNot(
+                4, KitchenOrderType.EAT_IN, KitchenOrderStatus.PAID)).thenReturn(false);
+
+        KitchenOrderDTO dto = newOrder("Chapli Kebab", "9.99");
+        dto.setOrderType(KitchenOrderType.EAT_IN);
+        dto.setTableNumber(4);
+
+        KitchenOrderDTO created = kitchenOrderService.create(dto);
+
+        assertEquals(KitchenOrderType.EAT_IN, created.getOrderType());
+        assertEquals(4, created.getTableNumber());
+    }
+
+    @Test
+    void createEatInRejectsTakenTable() {
+        when(kitchenOrderRepository.existsByTableNumberAndOrderTypeAndStatusNot(
+                4, KitchenOrderType.EAT_IN, KitchenOrderStatus.PAID)).thenReturn(true);
+
+        KitchenOrderDTO dto = newOrder("Chapli Kebab", "9.99");
+        dto.setOrderType(KitchenOrderType.EAT_IN);
+        dto.setTableNumber(4);
+
+        RuntimeException error = assertThrows(RuntimeException.class, () -> kitchenOrderService.create(dto));
+        assertEquals("Table 4 is already taken", error.getMessage());
+        verify(orderTicketCounterRepository, never()).allocateNext(any());
     }
 
     @Test

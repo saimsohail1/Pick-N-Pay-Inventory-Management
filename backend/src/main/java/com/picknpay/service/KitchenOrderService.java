@@ -9,6 +9,7 @@ import com.picknpay.entity.Item;
 import com.picknpay.entity.KitchenOrder;
 import com.picknpay.entity.KitchenOrderItem;
 import com.picknpay.entity.KitchenOrderStatus;
+import com.picknpay.entity.KitchenOrderType;
 import com.picknpay.entity.User;
 import com.picknpay.repository.ItemRepository;
 import com.picknpay.repository.KitchenOrderRepository;
@@ -47,6 +48,7 @@ public class KitchenOrderService {
         KitchenOrder order = new KitchenOrder();
         order.setCreatedAt(LocalDateTime.now());
         order.setStatus(KitchenOrderStatus.PREPARING);
+        applyServiceType(order, dto);
         order.setDisplayOrderNo(orderTicketCounterRepository.allocateNext(LocalDate.now()));
 
         if (dto.getUserId() != null) {
@@ -195,8 +197,28 @@ public class KitchenOrderService {
         dto.setCreatedAt(order.getCreatedAt());
         dto.setPreparedAt(order.getPreparedAt());
         dto.setSaleId(order.getSaleId());
+        dto.setOrderType(order.getOrderType() != null ? order.getOrderType() : KitchenOrderType.TAKEAWAY);
+        dto.setTableNumber(order.getTableNumber());
         dto.setItems(order.getItems().stream().map(this::toItemDto).collect(Collectors.toList()));
         return dto;
+    }
+
+    private void applyServiceType(KitchenOrder order, KitchenOrderDTO dto) {
+        KitchenOrderType type = dto.getOrderType() != null ? dto.getOrderType() : KitchenOrderType.TAKEAWAY;
+        order.setOrderType(type);
+        if (type == KitchenOrderType.TAKEAWAY) {
+            order.setTableNumber(null);
+            return;
+        }
+        Integer table = dto.getTableNumber();
+        if (table == null || table < 1 || table > 9) {
+            throw new RuntimeException("Pick a free table (1-9) for eat in");
+        }
+        if (kitchenOrderRepository.existsByTableNumberAndOrderTypeAndStatusNot(
+                table, KitchenOrderType.EAT_IN, KitchenOrderStatus.PAID)) {
+            throw new RuntimeException("Table " + table + " is already taken");
+        }
+        order.setTableNumber(table);
     }
 
     private KitchenOrderItemDTO toItemDto(KitchenOrderItem line) {

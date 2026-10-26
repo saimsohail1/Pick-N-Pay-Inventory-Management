@@ -1,9 +1,7 @@
 -- Khyber City Grill: first-time catalogue + users. WIPES sales.
--- This old first-time load still includes Pizza / Doner / Shawarma.
--- New board (no Pizza / Doner / Shawarma):
+-- Do not run this on a live till.
+-- Printed TV board (deletes old catalogue, keeps sales):
 --   scripts/apply_khyber_printed_menu.sql
--- Extra drinks/sides only (still no Pizza / Doner / Shawarma):
---   scripts/restore_khyber_removed_catalogue.sql
 -- Keep Quick Sale. Keep admin + imran. Reset admin to admin123.
 -- Add user saim / saim12 as ADMIN.
 -- VAT from 1 July 2026 (Revenue): hot restaurant/takeaway food 9%, cold takeaway 0%,

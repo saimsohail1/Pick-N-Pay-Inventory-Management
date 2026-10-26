@@ -81,6 +81,8 @@ const SalesPage = () => {
   const [itemSearch, setItemSearch] = useState('');
   const [openOrders, setOpenOrders] = useState([]);
   const [ordersDialogOpen, setOrdersDialogOpen] = useState(false);
+  const [ordersTab, setOrdersTab] = useState('EAT_IN');
+  const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [kitchenOrderToDelete, setKitchenOrderToDelete] = useState(null);
   const [editingKitchenOrder, setEditingKitchenOrder] = useState(null);
   const [payingKitchenOrder, setPayingKitchenOrder] = useState(null);
@@ -370,9 +372,24 @@ const SalesPage = () => {
     setSelectedCartItem(null);
     setItemSearch('');
     setEditingKitchenOrder(null);
+    setTablePickerOpen(false);
   };
 
-  const handleSendToKitchen = async () => {
+  const isEatInOrder = (order) => order?.orderType === 'EAT_IN';
+  const eatInOrders = openOrders.filter(isEatInOrder);
+  const takeawayOrders = openOrders.filter((order) => !isEatInOrder(order));
+  const occupiedTables = new Set(
+    eatInOrders.map((order) => order.tableNumber).filter((table) => table >= 1 && table <= 9)
+  );
+
+  const orderServiceLabel = (order) => {
+    if (isEatInOrder(order) && order.tableNumber) {
+      return `Table ${order.tableNumber}`;
+    }
+    return 'Takeaway';
+  };
+
+  const handleSendToKitchen = async (orderType, tableNumber) => {
     if (sendInProgressRef.current) {
       return;
     }
@@ -389,10 +406,15 @@ const SalesPage = () => {
         userId: user?.id || null,
         items
       };
+      if (!editingKitchenOrder) {
+        payload.orderType = orderType;
+        payload.tableNumber = orderType === 'EAT_IN' ? tableNumber : null;
+      }
       const response = editingKitchenOrder
         ? await kitchenOrdersAPI.update(editingKitchenOrder.id, payload)
         : await kitchenOrdersAPI.create(payload);
       const order = response.data;
+      setTablePickerOpen(false);
       if (window.electron && window.electron.ipcRenderer) {
         try {
           await printStaffTicket(order);
@@ -406,9 +428,10 @@ const SalesPage = () => {
       }
       const orderNo = order.displayOrderNo;
       const wasEditing = !!editingKitchenOrder;
+      const sentLabel = orderServiceLabel(order);
       finishKitchenCart();
       await refreshKitchenOrders();
-      setSuccess(wasEditing ? `Order ${orderNo} updated` : `Order ${orderNo} sent to kitchen`);
+      setSuccess(wasEditing ? `Order ${orderNo} updated` : `Order ${orderNo} sent (${sentLabel})`);
       addTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Send to kitchen failed:', err);
@@ -418,6 +441,26 @@ const SalesPage = () => {
       sendInProgressRef.current = false;
       setLoading(false);
     }
+  };
+
+  const handleEatInClick = async () => {
+    const items = cartAsKitchenItems();
+    if (cart.length === 0 || items.length === 0) {
+      setError('Add items before sending to kitchen.');
+      addTimeout(() => setError(null), 3000);
+      return;
+    }
+    await refreshKitchenOrders();
+    setTablePickerOpen(true);
+  };
+
+  const handleTablePicked = (tableNumber) => {
+    if (occupiedTables.has(tableNumber)) {
+      setError(`Table ${tableNumber} is already taken`);
+      addTimeout(() => setError(null), 3000);
+      return;
+    }
+    handleSendToKitchen('EAT_IN', tableNumber);
   };
 
   const toKitchenCartLine = (item) => ({
@@ -1853,6 +1896,62 @@ const SalesPage = () => {
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
           opacity: 0.5;
         }
+
+        .orders-dialog {
+          max-width: min(1200px, 94vw) !important;
+          width: 94vw;
+          margin: 1rem auto;
+        }
+        .orders-dialog .modal-content {
+          min-height: 88vh;
+          background-color: #1a1a1a;
+        }
+        .orders-dialog .modal-body {
+          max-height: calc(88vh - 64px);
+          overflow-y: auto;
+        }
+        .orders-tab {
+          border: 2px solid #555555 !important;
+          background-color: #2a2a2a !important;
+          color: #bbbbbb !important;
+          box-shadow: none !important;
+        }
+        .orders-tab:hover,
+        .orders-tab:focus,
+        .orders-tab:active {
+          background-color: #2a2a2a !important;
+          color: #ffffff !important;
+          border-color: #888888 !important;
+        }
+        .orders-tab.is-active,
+        .orders-tab.is-active:hover,
+        .orders-tab.is-active:focus,
+        .orders-tab.is-active:active {
+          background-color: #ffffff !important;
+          color: #111111 !important;
+          border-color: #ffffff !important;
+        }
+        .orders-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.75rem;
+        }
+        .orders-dialog .modal-header {
+          display: flex;
+          align-items: center;
+        }
+        .orders-dialog .btn-close {
+          width: 0.85rem;
+          height: 0.85rem;
+          padding: 0.2rem;
+          margin: -0.25rem -0.25rem -0.25rem auto;
+          opacity: 1 !important;
+          filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        .orders-dialog .btn-close:hover,
+        .orders-dialog .btn-close:focus {
+          opacity: 1 !important;
+        }
       `}</style>
       {/* Compact Header */}
       <div className="text-white py-2 px-3" style={{ minHeight: '55px', margin: 0, padding: '0.4rem 1rem', backgroundColor: '#1a1a1a', borderBottom: '1px solid #2a2a2a' }}>
@@ -2611,26 +2710,51 @@ const SalesPage = () => {
             </div>
 
             <div className="d-flex flex-column gap-2" style={{ flexShrink: 0, padding: '0.5rem', marginTop: '0.5rem' }}>
-                    <Button 
-                      size="lg" 
-                      className="fw-bold btn-3d" 
-                style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }} 
-                onClick={handleSendToKitchen} 
-                disabled={loading}
-              >
-                {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className={`bi ${editingKitchenOrder ? 'bi-pencil-square' : 'bi-send'} me-2`}></i>}
-                {editingKitchenOrder ? `UPDATE #${editingKitchenOrder.displayOrderNo}` : 'SEND'}
-              </Button>
-              {editingKitchenOrder && (
-                <Button
-                  size="lg"
-                  className="fw-bold btn-3d"
-                  style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
-                  onClick={handleCancelEditOrder}
-                  disabled={loading}
-                >
-                  CANCEL EDIT
-                </Button>
+              {editingKitchenOrder ? (
+                <>
+                  <Button
+                    size="lg"
+                    className="fw-bold btn-3d"
+                    style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                    onClick={() => handleSendToKitchen()}
+                    disabled={loading}
+                  >
+                    {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-pencil-square me-2"></i>}
+                    UPDATE #{editingKitchenOrder.displayOrderNo}
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="fw-bold btn-3d"
+                    style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                    onClick={handleCancelEditOrder}
+                    disabled={loading}
+                  >
+                    CANCEL EDIT
+                  </Button>
+                </>
+              ) : (
+                <div className="d-flex gap-2">
+                  <Button
+                    size="lg"
+                    className="fw-bold btn-3d flex-fill"
+                    style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                    onClick={handleEatInClick}
+                    disabled={loading}
+                  >
+                    {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-shop me-2"></i>}
+                    EAT IN
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="fw-bold btn-3d flex-fill"
+                    style={{ padding: '0.75rem', fontSize: '1rem', minHeight: '50px', backgroundColor: '#3a3a3a', color: '#ffffff' }}
+                    onClick={() => handleSendToKitchen('TAKEAWAY')}
+                    disabled={loading}
+                  >
+                    {loading ? <Spinner animation="border" size="sm" className="me-2" /> : <i className="bi bi-bag me-2"></i>}
+                    TAKEAWAY
+                  </Button>
+                </div>
               )}
               
               <Button 
@@ -2646,7 +2770,7 @@ const SalesPage = () => {
                 ORDERS
                 {openOrders.length > 0 && (
                   <Badge className="ms-2" style={{ fontSize: '0.8rem', backgroundColor: '#2a2a2a', color: '#ffffff' }}>
-                    {openOrders.length}
+                    {eatInOrders.length} in · {takeawayOrders.length} out
                   </Badge>
                 )}
               </Button>
@@ -2833,18 +2957,75 @@ const SalesPage = () => {
         onBarcodeScanned={processBarcode}
       />
 
-      <Modal show={ordersDialogOpen} onHide={() => setOrdersDialogOpen(false)} centered>
+      <Modal show={tablePickerOpen} onHide={() => setTablePickerOpen(false)} centered>
         <Modal.Header closeButton style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #333', color: '#ffffff' }}>
+          <Modal.Title>Pick a table</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          <div className="d-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((table) => {
+              const taken = occupiedTables.has(table);
+              return (
+                <Button
+                  key={table}
+                  className="fw-bold btn-3d"
+                  disabled={taken || loading}
+                  onClick={() => handleTablePicked(table)}
+                  style={{
+                    minHeight: '72px',
+                    fontSize: '1.6rem',
+                    backgroundColor: taken ? '#222222' : '#3a3a3a',
+                    color: taken ? '#777777' : '#ffffff',
+                    opacity: taken ? 0.55 : 1
+                  }}
+                >
+                  {taken ? `T${table} taken` : table}
+                </Button>
+              );
+            })}
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      <Modal show={ordersDialogOpen} onHide={() => setOrdersDialogOpen(false)} centered size="xl" dialogClassName="orders-dialog">
+        <Modal.Header closeButton closeVariant="white" style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #333', color: '#ffffff' }}>
           <Modal.Title>Orders</Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff', maxHeight: '75vh', overflowY: 'auto' }}>
-          {openOrders.length === 0 ? (
-            <p className="mb-0" style={{ color: '#777777' }}>No open orders</p>
-          ) : (
-            openOrders.map((order) => (
-              <div key={order.id} className="mb-2 p-3" style={{ backgroundColor: '#2a2a2a', borderRadius: '8px', border: '1px solid #333' }}>
+        <Modal.Body style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+          <div className="d-flex gap-2 mb-3">
+            <Button
+              className={`flex-fill fw-bold orders-tab${ordersTab === 'EAT_IN' ? ' is-active' : ''}`}
+              onClick={() => setOrdersTab('EAT_IN')}
+            >
+              Eat In ({eatInOrders.length})
+            </Button>
+            <Button
+              className={`flex-fill fw-bold orders-tab${ordersTab === 'TAKEAWAY' ? ' is-active' : ''}`}
+              onClick={() => setOrdersTab('TAKEAWAY')}
+            >
+              Takeaway ({takeawayOrders.length})
+            </Button>
+          </div>
+          {(() => {
+            const tabOrders = ordersTab === 'EAT_IN' ? eatInOrders : takeawayOrders;
+            if (tabOrders.length === 0) {
+              return (
+                <p className="mb-0" style={{ color: '#777777' }}>
+                  {ordersTab === 'EAT_IN' ? 'No eat in orders' : 'No takeaway orders'}
+                </p>
+              );
+            }
+            return (
+              <div className="orders-grid">
+              {tabOrders.map((order) => (
+              <div key={order.id} className="p-3" style={{ backgroundColor: '#2a2a2a', borderRadius: '8px', border: '1px solid #333' }}>
                 <div className="d-flex justify-content-between align-items-center">
                   <span className="fw-bold" style={{ fontSize: '1.6rem' }}>#{order.displayOrderNo}</span>
+                  {isEatInOrder(order) && order.tableNumber ? (
+                    <span className="fw-bold" style={{ fontSize: '1.6rem' }}>TABLE {order.tableNumber}</span>
+                  ) : (
+                    <span className="fw-bold" style={{ fontSize: '1.1rem', letterSpacing: '1px' }}>TAKEAWAY</span>
+                  )}
                   <span>€{parseFloat(order.totalAmount).toFixed(2)}</span>
                 </div>
                 <div className="mt-2">
@@ -2870,8 +3051,10 @@ const SalesPage = () => {
                   </Button>
                 </div>
               </div>
-            ))
-          )}
+              ))}
+              </div>
+            );
+          })()}
         </Modal.Body>
       </Modal>
 
@@ -2901,7 +3084,9 @@ const SalesPage = () => {
               <div className="row g-0 border-bottom p-4" style={{ backgroundColor: '#2a2a2a' }}>
                 <div className="col-4 text-center">
                   <h5 className="mb-2" style={{ color: '#aaaaaa' }}>
-                    {payingKitchenOrder ? `Order #${payingKitchenOrder.displayOrderNo}` : 'Balance Due'}
+                    {payingKitchenOrder
+                      ? `Order #${payingKitchenOrder.displayOrderNo} · ${orderServiceLabel(payingKitchenOrder)}`
+                      : 'Balance Due'}
                   </h5>
                   <h1 className="fw-bold" style={{ color: '#ffffff' }}>€{checkoutTotal().toFixed(2)}</h1>
           </div>
